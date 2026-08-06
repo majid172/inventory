@@ -1,0 +1,124 @@
+.tableContainer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.addButton {
+  background: var(--primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.addButton:hover {
+  background: var(--primary-hover);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  padding: 1rem 1.5rem;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--card-border);
+  background: #f8fafc;
+}
+
+.table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--card-border);
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover {
+  background: #f8fafc;
+}
+
+.sku {
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+
+.name {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusInStock {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.statusLowStock {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.statusOutStock {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.iconBtn {
+  color: var(--muted);
+  padding: 6px;
+  border-radius: 4px;
+  transition: var(--transition);
+}
+
+.iconBtn:hover {
+  background: #f1f5f9;
+  color: var(--primary);
+}
+
+.deleteBtn:hover {
+  background: #fee2e2;
+  color: var(--danger);
+}

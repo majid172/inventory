@@ -1,0 +1,101 @@
+.sidebar {
+  width: 220px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 0.5rem;
+  background: var(--card-bg);
+  border-right: 1px solid var(--card-border);
+  z-index: 20;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 2rem;
+}
+
+.logoIcon {
+  color: var(--primary);
+}
+
+.logoText {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.highlight {
+  color: var(--primary);
+}
+
+.nav {
+  flex: 1;
+}
+
+.nav ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 1rem;
+  border-radius: 6px;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.navItem:hover {
+  background: #f1f5f9;
+  color: var(--foreground);
+}
+
+/* Simulate active state for Dashboard */
+.nav ul li:first-child .navItem {
+  background: rgba(0, 82, 204, 0.05); /* Very light blue */
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.icon {
+  transition: var(--transition);
+}
+
+.navItem:hover .icon {
+  color: var(--foreground);
+}
+
+.nav ul li:first-child .icon {
+  color: var(--primary);
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--card-border);
+}
+
+.logout {
+  color: var(--danger);
+}
+
+.logout:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.logout:hover .icon {
+  color: #b91c1c;
+}

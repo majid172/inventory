@@ -1,0 +1,173 @@
+.posContainer {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--background);
+}
+
+/* Thin Sidebar */
+.sidebar {
+  width: 90px;
+  background: white;
+  border-right: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 0;
+  z-index: 20;
+}
+
+.sidebarNav {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.sidebarFooter {
+  margin-top: auto;
+  width: 100%;
+}
+
+.navItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  width: 100%;
+  padding: 0.5rem 0;
+}
+
+.navItem:hover {
+  color: var(--primary);
+}
+
+.navItem.active {
+  color: var(--primary);
+}
+
+.navItem.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary);
+  border-radius: 0 4px 4px 0;
+}
+
+/* Main Wrapper */
+.mainWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  background: white;
+  border-bottom: 1px solid var(--card-border);
+  z-index: 10;
+}
+
+.headerLeft {
+  width: 250px;
+}
+
+.logo {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary); /* Blue logo */
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9; /* Light grey */
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  width: 100%;
+  max-width: 450px;
+}
+
+.searchIcon {
+  color: var(--muted);
+  margin-right: 0.5rem;
+}
+
+.searchInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--foreground);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--muted);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  width: 250px;
+  justify-content: flex-end;
+}
+
+.iconBtn {
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.iconBtn:hover {
+  color: var(--foreground);
+}
+
+.cashierAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.cashierAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Content Area */
+.mainContent {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.productsArea {
+  flex: 1;
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+.cartArea {
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--card-border);
+}
