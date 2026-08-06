@@ -1,8 +1,10 @@
 'use client';
 import { useState } from 'react';
 import styles from './ProductGrid.module.css';
+import { useCart } from '../../context/CartContext';
 
 export default function ProductGrid({ searchTerm = '' }: { searchTerm?: string }) {
+  const { setSelectedProductForModifiers } = useCart();
   const categories = ['ALL ITEMS', 'COFFEE', 'ESPRESSO', 'PASTRIES', 'MERCHANDISE', 'SEASONAL'];
   const [activeCategory, setActiveCategory] = useState('ALL ITEMS');
 
@@ -41,7 +43,7 @@ export default function ProductGrid({ searchTerm = '' }: { searchTerm?: string }
       <div className={styles.grid}>
         {filteredProducts.length > 0 ? (
           filteredProducts.map((p) => (
-          <div key={p.id} className={styles.card}>
+          <div key={p.id} className={styles.card} onClick={() => setSelectedProductForModifiers(p)} style={{ cursor: 'pointer' }}>
             <div className={styles.imageBox}>
               <span className={styles.emoji}>{p.image}</span>
             </div>
