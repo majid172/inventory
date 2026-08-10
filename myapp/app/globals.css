@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --background: #ffffff;
   --foreground: #3b2013; /* North End Dark Brown */
@@ -71,3 +73,383 @@ button {
   background: none;
   font-family: inherit;
 }
+
+/* Database grid styling */
+.db-grid-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  color: #1f2937;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.db-grid-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f0f0f0;
+  gap: 16px;
+}
+
+.db-grid-button {
+  padding: 4px 8px;
+  border: 1px solid #dee2e6;
+  background-color: #ffffff;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  color: #4b5563;
+  font-size: 12px;
+  transition: background-color 0.15s;
+}
+
+.db-grid-button:hover {
+  background-color: #f9fafb;
+}
+
+.db-grid-input {
+  border: 1px solid #dee2e6;
+  padding: 2px 8px;
+  width: 256px;
+  font-size: 12px;
+  background-color: #ffffff;
+}
+
+.db-grid-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.db-grid-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  background-color: #ffffff;
+}
+
+.db-grid-table {
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+  border-collapse: collapse;
+}
+
+.db-grid-table thead {
+  position: sticky;
+  top: 0;
+  background-color: #f0f0f0;
+  color: #374151;
+  z-index: 10;
+}
+
+.db-grid-table th {
+  padding: 4px 8px;
+  border: 1px solid #dee2e6;
+  font-weight: normal;
+}
+
+.db-grid-table th:hover {
+  background-color: #e5e7eb;
+}
+
+.db-grid-table tbody tr {
+  cursor: default;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.db-grid-table tbody tr:hover {
+  background-color: #e6f2ff;
+}
+
+.db-grid-table tbody tr.isSelected {
+  background-color: #e2f0fd;
+}
+
+.db-grid-table tbody tr.isSelected:hover {
+  background-color: #e2f0fd;
+}
+
+.db-grid-td {
+  padding: 2px 8px;
+  border: 1px solid #dee2e6;
+}
+
+.db-grid-idx {
+  text-align: center;
+  color: #6b7280;
+  background-color: #f9fafb;
+  font-weight: 500;
+  width: 32px;
+  padding: 2px 8px;
+  border: 1px solid #dee2e6;
+}
+
+.db-grid-table tbody tr:hover .db-grid-idx {
+  background-color: #d0e5ff;
+}
+
+.db-grid-table tbody tr.isSelected .db-grid-idx {
+  background-color: #d0e5ff;
+}
+
+.db-grid-link {
+  font-family: monospace;
+  color: #155bb5;
+  cursor: pointer;
+}
+
+.db-grid-link:hover {
+  text-decoration: underline;
+}
+
+.db-grid-status-active {
+  color: #15803d;
+}
+
+.db-grid-status-inactive,
+.db-grid-status-draft {
+  color: #6b7280;
+}
+
+.db-grid-status-failed {
+  color: #b91c1c;
+}
+
+.db-grid-status-pending {
+  color: #a16207;
+}
+
+.db-grid-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border-top: 1px solid #dee2e6;
+  font-size: 11px;
+  color: #4b5563;
+}
+
+/* Settings Page Styling */
+.settings-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  font-family: inherit;
+  background-color: #fbfbfb;
+  min-height: 100vh;
+  color: #1e293b;
+  max-width: 896px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.settings-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.settings-subtitle {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.settings-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+@media (min-width: 768px) {
+  .settings-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.settings-tabs-box {
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .settings-tabs-box {
+    width: 240px;
+  }
+}
+
+.settings-tab-btn {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  color: #475569;
+  border-left: 4px solid transparent;
+}
+
+.settings-tab-btn:hover {
+  background-color: #f8fafc;
+}
+
+.settings-tab-btn.isActive {
+  color: #1d4ed8;
+  background-color: #eff6ff;
+  border-left-color: #2563eb;
+  font-weight: 600;
+}
+
+.settings-form-card {
+  flex: 1;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.settings-card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8f9fa;
+}
+
+.settings-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.settings-card-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .settings-form-grid {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 24px;
+  }
+}
+
+.settings-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.settings-input,
+.settings-select,
+.settings-textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  background-color: #ffffff;
+  color: #1e293b;
+  width: 100%;
+  outline: none;
+}
+
+.settings-input:focus,
+.settings-select:focus,
+.settings-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.settings-select-wrapper {
+  position: relative;
+}
+
+.settings-select-arrow {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+}
+
+.settings-card-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  background-color: #ffffff;
+}
+
+.settings-btn-reset {
+  height: 32px;
+  padding: 0 16px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #334155;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.settings-btn-reset:hover {
+  background-color: #f8fafc;
+}
+
+.settings-btn-save {
+  height: 32px;
+  padding: 0 16px;
+  background-color: #3b2013;
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.settings-btn-save:hover {
+  background-color: #29160d;
+}
+
+
+

@@ -3,29 +3,43 @@
 import React, { useState } from "react";
 import Link from "next/link";
 
-const mockData = Array.from({ length: 120 }).map((_, i) => ({
-  id: i + 1,
-  productId: `PRD-100${i}`,
-  name: ["iPhone 14 Pro", "Nike Air Max", "Organic Coffee Beans", "MacBook Air M2", "Denim Jacket", "Wireless Earbuds"][i % 6],
-  category: ["Electronics", "Footwear", "Groceries", "Electronics", "Apparel", "Electronics"][i % 6],
-  price: (Math.random() * 1000 + 10).toFixed(2),
-  stock: Math.floor(Math.random() * 100),
-  status: i % 5 === 0 ? "OUT OF STOCK" : "IN STOCK",
-  lastRestock: `2026-07-2${Math.floor(Math.random() * 9 + 1)} 10:${Math.floor(Math.random() * 50 + 10)}:${Math.floor(Math.random() * 50 + 10)}.000000000 AM`,
-  supplier: ["Apple Inc", "Nike", "Farm Co", "Apple Inc", "Levis", "Sony"][i % 6]
-}));
+const mockSuppliers = Array.from({ length: 30 }).map((_, i) => {
+  const names = ["Apple Inc", "Nike Logistics", "Farm Co-op", "Sony Distributors", "Levis Apparel", "Global Foods", "Starbucks Supplier", "Toyota Auto Parts", "Dell Enterprise", "Nestle Wholesale"];
+  const contacts = ["Sarah Connor", "Michael Scott", "Dwight Schrute", "Bruce Wayne", "Clark Kent", "Peter Parker", "Tony Stark", "Steve Rogers", "Natasha Romanoff", "Barry Allen"];
+  const domains = ["apple.com", "nike.com", "farmco.org", "sony.com", "levis.com", "globalfoods.net", "starbucks.com", "toyota.com", "dell.com", "nestle.com"];
 
-export default function ProductsPage() {
+  const index = i % names.length;
+  const name = names[index] + (i >= names.length ? ` #${Math.ceil(i / names.length)}` : "");
+  const contact = contacts[i % contacts.length];
+  const email = `${contact.toLowerCase().replace(" ", ".")}@${domains[index]}`;
+  const phone = `+1-555-01${String(i).padStart(2, '0')}`;
+
+  const createdDay = 10 + (i % 20);
+  const updatedDay = createdDay + (i % 5);
+
+  return {
+    id: i + 1,
+    supplierId: `SUP_${String(i).padStart(3, '0')}`,
+    name: name,
+    contactName: contact,
+    email: email,
+    phone: phone,
+    status: i % 6 === 0 ? "INACTIVE" : "ACTIVE",
+    createdAt: `2026-07-${createdDay} 08:${String(Math.floor(Math.random() * 50 + 10)).padStart(2, '0')}:${String(Math.floor(Math.random() * 50 + 10)).padStart(2, '0')}.000000000 AM`,
+    updatedAt: `2026-07-${updatedDay} 15:${String(Math.floor(Math.random() * 50 + 10)).padStart(2, '0')}:${String(Math.floor(Math.random() * 50 + 10)).padStart(2, '0')}.000000000 PM`
+  };
+});
+
+export default function SuppliersTable() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRow, setSelectedRow] = useState<number | null>(10);
+  const [selectedRow, setSelectedRow] = useState<number | null>(5);
   const [filterText, setFilterText] = useState("");
   const itemsPerPage = 20;
 
-  const filteredData = mockData.filter(item =>
+  const filteredData = mockSuppliers.filter(item => 
     item.name.toLowerCase().includes(filterText.toLowerCase()) ||
-    item.productId.toLowerCase().includes(filterText.toLowerCase()) ||
-    item.category.toLowerCase().includes(filterText.toLowerCase()) ||
-    item.supplier.toLowerCase().includes(filterText.toLowerCase())
+    item.supplierId.toLowerCase().includes(filterText.toLowerCase()) ||
+    item.contactName.toLowerCase().includes(filterText.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -36,8 +50,8 @@ export default function ProductsPage() {
       {/* Top Toolbar */}
       <div className="db-grid-toolbar">
         <div className="flex space-x-2">
-          <Link href="/admin/inventory/new" className="db-grid-button">
-            <span className="text-green-600 font-bold mr-1">+</span> New Item
+          <Link href="/admin/suppliers/new" className="db-grid-button">
+            <span className="text-green-600 font-bold mr-1">+</span> New Supplier
           </Link>
           <button className="db-grid-button">
             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,10 +78,10 @@ export default function ProductsPage() {
           <thead>
             <tr>
               <th className="px-1 py-1 w-8 text-center bg-[#e8e8e8]"></th>
-
+              
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>PRODUCT_ID</span>
+                  <span>SUPPLIER_ID</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -85,25 +99,25 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>CATEGORY</span>
+                  <span>CONTACT_NAME</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
                 </div>
               </th>
 
-              <th className="cursor-pointer group text-right">
-                <div className="flex items-center justify-end gap-1">
-                  <span>PRICE</span>
+              <th className="cursor-pointer group">
+                <div className="flex items-center justify-between">
+                  <span>EMAIL</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
                 </div>
               </th>
 
-              <th className="cursor-pointer group text-right">
-                <div className="flex items-center justify-end gap-1">
-                  <span>STOCK</span>
+              <th className="cursor-pointer group">
+                <div className="flex items-center justify-between">
+                  <span>PHONE</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -121,7 +135,7 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>LAST_RESTOCK</span>
+                  <span>CREATED_AT</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -130,7 +144,7 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>SUPPLIER</span>
+                  <span>UPDATED_AT</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -143,8 +157,8 @@ export default function ProductsPage() {
             {currentData.map((row) => {
               const isSelected = selectedRow === row.id;
               return (
-                <tr
-                  key={row.id}
+                <tr 
+                  key={row.id} 
                   onClick={() => setSelectedRow(row.id)}
                   className={isSelected ? "isSelected" : ""}
                 >
@@ -152,28 +166,28 @@ export default function ProductsPage() {
                     {row.id}
                   </td>
                   <td className="db-grid-td db-grid-link">
-                    {row.productId}
+                    {row.supplierId}
                   </td>
                   <td className="db-grid-td">
                     {row.name}
                   </td>
+                  <td className="db-grid-td">
+                    {row.contactName}
+                  </td>
                   <td className="db-grid-td text-gray-600 font-mono">
-                    {row.category}
+                    {row.email}
                   </td>
-                  <td className="db-grid-td text-right font-mono">
-                    ${row.price}
+                  <td className="db-grid-td text-gray-600 font-mono">
+                    {row.phone}
                   </td>
-                  <td className="db-grid-td text-right font-mono">
-                    {row.stock}
-                  </td>
-                  <td className={`db-grid-td font-semibold ${row.status === 'IN STOCK' ? 'db-grid-status-active' : 'db-grid-status-failed'}`}>
+                  <td className={`db-grid-td ${row.status === 'ACTIVE' ? 'db-grid-status-active' : 'db-grid-status-inactive'}`}>
                     {row.status}
                   </td>
                   <td className="db-grid-td text-gray-600 font-mono">
-                    {row.lastRestock}
+                    {row.createdAt}
                   </td>
-                  <td className="db-grid-td text-gray-600">
-                    {row.supplier}
+                  <td className="db-grid-td text-gray-600 font-mono">
+                    {row.updatedAt}
                   </td>
                 </tr>
               );
@@ -204,7 +218,7 @@ export default function ProductsPage() {
             </button>
           </div>
         </div>
-        <div>Inventory Database - Connected (0.012s)</div>
+        <div>Suppliers Database - Connected (0.012s)</div>
       </div>
     </div>
   );

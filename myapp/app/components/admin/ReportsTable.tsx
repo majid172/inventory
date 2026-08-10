@@ -3,29 +3,50 @@
 import React, { useState } from "react";
 import Link from "next/link";
 
-const mockData = Array.from({ length: 120 }).map((_, i) => ({
-  id: i + 1,
-  productId: `PRD-100${i}`,
-  name: ["iPhone 14 Pro", "Nike Air Max", "Organic Coffee Beans", "MacBook Air M2", "Denim Jacket", "Wireless Earbuds"][i % 6],
-  category: ["Electronics", "Footwear", "Groceries", "Electronics", "Apparel", "Electronics"][i % 6],
-  price: (Math.random() * 1000 + 10).toFixed(2),
-  stock: Math.floor(Math.random() * 100),
-  status: i % 5 === 0 ? "OUT OF STOCK" : "IN STOCK",
-  lastRestock: `2026-07-2${Math.floor(Math.random() * 9 + 1)} 10:${Math.floor(Math.random() * 50 + 10)}:${Math.floor(Math.random() * 50 + 10)}.000000000 AM`,
-  supplier: ["Apple Inc", "Nike", "Farm Co", "Apple Inc", "Levis", "Sony"][i % 6]
-}));
+const mockReports = Array.from({ length: 15 }).map((_, i) => {
+  const names = [
+    "Monthly Sales Summary", 
+    "Inventory Valuation Report", 
+    "Daily Wastage Audit", 
+    "Supplier Performance Log", 
+    "Recipe Costing Analysis", 
+    "Tax & Revenue Statement",
+    "Employee Shift Report",
+    "Customer Purchase Habits"
+  ];
+  const types = ["SALES", "INVENTORY", "WASTAGE", "SUPPLIERS", "RECIPES", "FINANCE", "STAFF", "CUSTOMERS"];
+  const users = ["Sarah Jenkins", "Admin System", "Manager Bot", "Finance Dept"];
 
-export default function ProductsPage() {
+  const index = i % names.length;
+  const name = names[index];
+  const type = types[index];
+  const generatedBy = users[i % users.length];
+  
+  const createdDay = 10 + (i % 20);
+  const updatedDay = createdDay + (i % 5);
+
+  return {
+    id: i + 1,
+    reportId: `REP_${String(i).padStart(3, '0')}`,
+    name: name,
+    type: type,
+    generatedBy: generatedBy,
+    status: i % 7 === 0 ? "FAILED" : i % 5 === 0 ? "PENDING" : "COMPLETED",
+    createdAt: `2026-07-${createdDay} 08:${String(Math.floor(Math.random() * 50 + 10)).padStart(2, '0')}:${String(Math.floor(Math.random() * 50 + 10)).padStart(2, '0')}.000000000 AM`,
+    updatedAt: `2026-07-${updatedDay} 15:${String(Math.floor(Math.random() * 50 + 10)).padStart(2, '0')}:${String(Math.floor(Math.random() * 50 + 10)).padStart(2, '0')}.000000000 PM`
+  };
+});
+
+export default function ReportsTable() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRow, setSelectedRow] = useState<number | null>(10);
+  const [selectedRow, setSelectedRow] = useState<number | null>(1);
   const [filterText, setFilterText] = useState("");
   const itemsPerPage = 20;
 
-  const filteredData = mockData.filter(item =>
+  const filteredData = mockReports.filter(item => 
     item.name.toLowerCase().includes(filterText.toLowerCase()) ||
-    item.productId.toLowerCase().includes(filterText.toLowerCase()) ||
-    item.category.toLowerCase().includes(filterText.toLowerCase()) ||
-    item.supplier.toLowerCase().includes(filterText.toLowerCase())
+    item.reportId.toLowerCase().includes(filterText.toLowerCase()) ||
+    item.type.toLowerCase().includes(filterText.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -36,8 +57,8 @@ export default function ProductsPage() {
       {/* Top Toolbar */}
       <div className="db-grid-toolbar">
         <div className="flex space-x-2">
-          <Link href="/admin/inventory/new" className="db-grid-button">
-            <span className="text-green-600 font-bold mr-1">+</span> New Item
+          <Link href="/admin/reports/new" className="db-grid-button">
+            <span className="text-green-600 font-bold mr-1">+</span> New Report
           </Link>
           <button className="db-grid-button">
             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,19 +85,10 @@ export default function ProductsPage() {
           <thead>
             <tr>
               <th className="px-1 py-1 w-8 text-center bg-[#e8e8e8]"></th>
-
+              
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>PRODUCT_ID</span>
-                  <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                  </svg>
-                </div>
-              </th>
-
-              <th className="cursor-pointer group">
-                <div className="flex items-center justify-between">
-                  <span>NAME</span>
+                  <span>REPORT_ID</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -85,25 +97,25 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>CATEGORY</span>
+                  <span>REPORT_NAME</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
                 </div>
               </th>
 
-              <th className="cursor-pointer group text-right">
-                <div className="flex items-center justify-end gap-1">
-                  <span>PRICE</span>
+              <th className="cursor-pointer group">
+                <div className="flex items-center justify-between">
+                  <span>TYPE</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
                 </div>
               </th>
 
-              <th className="cursor-pointer group text-right">
-                <div className="flex items-center justify-end gap-1">
-                  <span>STOCK</span>
+              <th className="cursor-pointer group">
+                <div className="flex items-center justify-between">
+                  <span>GENERATED_BY</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -121,7 +133,7 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>LAST_RESTOCK</span>
+                  <span>CREATED_AT</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -130,7 +142,7 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>SUPPLIER</span>
+                  <span>UPDATED_AT</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -143,8 +155,8 @@ export default function ProductsPage() {
             {currentData.map((row) => {
               const isSelected = selectedRow === row.id;
               return (
-                <tr
-                  key={row.id}
+                <tr 
+                  key={row.id} 
                   onClick={() => setSelectedRow(row.id)}
                   className={isSelected ? "isSelected" : ""}
                 >
@@ -152,28 +164,27 @@ export default function ProductsPage() {
                     {row.id}
                   </td>
                   <td className="db-grid-td db-grid-link">
-                    {row.productId}
+                    {row.reportId}
                   </td>
                   <td className="db-grid-td">
                     {row.name}
                   </td>
                   <td className="db-grid-td text-gray-600 font-mono">
-                    {row.category}
+                    {row.type}
                   </td>
-                  <td className="db-grid-td text-right font-mono">
-                    ${row.price}
+                  <td className="db-grid-td">
+                    {row.generatedBy}
                   </td>
-                  <td className="db-grid-td text-right font-mono">
-                    {row.stock}
-                  </td>
-                  <td className={`db-grid-td font-semibold ${row.status === 'IN STOCK' ? 'db-grid-status-active' : 'db-grid-status-failed'}`}>
+                  <td className={`db-grid-td ${
+                    row.status === 'COMPLETED' ? 'db-grid-status-active' : row.status === 'FAILED' ? 'db-grid-status-failed' : 'db-grid-status-pending'
+                  }`}>
                     {row.status}
                   </td>
                   <td className="db-grid-td text-gray-600 font-mono">
-                    {row.lastRestock}
+                    {row.createdAt}
                   </td>
-                  <td className="db-grid-td text-gray-600">
-                    {row.supplier}
+                  <td className="db-grid-td text-gray-600 font-mono">
+                    {row.updatedAt}
                   </td>
                 </tr>
               );
@@ -186,25 +197,27 @@ export default function ProductsPage() {
       <div className="db-grid-footer">
         <div className="flex items-center space-x-4">
           <span>{filteredData.length} rows fetched.</span>
-          <div className="flex items-center space-x-2 border-l border-gray-300 pl-4">
-            <button
-              onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.max(1, p - 1)); }}
-              disabled={currentPage === 1}
-              className="px-1.5 py-0.5 border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded"
-            >
-              Prev
-            </button>
-            <span>Page {currentPage} of {totalPages}</span>
-            <button
-              onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.min(totalPages, p + 1)); }}
-              disabled={currentPage === totalPages}
-              className="px-1.5 py-0.5 border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded"
-            >
-              Next
-            </button>
-          </div>
+          {totalPages > 0 && (
+            <div className="flex items-center space-x-2 border-l border-gray-300 pl-4">
+              <button
+                onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.max(1, p - 1)); }}
+                disabled={currentPage === 1}
+                className="px-1.5 py-0.5 border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+              >
+                Prev
+              </button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.min(totalPages, p + 1)); }}
+                disabled={currentPage === totalPages}
+                className="px-1.5 py-0.5 border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
-        <div>Inventory Database - Connected (0.012s)</div>
+        <div>Reports Database - Connected (0.012s)</div>
       </div>
     </div>
   );

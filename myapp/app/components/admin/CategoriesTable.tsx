@@ -3,41 +3,34 @@
 import React, { useState } from "react";
 import Link from "next/link";
 
-const mockData = Array.from({ length: 120 }).map((_, i) => ({
-  id: i + 1,
-  productId: `PRD-100${i}`,
-  name: ["iPhone 14 Pro", "Nike Air Max", "Organic Coffee Beans", "MacBook Air M2", "Denim Jacket", "Wireless Earbuds"][i % 6],
-  category: ["Electronics", "Footwear", "Groceries", "Electronics", "Apparel", "Electronics"][i % 6],
-  price: (Math.random() * 1000 + 10).toFixed(2),
-  stock: Math.floor(Math.random() * 100),
-  status: i % 5 === 0 ? "OUT OF STOCK" : "IN STOCK",
-  lastRestock: `2026-07-2${Math.floor(Math.random() * 9 + 1)} 10:${Math.floor(Math.random() * 50 + 10)}:${Math.floor(Math.random() * 50 + 10)}.000000000 AM`,
-  supplier: ["Apple Inc", "Nike", "Farm Co", "Apple Inc", "Levis", "Sony"][i % 6]
-}));
+const mockCategories = [
+  { id: 1, categoryId: "CAT_001", name: "Hot Drinks", slug: "hot-drinks", productCount: 15, status: "ACTIVE", createdAt: "2026-07-10 08:30:00.000000000 AM", updatedAt: "2026-07-24 15:30:16.000000000 PM" },
+  { id: 2, categoryId: "CAT_002", name: "Cold Drinks", slug: "cold-drinks", productCount: 8, status: "ACTIVE", createdAt: "2026-07-11 08:30:00.000000000 AM", updatedAt: "2026-07-26 15:54:41.000000000 PM" },
+  { id: 3, categoryId: "CAT_003", name: "Bakery", slug: "bakery", productCount: 10, status: "ACTIVE", createdAt: "2026-07-11 08:45:00.000000000 AM", updatedAt: "2026-07-26 15:18:38.000000000 PM" },
+  { id: 4, categoryId: "CAT_004", name: "Brunch", slug: "brunch", productCount: 6, status: "ACTIVE", createdAt: "2026-07-12 08:11:00.000000000 AM", updatedAt: "2026-07-23 15:36:28.000000000 PM" },
+  { id: 5, categoryId: "CAT_005", name: "Retail Coffee", slug: "retail-coffee", productCount: 4, status: "ACTIVE", createdAt: "2026-07-12 08:19:00.000000000 AM", updatedAt: "2026-07-23 15:29:57.000000000 PM" },
+  { id: 6, categoryId: "CAT_006", name: "Merchandise", slug: "merchandise", productCount: 5, status: "ACTIVE", createdAt: "2026-07-13 08:28:00.000000000 AM", updatedAt: "2026-07-29 15:16:58.000000000 PM" },
+  { id: 7, categoryId: "CAT_007", name: "Equipment", slug: "equipment", productCount: 3, status: "ACTIVE", createdAt: "2026-07-13 08:49:00.000000000 AM", updatedAt: "2026-07-28 15:17:45.000000000 PM" },
+  { id: 8, categoryId: "CAT_008", name: "Seasonal Special", slug: "seasonal-special", productCount: 0, status: "INACTIVE", createdAt: "2026-07-14 08:33:00.000000000 AM", updatedAt: "2026-07-23 15:28:25.000000000 PM" }
+];
 
-export default function ProductsPage() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRow, setSelectedRow] = useState<number | null>(10);
+export default function CategoriesTable() {
+  const [selectedRow, setSelectedRow] = useState<number | null>(1);
   const [filterText, setFilterText] = useState("");
-  const itemsPerPage = 20;
 
-  const filteredData = mockData.filter(item =>
+  const filteredData = mockCategories.filter(item => 
     item.name.toLowerCase().includes(filterText.toLowerCase()) ||
-    item.productId.toLowerCase().includes(filterText.toLowerCase()) ||
-    item.category.toLowerCase().includes(filterText.toLowerCase()) ||
-    item.supplier.toLowerCase().includes(filterText.toLowerCase())
+    item.categoryId.toLowerCase().includes(filterText.toLowerCase()) ||
+    item.slug.toLowerCase().includes(filterText.toLowerCase())
   );
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const currentData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="db-grid-container">
       {/* Top Toolbar */}
       <div className="db-grid-toolbar">
         <div className="flex space-x-2">
-          <Link href="/admin/inventory/new" className="db-grid-button">
-            <span className="text-green-600 font-bold mr-1">+</span> New Item
+          <Link href="/admin/categories/new" className="db-grid-button">
+            <span className="text-green-600 font-bold mr-1">+</span> New Category
           </Link>
           <button className="db-grid-button">
             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,10 +57,10 @@ export default function ProductsPage() {
           <thead>
             <tr>
               <th className="px-1 py-1 w-8 text-center bg-[#e8e8e8]"></th>
-
+              
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>PRODUCT_ID</span>
+                  <span>CATEGORY_ID</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -85,7 +78,7 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>CATEGORY</span>
+                  <span>SLUG</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -94,16 +87,7 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group text-right">
                 <div className="flex items-center justify-end gap-1">
-                  <span>PRICE</span>
-                  <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                  </svg>
-                </div>
-              </th>
-
-              <th className="cursor-pointer group text-right">
-                <div className="flex items-center justify-end gap-1">
-                  <span>STOCK</span>
+                  <span>PRODUCT_COUNT</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -121,7 +105,7 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>LAST_RESTOCK</span>
+                  <span>CREATED_AT</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -130,7 +114,7 @@ export default function ProductsPage() {
 
               <th className="cursor-pointer group">
                 <div className="flex items-center justify-between">
-                  <span>SUPPLIER</span>
+                  <span>UPDATED_AT</span>
                   <svg className="w-2.5 h-2.5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
@@ -140,11 +124,11 @@ export default function ProductsPage() {
           </thead>
 
           <tbody>
-            {currentData.map((row) => {
+            {filteredData.map((row) => {
               const isSelected = selectedRow === row.id;
               return (
-                <tr
-                  key={row.id}
+                <tr 
+                  key={row.id} 
                   onClick={() => setSelectedRow(row.id)}
                   className={isSelected ? "isSelected" : ""}
                 >
@@ -152,28 +136,25 @@ export default function ProductsPage() {
                     {row.id}
                   </td>
                   <td className="db-grid-td db-grid-link">
-                    {row.productId}
+                    {row.categoryId}
                   </td>
-                  <td className="db-grid-td">
+                  <td className="db-grid-td font-semibold text-slate-800">
                     {row.name}
                   </td>
                   <td className="db-grid-td text-gray-600 font-mono">
-                    {row.category}
+                    {row.slug}
                   </td>
                   <td className="db-grid-td text-right font-mono">
-                    ${row.price}
+                    {row.productCount}
                   </td>
-                  <td className="db-grid-td text-right font-mono">
-                    {row.stock}
-                  </td>
-                  <td className={`db-grid-td font-semibold ${row.status === 'IN STOCK' ? 'db-grid-status-active' : 'db-grid-status-failed'}`}>
+                  <td className={`db-grid-td ${row.status === 'ACTIVE' ? 'db-grid-status-active' : 'db-grid-status-inactive'}`}>
                     {row.status}
                   </td>
                   <td className="db-grid-td text-gray-600 font-mono">
-                    {row.lastRestock}
+                    {row.createdAt}
                   </td>
-                  <td className="db-grid-td text-gray-600">
-                    {row.supplier}
+                  <td className="db-grid-td text-gray-600 font-mono">
+                    {row.updatedAt}
                   </td>
                 </tr>
               );
@@ -184,27 +165,8 @@ export default function ProductsPage() {
 
       {/* Footer StatusBar */}
       <div className="db-grid-footer">
-        <div className="flex items-center space-x-4">
-          <span>{filteredData.length} rows fetched.</span>
-          <div className="flex items-center space-x-2 border-l border-gray-300 pl-4">
-            <button
-              onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.max(1, p - 1)); }}
-              disabled={currentPage === 1}
-              className="px-1.5 py-0.5 border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded"
-            >
-              Prev
-            </button>
-            <span>Page {currentPage} of {totalPages}</span>
-            <button
-              onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.min(totalPages, p + 1)); }}
-              disabled={currentPage === totalPages}
-              className="px-1.5 py-0.5 border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-        <div>Inventory Database - Connected (0.012s)</div>
+        <div>{filteredData.length} rows fetched.</div>
+        <div>Categories Database - Connected (0.010s)</div>
       </div>
     </div>
   );
