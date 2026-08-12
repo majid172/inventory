@@ -1,23 +1,46 @@
-let categories = [
-  { id: 1, categoryId: "CAT_001", name: "Hot Drinks", slug: "hot-drinks", productCount: 15, status: "ACTIVE" },
-  { id: 2, categoryId: "CAT_002", name: "Cold Drinks", slug: "cold-drinks", productCount: 8, status: "ACTIVE" }
-];
-
-const getCategories = (req, res) => {
-  res.json({ success: true, count: categories.length, data: categories });
+const db = require('../config/db');
+const getCategories = async (req, res, next) => {
+  try {
+    const [categories] = await db.query('SELECT * FROM categories ORDER BY id ASC');
+    res.json({
+      success: true,
+      count: categories.length,
+      data: categories
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-const createCategory = (req, res) => {
-  const newCat = {
-    id: categories.length + 1,
-    categoryId: `CAT_${String(categories.length + 1).padStart(3, '0')}`,
-    ...req.body
-  };
-  categories.push(newCat);
-  res.status(201).json({ success: true, data: newCat });
+// @desc    Create a new category in database
+// @route   POST /api/categories
+const createCategory = async (req, res, next) => {
+  try {
+    const { categoryId, name, slug, status } = req.body;
+    
+    // Fallback generated category_id if not provided
+    const catId = categoryId || `CAT_${Date.now()}`;
+    const catSlug = slug || (name ? name.toLowerCase().replace(/\s+/g, '-') : '');
+    const catStatus = status || 'ACTIVE';
+
+    const [result] = await db.query(
+      'INSERT INTO categories (category_id, name, slug, status) VALUES (?, ?, ?, ?)',
+      [catId, name, catSlug, catStatus]
+    );
+
+    const [newCategory] = await db.query('SELECT * FROM categories WHERE id = ?', [result.insertId]);
+
+    res.status(201).json({
+      success: true,
+      data: newCategory[0]
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {
   getCategories,
   createCategory
 };
+
