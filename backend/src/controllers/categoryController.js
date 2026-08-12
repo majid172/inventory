@@ -1,4 +1,5 @@
 const db = require('../config/db');
+
 const getCategories = async (req, res, next) => {
   try {
     const [categories] = await db.query('SELECT * FROM categories ORDER BY id ASC');
@@ -18,7 +19,6 @@ const createCategory = async (req, res, next) => {
   try {
     const { categoryId, name, slug, status } = req.body;
     
-    // Fallback generated category_id if not provided
     const catId = categoryId || `CAT_${Date.now()}`;
     const catSlug = slug || (name ? name.toLowerCase().replace(/\s+/g, '-') : '');
     const catStatus = status || 'ACTIVE';
@@ -39,8 +39,50 @@ const createCategory = async (req, res, next) => {
   }
 };
 
-module.exports = {
-  getCategories,
-  createCategory
+// @desc    Update an existing category
+// @route   PUT /api/categories/:id
+const updateCategory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, slug, status } = req.body;
+
+    const catSlug = slug || (name ? name.toLowerCase().replace(/\s+/g, '-') : '');
+
+    await db.query(
+      'UPDATE categories SET name = ?, slug = ?, status = ? WHERE id = ?',
+      [name, catSlug, status, id]
+    );
+
+    const [updated] = await db.query('SELECT * FROM categories WHERE id = ?', [id]);
+
+    res.json({
+      success: true,
+      data: updated[0]
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
+// @desc    Delete a category
+// @route   DELETE /api/categories/:id
+const deleteCategory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await db.query('DELETE FROM categories WHERE id = ?', [id]);
+
+    res.json({
+      success: true,
+      message: 'Category deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory
+};
