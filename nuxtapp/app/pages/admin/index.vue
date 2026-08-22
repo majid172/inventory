@@ -44,6 +44,98 @@
         </div>
       </div>
 
+      <!-- Graphical Analytics Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        
+        <!-- 7-Day Revenue Area Graph (col-span-2) -->
+        <div class="lg:col-span-2 bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg p-4 shadow-sm flex flex-col">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <h3 class="font-extrabold text-sm text-slate-800 dark:text-gray-100 flex items-center gap-1.5 uppercase tracking-wide">
+                <span>📈</span> 7-Day Revenue Trend
+              </h3>
+              <div class="text-[11px] text-slate-500 dark:text-gray-400 font-medium">Daily gross sales volume across all registers</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xl font-black text-sky-600 dark:text-sky-400 font-mono">$18,452.00</div>
+              <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-300 dark:border-emerald-800">+12% vs last week</div>
+            </div>
+          </div>
+          
+          <!-- SVG Area Chart -->
+          <div class="flex-1 relative min-h-[160px] w-full mt-4 flex flex-col justify-end">
+            <svg viewBox="0 0 700 200" class="w-full h-full overflow-visible preserve-3d" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="area-gradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#0284c7" stop-opacity="0.4"/>
+                  <stop offset="100%" stop-color="#0284c7" stop-opacity="0.0"/>
+                </linearGradient>
+              </defs>
+              <!-- Filled Area -->
+              <path :d="areaPath" fill="url(#area-gradient)" class="transition-all duration-700 ease-in-out" />
+              <!-- Stroke Line -->
+              <path :d="linePath" fill="none" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="transition-all duration-700 ease-in-out drop-shadow-md" />
+              <!-- Data Points -->
+              <g v-for="(point, i) in areaPoints" :key="`pt-${i}`" class="group cursor-pointer">
+                <circle :cx="point.x" :cy="point.y" r="5" class="fill-white dark:fill-gray-900 stroke-sky-500 stroke-[3px] transition-all duration-300 group-hover:r-7 group-hover:stroke-blue-600" />
+                <text :x="point.x" :y="point.y - 15" class="opacity-0 group-hover:opacity-100 fill-slate-700 dark:fill-gray-200 text-[12px] font-bold text-anchor-middle transition-opacity shadow-sm">${{ salesData[i].value }}</text>
+              </g>
+            </svg>
+            
+            <!-- X-Axis Labels -->
+            <div class="flex justify-between mt-2 border-t border-slate-200 dark:border-gray-800 pt-2">
+              <div v-for="day in salesData" :key="day.label" class="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase w-[30px] text-center">
+                {{ day.label }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Selling Medicines Pie/Donut Chart (col-span-1) -->
+        <div class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg p-4 shadow-sm flex flex-col items-center justify-between">
+          <div class="w-full text-left mb-2">
+            <h3 class="font-extrabold text-sm text-slate-800 dark:text-gray-100 flex items-center gap-1.5 uppercase tracking-wide">
+              <span>💊</span> Top Selling Medicines
+            </h3>
+            <div class="text-[11px] text-slate-500 dark:text-gray-400 font-medium">By volume dispensed this month</div>
+          </div>
+
+          <!-- CSS Conic Donut Chart -->
+          <div class="relative w-40 h-40 rounded-full flex items-center justify-center shadow-xl transform transition-transform hover:scale-105 duration-300"
+               style="background: conic-gradient(
+                  #0ea5e9 0% 35%,
+                  #6366f1 35% 65%,
+                  #8b5cf6 65% 85%,
+                  #ec4899 85% 100%
+               )">
+               <div class="w-24 h-24 bg-white dark:bg-gray-950 rounded-full flex items-center justify-center flex-col shadow-inner">
+                  <span class="font-black text-xl text-slate-800 dark:text-gray-100">8.2k</span>
+                  <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Total Dispensed</span>
+               </div>
+          </div>
+
+          <!-- Chart Legend -->
+          <div class="mt-4 w-full space-y-2 text-xs font-bold text-slate-600 dark:text-gray-300">
+             <div class="flex justify-between items-center hover:bg-slate-50 dark:hover:bg-gray-900 p-1 rounded transition-colors cursor-pointer">
+               <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-sky-500 shadow-sm"></span> Paracetamol 500mg</div>
+               <span class="font-mono text-sky-600 dark:text-sky-400">35%</span>
+             </div>
+             <div class="flex justify-between items-center hover:bg-slate-50 dark:hover:bg-gray-900 p-1 rounded transition-colors cursor-pointer">
+               <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-indigo-500 shadow-sm"></span> Amoxicillin 250mg</div>
+               <span class="font-mono text-indigo-600 dark:text-indigo-400">30%</span>
+             </div>
+             <div class="flex justify-between items-center hover:bg-slate-50 dark:hover:bg-gray-900 p-1 rounded transition-colors cursor-pointer">
+               <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-violet-500 shadow-sm"></span> Omeprazole 20mg</div>
+               <span class="font-mono text-violet-600 dark:text-violet-400">20%</span>
+             </div>
+             <div class="flex justify-between items-center hover:bg-slate-50 dark:hover:bg-gray-900 p-1 rounded transition-colors cursor-pointer">
+               <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-pink-500 shadow-sm"></span> Cetirizine 10mg</div>
+               <span class="font-mono text-pink-600 dark:text-pink-400">15%</span>
+             </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Main Overview Content: Data Grid & FEFO Alerts -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- Recent Dispensed Sales Data Grid -->
@@ -179,4 +271,53 @@ const mockRecentOrders = [
   { id: "RX_2838", patient: "Walk-in Patient", doctor: "N/A (OTC)", type: "OTC Dispense", total: "9.20" },
   { id: "RX_2837", patient: "David Kim", doctor: "Dr. R. Hayes", type: "Home Delivery", total: "34.50" }
 ];
+
+const salesData = [
+  { label: 'Mon', value: 2100 },
+  { label: 'Tue', value: 2450 },
+  { label: 'Wed', value: 1950 },
+  { label: 'Thu', value: 2800 },
+  { label: 'Fri', value: 3100 },
+  { label: 'Sat', value: 3500 },
+  { label: 'Sun', value: 2552 }
+];
+
+const maxSale = Math.max(...salesData.map(d => d.value));
+
+// SVG Graph Calculations
+const areaPoints = computed(() => {
+  const width = 700;
+  const height = 200;
+  const step = width / (salesData.length - 1);
+  const max = Math.max(...salesData.map(d => d.value)) * 1.1; // Add 10% padding top
+  
+  return salesData.map((d, i) => {
+    return {
+      x: i * step,
+      y: height - ((d.value / max) * height)
+    };
+  });
+});
+
+const linePath = computed(() => {
+  const points = areaPoints.value;
+  if (points.length === 0) return '';
+  return points.reduce((acc, point, i) => {
+    if (i === 0) return `M ${point.x},${point.y}`;
+    // Smooth bezier curve approximations (simplified)
+    const prev = points[i - 1];
+    const cp1x = prev.x + (point.x - prev.x) / 2;
+    return `${acc} C ${cp1x},${prev.y} ${cp1x},${point.y} ${point.x},${point.y}`;
+  }, '');
+});
+
+const areaPath = computed(() => {
+  const points = areaPoints.value;
+  if (points.length === 0) return '';
+  const line = linePath.value;
+  const width = 700;
+  const height = 200;
+  // Close the path to form an area down to the bottom
+  return `${line} L ${width},${height} L 0,${height} Z`;
+});
 </script>
