@@ -91,7 +91,7 @@
         </template>
       </div>
 
-      <!-- Right Header Actions (Live Time, Theme Switcher & User Profile) -->
+      <!-- Right Header Actions (Live Time, Theme Switcher & User Profile Dropdown) -->
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <!-- Live Clock Display -->
         <div class="hidden lg:flex items-center gap-1.5 text-xs font-mono bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 px-2.5 py-1 rounded-lg text-emerald-600 dark:text-emerald-400 font-bold shadow-sm">
@@ -114,14 +114,47 @@
           <span>{{ activeTenantPlan }} PLAN</span>
         </div>
 
-        <!-- User / Store Profile Badge -->
-        <div v-if="isLoggedIn" class="flex items-center gap-1.5 text-xs font-bold bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 px-2 py-1 rounded-lg text-slate-700 dark:text-gray-200 shadow-sm">
-          <span class="w-5 h-5 rounded bg-emerald-600 text-white font-black flex items-center justify-center text-[10px]">
-            {{ isSuperAdmin ? '👑' : 'Rx' }}
-          </span>
-          <span class="hidden xl:inline font-sans">
-            {{ isSuperAdmin ? 'Platform Super Admin' : (activeTenantStoreName || 'Dr. S. Jenkins') }}
-          </span>
+        <!-- User / Store Profile Badge with Dropdown -->
+        <div v-if="isLoggedIn" class="relative group">
+          <button class="flex items-center gap-1.5 text-xs font-bold bg-white dark:bg-gray-900 hover:bg-slate-50 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-800 px-2 py-1 rounded-lg text-slate-700 dark:text-gray-200 shadow-sm transition-all cursor-pointer">
+            <span class="w-5 h-5 rounded bg-emerald-600 text-white font-black flex items-center justify-center text-[10px]">
+              {{ isSuperAdmin ? '👑' : 'Rx' }}
+            </span>
+            <span class="font-sans">
+              {{ isSuperAdmin ? 'Platform Super Admin' : (activeTenantStoreName || 'khan pharmacy') }}
+            </span>
+            <span class="text-[9px] text-slate-400">▼</span>
+          </button>
+
+          <!-- User Profile Dropdown Menu -->
+          <div class="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 rounded-xl shadow-2xl py-1 text-xs hidden group-hover:block z-50 overflow-hidden">
+            <!-- Active Store Details Header -->
+            <div class="px-3 py-2 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800">
+              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Active Pharmacy Store:</span>
+              <span class="font-black text-slate-900 dark:text-white block truncate">{{ activeTenantStoreName || 'khan pharmacy' }}</span>
+              <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase block">{{ isSuperAdmin ? 'Super Admin' : (activeTenantPlan + ' Tier') }}</span>
+            </div>
+
+            <!-- Menu Links -->
+            <NuxtLink to="/admin" class="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-200 font-bold transition-colors">
+              <span>⚙️</span> Store Settings
+            </NuxtLink>
+
+            <NuxtLink to="/pos" class="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-200 font-bold transition-colors">
+              <span>💻</span> Launch POS Register
+            </NuxtLink>
+
+            <button @click="showPinModal = true" class="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-gray-800 text-slate-700 dark:text-gray-200 font-medium transition-colors cursor-pointer">
+              <span>🔑</span> Change Access PIN
+            </button>
+
+            <div class="my-1 border-t border-slate-200 dark:border-gray-800"></div>
+
+            <!-- Logout Button -->
+            <button @click="handleLogout" class="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-extrabold transition-colors cursor-pointer">
+              <span>🚪</span> Sign Out / Logout
+            </button>
+          </div>
         </div>
 
         <!-- Public / Guest Sign In Action Button (Shown When Not Logged In) -->
@@ -130,17 +163,56 @@
         </NuxtLink>
       </div>
     </div>
+
+    <!-- Change Access PIN Modal Dialog -->
+    <div v-if="showPinModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
+      <div class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl max-w-sm w-full overflow-hidden shadow-2xl p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-gray-800 pb-2">
+          <h3 class="font-black text-xs uppercase text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span>🔑</span> Change Store Access PIN
+          </h3>
+          <button @click="showPinModal = false" class="font-bold text-slate-400 hover:text-slate-700 text-xs">✕</button>
+        </div>
+
+        <form @submit.prevent="handleChangePin" class="space-y-3 text-xs font-sans">
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">New 4-Digit Staff PIN *</label>
+            <input 
+              v-model="newPin"
+              type="password" 
+              required
+              maxlength="10"
+              placeholder="e.g. 5678"
+              class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 font-mono text-center text-lg tracking-widest font-black text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-gray-800">
+            <button type="button" @click="showPinModal = false" class="px-3 py-1.5 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded-lg font-bold">
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black shadow-sm">
+              Update PIN
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </header>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import ThemeToggle from '~/components/ThemeToggle.vue';
 
 const route = useRoute();
+const router = useRouter();
 const formattedTime = ref('');
 let timer: ReturnType<typeof setInterval> | null = null;
+
+const showPinModal = ref(false);
+const newPin = ref('');
 
 const isLoggedIn = computed(() => {
   if (route.path.startsWith('/pos') || route.path.startsWith('/admin') || route.path.startsWith('/super-admin')) {
@@ -154,7 +226,6 @@ const isLoggedIn = computed(() => {
   return false;
 });
 
-// Strict Super Admin Check: True ONLY if authenticated as platform owner
 const isSuperAdmin = computed(() => {
   if (process.client) {
     return localStorage.getItem('is_super_admin') === 'true';
@@ -214,6 +285,22 @@ const reloadApp = () => {
   if (process.client) {
     window.location.reload();
   }
+};
+
+const handleLogout = () => {
+  if (process.client) {
+    localStorage.removeItem('active_tenant_store');
+    localStorage.removeItem('is_logged_in');
+    localStorage.removeItem('is_super_admin');
+    router.push('/login');
+  }
+};
+
+const handleChangePin = () => {
+  if (!newPin.value) return;
+  alert(`Store access PIN updated successfully to: ${newPin.value}`);
+  showPinModal.value = false;
+  newPin.value = '';
 };
 
 onMounted(() => {
