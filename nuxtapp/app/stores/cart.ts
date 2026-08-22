@@ -5,8 +5,7 @@ export interface CartItem {
   cartId: string;
   product: ProductItem;
   quantity: number;
-  selectedSize: 'Small' | 'Medium' | 'Large';
-  modifiers: string[];
+  dosageInstructions: string;
   notes: string;
   unitPrice: number;
   itemTotal: number;
@@ -15,8 +14,11 @@ export interface CartItem {
 export interface HeldOrder {
   id: string;
   heldAt: string;
-  customerName: string;
-  orderType: 'Dine In' | 'Takeaway' | 'Delivery';
+  patientName: string;
+  patientPhone: string;
+  doctorName: string;
+  prescriptionRef: string;
+  orderType: 'OTC Dispense' | 'Prescription (Rx)' | 'Home Delivery';
   items: CartItem[];
   subtotal: number;
   total: number;
@@ -25,23 +27,32 @@ export interface HeldOrder {
 export interface CompletedReceipt {
   orderId: string;
   date: string;
-  customerName: string;
+  patientName: string;
+  patientPhone: string;
+  doctorName: string;
+  prescriptionRef: string;
+  rxVerified: boolean;
   orderType: string;
   items: CartItem[];
   subtotal: number;
   discount: number;
   tax: number;
   total: number;
-  paymentMethod: 'CASH' | 'CARD' | 'MOBILE';
+  paymentMethod: 'CASH' | 'CARD' | 'MOBILE' | 'INSURANCE';
   amountPaid: number;
   changeGiven: number;
+  pharmacistLicense: string;
 }
 
 export const useCartStore = defineStore('cart', {
   state: () => ({
     cartItems: [] as CartItem[],
-    customerName: 'Walk-in Customer',
-    orderType: 'Dine In' as 'Dine In' | 'Takeaway' | 'Delivery',
+    patientName: 'Walk-in Patient',
+    patientPhone: '',
+    doctorName: '',
+    prescriptionRef: '',
+    rxVerified: false,
+    orderType: 'OTC Dispense' as 'OTC Dispense' | 'Prescription (Rx)' | 'Home Delivery',
     discountPercentage: 0,
     discountAmount: 0,
     heldOrders: [] as HeldOrder[],
@@ -63,7 +74,8 @@ export const useCartStore = defineStore('cart', {
     },
 
     tax(): number {
-      return this.subtotal * 0.08; // 8% sales tax
+      // Medicines may have zero or specific medical tax rate
+      return this.subtotal * 0.00;
     },
 
     computedDiscount(): number {
@@ -76,27 +88,36 @@ export const useCartStore = defineStore('cart', {
     total(): number {
       const finalTotal = this.subtotal + this.tax - this.computedDiscount;
       return finalTotal > 0 ? finalTotal : 0;
+    },
+
+    hasRxItems: (state) => {
+      return state.cartItems.some(i => i.product.rxRequired);
     }
   },
 
   actions: {
     addToCart(product: ProductItem) {
       const existingIndex = this.cartItems.findIndex(item => 
-        item.product.id === product.id && 
-        item.selectedSize === 'Medium' && 
-        item.modifiers.length === 0
+        item.product.id === product.id
       );
 
       if (existingIndex > -1) {
         this.cartItems[existingIndex].quantity += 1;
         this.cartItems[existingIndex].itemTotal = this.cartItems[existingIndex].quantity * this.cartItems[existingIndex].unitPrice;
       } else {
+        const defaultDosage = product.dosageForm === 'Tablet' || product.dosageForm === 'Capsule'
+          ? 'Take 1 tablet/capsule twice daily after meals'
+          : product.dosageForm === 'Syrup'
+          ? 'Take 10ml 3 times daily after food'
+          : product.dosageForm === 'Inhaler'
+          ? '2 puffs as needed for shortness of breath'
+          : 'Use as directed by physician';
+
         const newItem: CartItem = {
-          cartId: `ITEM_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+          cartId: `MED_CART_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
           product,
           quantity: 1,
-          selectedSize: 'Medium',
-          modifiers: [],
+          dosageInstructions: defaultDosage,
           notes: '',
           unitPrice: product.price,
           itemTotal: product.price
@@ -117,6 +138,13 @@ export const useCartStore = defineStore('cart', {
       }
     },
 
+    updateDosage(cartId: string, dosage: string) {
+      const item = this.cartItems.find(i => i.cartId === cartId);
+      if (item) {
+        item.dosageInstructions = dosage;
+      }
+    },
+
     removeFromCart(cartId: string) {
       this.cartItems = this.cartItems.filter(i => i.cartId !== cartId);
     },
@@ -125,7 +153,11 @@ export const useCartStore = defineStore('cart', {
       this.cartItems = [];
       this.discountPercentage = 0;
       this.discountAmount = 0;
-      this.customerName = 'Walk-in Customer';
+      this.patientName = 'Walk-in Patient';
+      this.patientPhone = '';
+      this.doctorName = '';
+      this.prescriptionRef = '';
+      this.rxVerified = false;
     },
 
     holdOrder() {
@@ -133,7 +165,10 @@ export const useCartStore = defineStore('cart', {
       const newHeld: HeldOrder = {
         id: `HOLD_${Date.now().toString().slice(-4)}`,
         heldAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        customerName: this.customerName,
+        patientName: this.patientName,
+        patientPhone: this.patientPhone,
+        doctorName: this.doctorName,
+        prescriptionRef: this.prescriptionRef,
         orderType: this.orderType,
         items: JSON.parse(JSON.stringify(this.cartItems)),
         subtotal: this.subtotal,
@@ -149,21 +184,28 @@ export const useCartStore = defineStore('cart', {
       
       const target = this.heldOrders[orderIndex];
       this.cartItems = JSON.parse(JSON.stringify(target.items));
-      this.customerName = target.customerName;
+      this.patientName = target.patientName;
+      this.patientPhone = target.patientPhone || '';
+      this.doctorName = target.doctorName || '';
+      this.prescriptionRef = target.prescriptionRef || '';
       this.orderType = target.orderType;
       
       this.heldOrders.splice(orderIndex, 1);
       this.showHeldOrdersModal = false;
     },
 
-    completePayment(paymentMethod: 'CASH' | 'CARD' | 'MOBILE', amountPaid: number) {
-      const orderId = `ORD_${1000 + Math.floor(Math.random() * 9000)}`;
+    completePayment(paymentMethod: 'CASH' | 'CARD' | 'MOBILE' | 'INSURANCE', amountPaid: number) {
+      const orderId = `RX_${2000 + Math.floor(Math.random() * 8000)}`;
       const changeGiven = amountPaid - this.total > 0 ? amountPaid - this.total : 0;
 
       this.completedReceipt = {
         orderId,
         date: new Date().toLocaleString(),
-        customerName: this.customerName,
+        patientName: this.patientName || 'Walk-in Patient',
+        patientPhone: this.patientPhone,
+        doctorName: this.doctorName || 'N/A (OTC)',
+        prescriptionRef: this.prescriptionRef || 'OTC-DIRECT',
+        rxVerified: this.rxVerified || !this.hasRxItems,
         orderType: this.orderType,
         items: JSON.parse(JSON.stringify(this.cartItems)),
         subtotal: this.subtotal,
@@ -172,7 +214,8 @@ export const useCartStore = defineStore('cart', {
         total: this.total,
         paymentMethod,
         amountPaid,
-        changeGiven
+        changeGiven,
+        pharmacistLicense: 'PH-884920-REG'
       };
 
       this.clearCart();

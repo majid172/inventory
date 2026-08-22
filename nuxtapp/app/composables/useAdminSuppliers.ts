@@ -11,10 +11,11 @@ export interface AdminSupplier {
 }
 
 const suppliers = ref<AdminSupplier[]>([
-  { id: 1, supplier_id: "SUP_001", name: "Farm Co-op", contact_name: "Sarah Connor", email: "sarah@farmcoop.com", phone: "+1-555-0100", status: "ACTIVE" },
-  { id: 2, supplier_id: "SUP_002", name: "Dairy Fresh Inc.", contact_name: "Michael Scott", email: "michael@dairyfresh.com", phone: "+1-555-0101", status: "ACTIVE" },
-  { id: 3, supplier_id: "SUP_003", name: "Oat Organic Ltd.", contact_name: "Pam Beesly", email: "pam@oatorganic.com", phone: "+1-555-0102", status: "ACTIVE" },
-  { id: 4, supplier_id: "SUP_004", name: "Eco Pack Co.", contact_name: "Jim Halpert", email: "jim@ecopack.com", phone: "+1-555-0103", status: "ACTIVE" }
+  { id: 1, supplier_id: "SUP_001", name: "GSK Pharmaceuticals Ltd.", contact_name: "Sarah Connor", email: "orders@gskpharma.com", phone: "+1-800-555-0100", status: "ACTIVE" },
+  { id: 2, supplier_id: "SUP_002", name: "Pfizer Wholesale Corp", contact_name: "Michael Vance", email: "supply@pfizer.com", phone: "+1-800-555-0101", status: "ACTIVE" },
+  { id: 3, supplier_id: "SUP_003", name: "Novartis Health Distribution", contact_name: "Patricia Lee", email: "logistics@novartis.com", phone: "+1-800-555-0102", status: "ACTIVE" },
+  { id: 4, supplier_id: "SUP_004", name: "McKesson Medical-Surgical", contact_name: "James Thorne", email: "support@mckesson.com", phone: "+1-800-555-0103", status: "ACTIVE" },
+  { id: 5, supplier_id: "SUP_005", name: "Bayer Healthcare Direct", contact_name: "Elena Rostova", email: "b2b@bayer.com", phone: "+1-800-555-0104", status: "ACTIVE" }
 ]);
 
 export function useAdminSuppliers() {
@@ -23,10 +24,10 @@ export function useAdminSuppliers() {
     suppliers.value.push({
       id: suppliers.value.length + 1,
       supplier_id: supId,
-      name: sup.name || 'New Supplier Co.',
+      name: sup.name || 'New Pharma Distributor',
       contact_name: sup.contact_name || 'John Doe',
-      email: sup.email || 'contact@supplier.com',
-      phone: sup.phone || '+1-555-0000',
+      email: sup.email || 'contact@distributor.com',
+      phone: sup.phone || '+1-800-555-0000',
       status: sup.status || 'ACTIVE'
     });
   };

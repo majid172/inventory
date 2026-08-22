@@ -15,13 +15,7 @@ export interface CategoryItem {
 }
 
 export const useCategoryStore = defineStore('categories', () => {
-  const categories = ref<CategoryItem[]>([
-    { id: 1, category_id: "CAT_001", name: "Hot Drinks", slug: "hot-drinks", status: "ACTIVE", product_count: 5, created_at: "2026-08-10 10:00:00" },
-    { id: 2, category_id: "CAT_002", name: "Cold Drinks", slug: "cold-drinks", status: "ACTIVE", product_count: 2, created_at: "2026-08-10 10:15:00" },
-    { id: 3, category_id: "CAT_003", name: "Bakery", slug: "bakery", status: "ACTIVE", product_count: 4, created_at: "2026-08-10 10:30:00" },
-    { id: 4, category_id: "CAT_004", name: "Retail Coffee", slug: "retail-coffee", status: "ACTIVE", product_count: 1, created_at: "2026-08-11 09:00:00" },
-    { id: 5, category_id: "CAT_005", name: "Merchandise", slug: "merchandise", status: "ACTIVE", product_count: 1, created_at: "2026-08-11 09:30:00" }
-  ]);
+  const categories = ref<CategoryItem[]>([]);
   const loading = ref<boolean>(false);
   const error = ref<string | null>(null);
 
@@ -30,17 +24,22 @@ export const useCategoryStore = defineStore('categories', () => {
     error.value = null;
 
     try {
-      const response = await axios.get('http://localhost:5000/api/categories');
-      const data = response.data.data || response.data;
-      if (Array.isArray(data) && data.length > 0) {
-        categories.value = data.map((item: any) => ({
+      const { data } = await axios.get('/categories');
+      
+      if (Array.isArray(data.data)) {
+        categories.value = data.data.map((item: any) => ({
           ...item,
+          id: item.id,
           category_id: item.category_id || item.categoryId || `CAT_${String(item.id).padStart(3, '0')}`,
-          status: item.status || 'ACTIVE'
+          name: item.name,
+          slug: item.slug || (item.name ? item.name.toLowerCase().replace(/\s+/g, '-') : ''),
+          status: item.status || 'ACTIVE',
+          product_count: item.product_count ?? 0,
+          created_at: item.created_at || item.createdAt
         }));
       }
     } catch (err: any) {
-      console.warn('Backend API offline, using local categories store fallback.');
+      console.error('Failed to fetch categories from API:', err);
       error.value = err.message || 'Failed to fetch categories';
     } finally {
       loading.value = false;
@@ -54,7 +53,7 @@ export const useCategoryStore = defineStore('categories', () => {
     const status = payload.status || 'ACTIVE';
 
     try {
-      const response = await axios.post('http://localhost:5000/api/categories', {
+      const response = await axios.post('/categories', {
         categoryId: catId,
         name: payload.name,
         slug,
@@ -87,7 +86,7 @@ export const useCategoryStore = defineStore('categories', () => {
     const status = payload.status || 'ACTIVE';
 
     try {
-      await axios.put(`http://localhost:5000/api/categories/${id}`, {
+      await axios.put(`/categories/${id}`, {
         name: payload.name,
         slug,
         status
@@ -113,7 +112,7 @@ export const useCategoryStore = defineStore('categories', () => {
   const deleteCategory = async (id: number) => {
     loading.value = true;
     try {
-      await axios.delete(`http://localhost:5000/api/categories/${id}`);
+      await axios.delete(`/categories/${id}`);
       await fetchCategories();
       return;
     } catch (err) {

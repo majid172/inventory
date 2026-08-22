@@ -1,65 +1,72 @@
 <template>
-  <div v-if="showReceiptModal && completedReceipt" class="modal-backdrop select-none">
-    <div class="modal-content max-w-md bg-slate-900 border-slate-700 text-slate-100">
-      <!-- Printable Receipt Area -->
-      <div class="bg-white text-slate-900 p-6 rounded-xl font-mono text-xs shadow-2xl mb-4">
+  <div v-if="showReceiptModal && completedReceipt" class="fixed inset-0 bg-gray-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <!-- Printable Pharmacy Receipt / Invoice Area -->
+      <div class="bg-white text-gray-900 p-6 rounded-xl font-mono text-xs shadow-2xl space-y-3">
         <!-- Header -->
-        <div class="text-center mb-4 border-b border-dashed border-slate-300 pb-3">
-          <h2 class="text-base font-black tracking-wider">COFFEE INVENTORY POS</h2>
-          <p class="text-[10px] text-slate-500">123 Espresso Blvd, Suite 100</p>
-          <p class="text-[10px] text-slate-500">Tel: +1 (555) 019-2831</p>
-          <div class="mt-2 text-[10px] text-slate-600">
-            <div>ORDER: <strong>{{ completedReceipt.orderId }}</strong></div>
-            <div>DATE: {{ completedReceipt.date }}</div>
-            <div>TYPE: {{ completedReceipt.orderType }}</div>
+        <div class="text-center border-b border-dashed border-gray-300 pb-3">
+          <div class="text-lg font-black tracking-wider text-emerald-900 flex items-center justify-center gap-1">
+            <span>💊 PHARMA-CARE MEDICAL</span>
+          </div>
+          <p class="text-[10px] text-gray-600 font-sans">Licensed Community Pharmacy • Reg #PH-884920</p>
+          <p class="text-[10px] text-gray-500">742 Medical Center Blvd, Suite 101</p>
+          <p class="text-[10px] text-gray-500">Emergency Line: +1 (800) 555-PHARMA</p>
+          
+          <div class="mt-3 text-[10px] text-gray-700 bg-gray-50 p-2 rounded text-left space-y-0.5 border border-gray-200">
+            <div>DISPENSE REF: <strong class="text-emerald-900">{{ completedReceipt.orderId }}</strong></div>
+            <div>DATE & TIME: {{ completedReceipt.date }}</div>
+            <div>DISPENSE TYPE: {{ completedReceipt.orderType }}</div>
+            <div>PATIENT: <strong>{{ completedReceipt.patientName }}</strong></div>
+            <div>PRESCRIBER: {{ completedReceipt.doctorName }}</div>
+            <div>Rx REF #: {{ completedReceipt.prescriptionRef }}</div>
           </div>
         </div>
 
-        <!-- Items Table -->
-        <table class="w-full mb-3">
+        <!-- Dispensed Items Table -->
+        <table class="w-full text-left">
           <thead>
-            <tr class="border-b border-slate-300 text-left text-[10px] text-slate-500">
-              <th class="pb-1">QTY ITEM</th>
-              <th class="pb-1 text-right">PRICE</th>
+            <tr class="border-b border-gray-300 text-[10px] text-gray-500 font-bold uppercase">
+              <th class="pb-1">MEDICINE / DOSAGE</th>
+              <th class="pb-1 text-center">QTY</th>
               <th class="pb-1 text-right">TOTAL</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="item in completedReceipt.items" :key="item.cartId" class="border-b border-slate-100">
-              <td class="py-1">
-                {{ item.quantity }}x {{ item.product.name }}
-                <div class="text-[9px] text-slate-500" v-if="item.selectedSize !== 'Medium'">Size: {{ item.selectedSize }}</div>
+          <tbody class="divide-y divide-gray-100">
+            <tr v-for="item in completedReceipt.items" :key="item.cartId">
+              <td class="py-1.5">
+                <div class="font-bold text-gray-900">{{ item.product.name }}</div>
+                <div class="text-[9px] text-emerald-700">🧪 {{ item.product.genericName }} ({{ item.product.strength }})</div>
+                <div class="text-[9px] text-gray-500">Lot: {{ item.product.batchNumber }} | Exp: {{ item.product.expiryDate }}</div>
+                <div class="text-[9px] font-semibold text-gray-800 bg-amber-50 p-1 rounded mt-0.5 border border-amber-200">
+                  📋 Direction: {{ item.dosageInstructions }}
+                </div>
               </td>
-              <td class="py-1 text-right">${{ item.unitPrice.toFixed(2) }}</td>
-              <td class="py-1 text-right font-bold">${{ item.itemTotal.toFixed(2) }}</td>
+              <td class="py-1.5 text-center font-bold font-mono">{{ item.quantity }}</td>
+              <td class="py-1.5 text-right font-bold font-mono text-gray-900">${{ item.itemTotal.toFixed(2) }}</td>
             </tr>
           </tbody>
         </table>
 
         <!-- Totals Breakdown -->
-        <div class="border-t border-dashed border-slate-300 pt-2 space-y-1">
-          <div class="flex justify-between">
+        <div class="border-t border-dashed border-gray-300 pt-2 space-y-1 text-xs">
+          <div class="flex justify-between text-gray-600">
             <span>SUBTOTAL</span>
-            <span>${{ completedReceipt.subtotal.toFixed(2) }}</span>
+            <span class="font-mono">${{ completedReceipt.subtotal.toFixed(2) }}</span>
           </div>
-          <div class="flex justify-between" v-if="completedReceipt.discount > 0">
-            <span>DISCOUNT</span>
-            <span>-${{ completedReceipt.discount.toFixed(2) }}</span>
+          <div class="flex justify-between text-emerald-700" v-if="completedReceipt.discount > 0">
+            <span>DISCOUNT APPLIED</span>
+            <span class="font-mono">-${{ completedReceipt.discount.toFixed(2) }}</span>
           </div>
-          <div class="flex justify-between">
-            <span>TAX (8%)</span>
-            <span>${{ completedReceipt.tax.toFixed(2) }}</span>
-          </div>
-          <div class="flex justify-between font-black text-sm border-t border-slate-900 pt-1 mt-1">
-            <span>TOTAL PAID</span>
-            <span>${{ completedReceipt.total.toFixed(2) }}</span>
+          <div class="flex justify-between font-black text-sm border-t border-gray-900 pt-1 mt-1 text-gray-900">
+            <span>TOTAL AMOUNT PAID</span>
+            <span class="font-mono text-emerald-800">${{ completedReceipt.total.toFixed(2) }}</span>
           </div>
         </div>
 
         <!-- Payment Method Details -->
-        <div class="mt-3 bg-slate-100 p-2 rounded text-[10px] space-y-1">
+        <div class="bg-gray-100 p-2 rounded text-[10px] space-y-1 border border-gray-200">
           <div class="flex justify-between">
-            <span>METHOD:</span>
+            <span>PAYMENT METHOD:</span>
             <span class="font-bold">{{ completedReceipt.paymentMethod }}</span>
           </div>
           <div class="flex justify-between" v-if="completedReceipt.paymentMethod === 'CASH'">
@@ -67,17 +74,19 @@
             <span>${{ completedReceipt.amountPaid.toFixed(2) }}</span>
           </div>
           <div class="flex justify-between" v-if="completedReceipt.paymentMethod === 'CASH'">
-            <span>CHANGE:</span>
+            <span>CHANGE RETURNED:</span>
             <span class="font-bold">${{ completedReceipt.changeGiven.toFixed(2) }}</span>
           </div>
         </div>
 
-        <!-- Barcode Graphic Placeholder -->
-        <div class="mt-4 text-center">
-          <div class="inline-block bg-slate-900 text-white px-6 py-1 tracking-widest text-[10px]">
-            *{{ completedReceipt.orderId }}*
+        <!-- Pharmacist Signature Disclaimer -->
+        <div class="pt-2 text-center border-t border-gray-200 space-y-1">
+          <div class="text-[9px] text-gray-500 font-sans italic">
+            "Dispensed by Registered Pharmacist • Check instructions before consumption"
           </div>
-          <p class="text-[9px] text-slate-400 mt-1">Thank you for visiting! Have a great day.</p>
+          <div class="text-[9px] font-bold text-gray-800 font-mono">
+            Lic #: {{ completedReceipt.pharmacistLicense }}
+          </div>
         </div>
       </div>
 
@@ -85,15 +94,15 @@
       <div class="flex gap-2">
         <button 
           @click="windowPrint" 
-          class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"
+          class="flex-1 bg-gray-950 hover:bg-gray-800 border border-gray-800 text-gray-200 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"
         >
-          🖨️ Print Receipt
+          🖨️ Print Prescription Invoice
         </button>
         <button 
           @click="showReceiptModal = false" 
-          class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs"
+          class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black py-2.5 rounded-xl text-xs"
         >
-          NEW SALE
+          NEW DISPENSE
         </button>
       </div>
     </div>
@@ -101,9 +110,11 @@
 </template>
 
 <script setup lang="ts">
-import { useCart } from '~/composables/useCart';
+import { storeToRefs } from 'pinia';
+import { useCartStore } from '~/stores/cart';
 
-const { showReceiptModal, completedReceipt } = useCart();
+const cartStore = useCartStore();
+const { showReceiptModal, completedReceipt } = storeToRefs(cartStore);
 
 const windowPrint = () => {
   if (process.client) {

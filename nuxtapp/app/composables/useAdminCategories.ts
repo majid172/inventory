@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import axios from 'axios';
 
 export interface AdminCategory {
   id: number;
@@ -11,13 +12,7 @@ export interface AdminCategory {
   updated_at?: string;
 }
 
-const categories = ref<AdminCategory[]>([
-  { id: 1, category_id: "CAT_001", name: "Hot Drinks", slug: "hot-drinks", status: "ACTIVE", product_count: 5, created_at: "2026-08-10 10:00:00" },
-  { id: 2, category_id: "CAT_002", name: "Cold Drinks", slug: "cold-drinks", status: "ACTIVE", product_count: 2, created_at: "2026-08-10 10:15:00" },
-  { id: 3, category_id: "CAT_003", name: "Bakery", slug: "bakery", status: "ACTIVE", product_count: 4, created_at: "2026-08-10 10:30:00" },
-  { id: 4, category_id: "CAT_004", name: "Retail Coffee", slug: "retail-coffee", status: "ACTIVE", product_count: 1, created_at: "2026-08-11 09:00:00" },
-  { id: 5, category_id: "CAT_005", name: "Merchandise", slug: "merchandise", status: "ACTIVE", product_count: 1, created_at: "2026-08-11 09:30:00" }
-]);
+const categories = ref<AdminCategory[]>([]);
 
 const loading = ref<boolean>(false);
 const error = ref<string | null>(null);
@@ -27,15 +22,22 @@ export function useAdminCategories() {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch('http://localhost:5000/api/categories');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data && json.data.length > 0) {
-          categories.value = json.data;
-        }
+      const response = await axios.get('/categories');
+      const data = response.data?.data ?? response.data;
+      if (Array.isArray(data)) {
+        categories.value = data.map((item: any) => ({
+          id: item.id,
+          category_id: item.category_id || item.categoryId || `CAT_${String(item.id).padStart(3, '0')}`,
+          name: item.name,
+          slug: item.slug || (item.name ? item.name.toLowerCase().replace(/\s+/g, '-') : ''),
+          status: item.status || 'ACTIVE',
+          product_count: item.product_count ?? 0,
+          created_at: item.created_at || item.createdAt
+        }));
       }
     } catch (e: any) {
-      console.warn('Backend API offline, using local categories data.');
+      console.error('Failed to fetch admin categories from API:', e);
+      error.value = e.message || 'Failed to fetch categories';
     } finally {
       loading.value = false;
     }
@@ -56,12 +58,8 @@ export function useAdminCategories() {
     };
 
     try {
-      const res = await fetch('http://localhost:5000/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categoryId: catId, name: newCat.name, slug, status: newCat.status || 'ACTIVE' })
-      });
-      if (res.ok) {
+      const response = await axios.post('/categories', { categoryId: catId, name: newCat.name, slug, status: newCat.status || 'ACTIVE' });
+      if (response.data) {
         await fetchCategories();
         return;
       }

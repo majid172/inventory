@@ -15,16 +15,16 @@ export interface AdminIngredient {
 }
 
 const ingredients = ref<AdminIngredient[]>([
-  { id: 1, ingredient_id: "ING_001", name: "Espresso Beans (Dark Roast)", sku: "RAW-COF-001", category: "Coffee Beans", stock: 45, unit: "kg", min_level: 15, cost: 12.50, status: "IN STOCK", supplier: "Farm Co-op" },
-  { id: 2, ingredient_id: "ING_002", name: "Whole Milk (Organic)", sku: "RAW-DAI-001", category: "Dairy", stock: 8, unit: "liters", min_level: 10, cost: 2.20, status: "LOW STOCK", supplier: "Dairy Fresh Inc." },
-  { id: 3, ingredient_id: "ING_003", name: "Oat Milk (Barista Edition)", sku: "RAW-DAI-002", category: "Dairy Alternatives", stock: 24, unit: "liters", min_level: 5, cost: 3.40, status: "IN STOCK", supplier: "Oat Organic Ltd." },
-  { id: 4, ingredient_id: "ING_004", name: "Vanilla Syrup (750ml)", sku: "RAW-SYR-001", category: "Sweeteners", stock: 12, unit: "bottles", min_level: 3, cost: 8.50, status: "IN STOCK", supplier: "Global Foods" },
-  { id: 5, ingredient_id: "ING_005", name: "Paper Cups (12oz)", sku: "RAW-PAC-001", category: "Packaging", stock: 450, unit: "pcs", min_level: 100, cost: 0.15, status: "IN STOCK", supplier: "Eco Pack Co." }
+  { id: 1, ingredient_id: "API_001", name: "Paracetamol Micronized Powder", sku: "API-PCM-001", category: "Active Chemical Powder", stock: 150, unit: "kg", min_level: 30, cost: 18.50, status: "IN STOCK", supplier: "Global Pharma Chem" },
+  { id: 2, ingredient_id: "API_002", name: "Amoxicillin Trihydrate Compacted", sku: "API-AMX-001", category: "Antibacterial API", stock: 12, unit: "kg", min_level: 25, cost: 42.00, status: "LOW STOCK", supplier: "BioSynthetica Labs" },
+  { id: 3, ingredient_id: "API_003", name: "Lactose Monohydrate (Binder)", sku: "EXC-LAC-001", category: "Excipients & Fillers", stock: 240, unit: "kg", min_level: 50, cost: 4.80, status: "IN STOCK", supplier: "FormuTech Supplies" },
+  { id: 4, ingredient_id: "API_004", name: "Ethyl Alcohol 99.9% Medical Grade", sku: "SOL-ETH-001", category: "Solvents & Liquids", stock: 85, unit: "liters", min_level: 20, cost: 9.50, status: "IN STOCK", supplier: "PureChem International" },
+  { id: 5, ingredient_id: "API_005", name: "Blister Foil PVC/PVDC Packaging Roll", sku: "PAC-BLI-001", category: "Primary Packaging", stock: 1200, unit: "meters", min_level: 300, cost: 0.85, status: "IN STOCK", supplier: "PharmaPack Co." }
 ]);
 
 export function useAdminIngredients() {
   const addIngredient = (item: Partial<AdminIngredient>) => {
-    const ingId = `ING_${String(ingredients.value.length + 1).padStart(3, '0')}`;
+    const ingId = `API_${String(ingredients.value.length + 1).padStart(3, '0')}`;
     const stockVal = item.stock || 10;
     const minVal = item.min_level || 5;
     const statusVal = stockVal === 0 ? 'OUT OF STOCK' : stockVal < minVal ? 'LOW STOCK' : 'IN STOCK';
@@ -32,15 +32,15 @@ export function useAdminIngredients() {
     ingredients.value.push({
       id: ingredients.value.length + 1,
       ingredient_id: ingId,
-      name: item.name || 'New Raw Ingredient',
-      sku: item.sku || `RAW-NEW-${Date.now().toString().slice(-4)}`,
-      category: item.category || 'General',
+      name: item.name || 'New Active Chemical Compound',
+      sku: item.sku || `API-NEW-${Date.now().toString().slice(-4)}`,
+      category: item.category || 'Active Chemical Powder',
       stock: stockVal,
       unit: item.unit || 'kg',
       min_level: minVal,
-      cost: item.cost || 5.00,
+      cost: item.cost || 25.00,
       status: statusVal,
-      supplier: item.supplier || 'Farm Co-op'
+      supplier: item.supplier || 'Global Pharma Chem'
     });
   };
 

@@ -1,30 +1,33 @@
 <template>
-  <header class="h-16 bg-gray-950/90 backdrop-blur-md border-b border-gray-800 px-4 sm:px-6 flex items-center justify-between select-none">
+  <header class="h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800 px-4 sm:px-6 flex items-center justify-between select-none transition-colors duration-200">
     <div class="flex items-center gap-3">
       <!-- Mobile Sidebar Hamburger Toggle Button -->
       <button 
         @click="toggleSidebar"
-        class="lg:hidden p-2 bg-gray-900 border border-gray-800 rounded-xl text-gray-300 hover:text-white font-bold text-sm"
+        class="lg:hidden p-2 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white font-bold text-sm"
         title="Toggle Menu"
       >
         ☰
       </button>
 
       <div class="flex items-center gap-1.5 sm:gap-2">
-        <span class="hidden sm:inline text-xs font-bold text-gray-500 uppercase tracking-widest">Admin /</span>
-        <h2 class="text-xs sm:text-sm font-extrabold text-gray-100 uppercase tracking-wider">{{ currentTitle }}</h2>
+        <span class="hidden sm:inline text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest">Admin /</span>
+        <h2 class="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-gray-100 uppercase tracking-wider">{{ currentTitle }}</h2>
       </div>
     </div>
 
     <div class="flex items-center gap-2 sm:gap-4">
       <!-- Live Clock Badge -->
-      <div class="hidden sm:flex items-center gap-2 text-xs font-mono bg-gray-900 border border-gray-800 px-3.5 py-1.5 rounded-xl text-amber-400 font-bold">
+      <div class="hidden sm:flex items-center gap-2 text-xs font-mono bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 px-3.5 py-1.5 rounded-xl text-amber-600 dark:text-amber-400 font-bold">
         <span>🕒</span>
         <span>{{ formattedTime }}</span>
       </div>
 
+      <!-- Theme Switcher Toggle -->
+      <ThemeToggle />
+
       <!-- Administrator Profile -->
-      <div class="flex items-center gap-2 bg-gray-900 border border-gray-800 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-gray-200">
+      <div class="flex items-center gap-2 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-gray-200">
         <span class="w-6 h-6 rounded-lg bg-amber-500 text-gray-950 flex items-center justify-center font-black">
           AD
         </span>
@@ -38,6 +41,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAdminNav } from '~/composables/useAdminNav';
+import ThemeToggle from '~/components/ThemeToggle.vue';
 
 const route = useRoute();
 const { toggleSidebar } = useAdminNav();
@@ -69,3 +73,4 @@ const currentTitle = computed(() => {
   return 'Executive Dashboard';
 });
 </script>
+

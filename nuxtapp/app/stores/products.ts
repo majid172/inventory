@@ -1,40 +1,37 @@
 import { defineStore } from 'pinia';
+import axios from 'axios';
 
 export interface ProductItem {
   id: number;
-  productId: string;
+  productId?: string;
   name: string;
+  genericName?: string;
+  dosageForm?: 'Tablet' | 'Capsule' | 'Syrup' | 'Injection' | 'Ointment' | 'Eye Drops' | 'Inhaler' | 'Supplies';
+  strength?: string;
+  categoryId?: number | string;
   category: string;
   price: number;
   cost: number;
   taxRate: number;
   status: 'AVAILABLE' | 'OUT OF STOCK';
+  rxRequired?: boolean;
+  batchNumber?: string;
+  expiryDate?: string;
+  manufacturer?: string;
+  rackLocation?: string;
+  stockQuantity?: number;
+  minReorderLevel?: number;
   icon?: string;
   updatedAt?: string;
 }
 
-const defaultProductsList: ProductItem[] = [
-  { id: 1, productId: "PRD_001", name: "Espresso Double", category: "Hot Drinks", price: 3.50, cost: 0.45, taxRate: 8, status: "AVAILABLE", icon: "☕" },
-  { id: 2, productId: "PRD_002", name: "Caramel Macchiato", category: "Hot Drinks", price: 4.80, cost: 0.95, taxRate: 8, status: "AVAILABLE", icon: "🥛" },
-  { id: 3, productId: "PRD_003", name: "Vanilla Latte", category: "Hot Drinks", price: 4.50, cost: 0.85, taxRate: 8, status: "AVAILABLE", icon: "☕" },
-  { id: 4, productId: "PRD_004", name: "Flat White", category: "Hot Drinks", price: 4.20, cost: 0.75, taxRate: 8, status: "AVAILABLE", icon: "☕" },
-  { id: 5, productId: "PRD_005", name: "Iced Americano", category: "Cold Drinks", price: 3.80, cost: 0.40, taxRate: 8, status: "AVAILABLE", icon: "🧊" },
-  { id: 6, productId: "PRD_006", name: "Cold Brew Coffee", category: "Cold Drinks", price: 4.00, cost: 0.50, taxRate: 8, status: "AVAILABLE", icon: "🧊" },
-  { id: 7, productId: "PRD_007", name: "Matcha Green Tea Latte", category: "Hot Drinks", price: 4.80, cost: 0.90, taxRate: 8, status: "AVAILABLE", icon: "🍵" },
-  { id: 8, productId: "PRD_008", name: "Butter Croissant", category: "Bakery", price: 2.90, cost: 0.80, taxRate: 8, status: "AVAILABLE", icon: "🥐" },
-  { id: 9, productId: "PRD_009", name: "Chocolate Muffin", category: "Bakery", price: 3.20, cost: 0.90, taxRate: 8, status: "AVAILABLE", icon: "🧁" },
-  { id: 10, productId: "PRD_010", name: "Blueberry Scone", category: "Bakery", price: 3.00, cost: 0.85, taxRate: 8, status: "AVAILABLE", icon: "🍪" },
-  { id: 11, productId: "PRD_011", name: "Avocado Toast", category: "Bakery", price: 7.50, cost: 2.20, taxRate: 8, status: "AVAILABLE", icon: "🥑" },
-  { id: 12, productId: "PRD_012", name: "Stainless Travel Mug", category: "Merchandise", price: 18.00, cost: 6.50, taxRate: 8, status: "AVAILABLE", icon: "🥤" },
-  { id: 13, productId: "PRD_013", name: "Coffee Beans (250g bag)", category: "Retail Coffee", price: 14.50, cost: 5.00, taxRate: 8, status: "AVAILABLE", icon: "🫘" }
-];
-
 export const useProductStore = defineStore('products', {
   state: () => ({
-    products: defaultProductsList as ProductItem[],
+    products: [] as ProductItem[],
     activeCategory: 'All Items',
     searchQuery: '',
-    loading: false
+    loading: false,
+    error: null as string | null
   }),
 
   getters: {
@@ -46,15 +43,17 @@ export const useProductStore = defineStore('products', {
         const matchesCategory = cat === "all items" || (p.category && p.category.toLowerCase() === cat);
         const matchesSearch = !query || 
                               (p.name && p.name.toLowerCase().includes(query)) || 
-                              (p.productId && p.productId.toLowerCase().includes(query)) ||
+                              (p.genericName && p.genericName.toLowerCase().includes(query)) ||
+                              (p.batchNumber && p.batchNumber.toLowerCase().includes(query)) ||
                               (p.category && p.category.toLowerCase().includes(query));
         return matchesCategory && matchesSearch;
       });
     },
 
     categories: (state) => {
-      const categoryNames = ["All Items", "Hot Drinks", "Cold Drinks", "Bakery", "Retail Coffee", "Merchandise"];
-      return categoryNames.map((catName, index) => {
+      const dynamicCats = ["All Items", ...new Set(state.products.map(p => p.category).filter(Boolean))];
+
+      return dynamicCats.map((catName, index) => {
         const count = catName === "All Items" 
           ? state.products.length 
           : state.products.filter(p => p.category && p.category.toLowerCase() === catName.toLowerCase()).length;
@@ -67,56 +66,121 @@ export const useProductStore = defineStore('products', {
           count
         };
       });
+    },
+
+    rxProductsCount: (state) => state.products.filter(p => p.rxRequired).length,
+    lowStockCount: (state) => state.products.filter(p => (p.stockQuantity || 0) <= (p.minReorderLevel || 10)).length,
+    expiringSoonCount: (state) => {
+      const today = new Date();
+      const ninetyDaysFromNow = new Date();
+      ninetyDaysFromNow.setDate(today.getDate() + 90);
+      return state.products.filter(p => {
+        if (!p.expiryDate) return false;
+        const exp = new Date(p.expiryDate);
+        return exp <= ninetyDaysFromNow;
+      }).length;
     }
   },
 
   actions: {
+    // ALWAYS fetch products dynamically from API database endpoint
     async fetchProducts() {
       this.loading = true;
+      this.error = null;
       try {
-        const res = await fetch('http://localhost:5000/api/products');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data && json.data.length > 0) {
-            this.products = json.data.map((item: any) => ({
-              id: item.id,
-              productId: item.productId || item.product_id || `PRD_${item.id}`,
-              name: item.name,
-              category: item.category || 'Hot Drinks',
-              price: parseFloat(item.price) || 0,
-              cost: parseFloat(item.cost) || 0,
-              taxRate: parseFloat(item.taxRate || item.tax_rate) || 8,
-              status: item.status || 'AVAILABLE',
-              icon: item.category === 'Cold Drinks' ? '🧊' : item.category === 'Bakery' ? '🥐' : '☕'
-            }));
-          }
+        const response = await axios.get('/products');
+        const json = response.data;
+        const itemsList = json && json.data ? json.data : (Array.isArray(json) ? json : []);
+
+        if (Array.isArray(itemsList)) {
+          this.products = itemsList.map((item: any) => ({
+            id: item.id,
+            productId: item.productId || item.product_id || `MED_${item.id}`,
+            name: item.name,
+            genericName: item.genericName || item.generic_name || item.name,
+            dosageForm: item.dosageForm || item.dosage_form || 'Tablet',
+            strength: item.strength || '',
+            categoryId: item.categoryId || item.category_id,
+            category: item.category || item.category_name || 'General',
+            price: parseFloat(item.price) || 0,
+            cost: parseFloat(item.cost) || 0,
+            taxRate: parseFloat(item.taxRate || item.tax_rate) || 0,
+            status: item.status || 'AVAILABLE',
+            rxRequired: !!(item.rxRequired || item.rx_required),
+            batchNumber: item.batchNumber || item.batch_number || `BATCH-${item.id}`,
+            expiryDate: item.expiryDate || (item.expiry_date ? String(item.expiry_date).split('T')[0] : '2027-12-31'),
+            manufacturer: item.manufacturer || '',
+            rackLocation: item.rackLocation || item.rack_location || '',
+            stockQuantity: item.stockQuantity || item.stock_quantity || 0,
+            minReorderLevel: item.minReorderLevel || item.min_reorder_level || 0,
+            icon: item.dosageForm === 'Syrup' ? '🧪' : item.dosageForm === 'Ointment' ? '🩹' : item.dosageForm === 'Inhaler' ? '🌬️' : item.dosageForm === 'Supplies' ? '🩺' : '💊'
+          }));
         }
-      } catch (e) {
-        console.warn('Backend API offline, using local Pinia products store.');
+      } catch (e: any) {
+        console.error('Failed to fetch products from API:', e.message);
+        this.error = e.message || 'Failed to fetch products';
       } finally {
         this.loading = false;
       }
     },
 
-    addProduct(newProd: Partial<ProductItem>) {
-      const prodId = `PRD_${String(this.products.length + 1).padStart(3, '0')}`;
-      const productObj: ProductItem = {
-        id: this.products.length + 1,
-        productId: prodId,
-        name: newProd.name || 'New Coffee Item',
-        category: newProd.category || 'Hot Drinks',
-        price: newProd.price || 4.00,
-        cost: newProd.cost || 0.80,
-        taxRate: 8,
-        status: 'AVAILABLE',
-        icon: newProd.category === 'Cold Drinks' ? '🧊' : newProd.category === 'Bakery' ? '🥐' : '☕',
-        updatedAt: new Date().toISOString()
-      };
-      this.products.push(productObj);
+    // Save product directly to database API
+    async addProduct(newProd: Partial<ProductItem>) {
+      this.loading = true;
+      try {
+        const payload = {
+          name: newProd.name,
+          genericName: newProd.genericName || newProd.name,
+          dosageForm: newProd.dosageForm || 'Tablet',
+          strength: newProd.strength || '',
+          categoryId: newProd.categoryId || 1,
+          category: newProd.category,
+          price: newProd.price || 0,
+          cost: newProd.cost || 0,
+          taxRate: newProd.taxRate || 0,
+          status: newProd.status || 'AVAILABLE',
+          rxRequired: newProd.rxRequired ?? false,
+          batchNumber: newProd.batchNumber || '',
+          expiryDate: newProd.expiryDate || '',
+          manufacturer: newProd.manufacturer || '',
+          rackLocation: newProd.rackLocation || '',
+          stockQuantity: newProd.stockQuantity || 0,
+          minReorderLevel: newProd.minReorderLevel || 0
+        };
+
+        await axios.post('/products', payload);
+        await this.fetchProducts();
+      } catch (e: any) {
+        console.error('Failed to add product to API:', e);
+      } finally {
+        this.loading = false;
+      }
     },
 
-    deleteProduct(id: number) {
-      this.products = this.products.filter(p => p.id !== id);
+    // Update product directly in database API
+    async updateProduct(id: number, updatedProd: Partial<ProductItem>) {
+      this.loading = true;
+      try {
+        await axios.put(`/products/${id}`, updatedProd);
+        await this.fetchProducts();
+      } catch (e: any) {
+        console.error('Failed to update product in API:', e);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // Delete product directly from database API
+    async deleteProduct(id: number) {
+      this.loading = true;
+      try {
+        await axios.delete(`/products/${id}`);
+        await this.fetchProducts();
+      } catch (e: any) {
+        console.error('Failed to delete product from API:', e);
+      } finally {
+        this.loading = false;
+      }
     }
   }
 });

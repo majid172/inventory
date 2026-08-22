@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const corsOptions = require('./config/cors');
 const errorHandler = require('./middleware/errorHandler');
 
 // Route Imports
@@ -11,7 +12,7 @@ const supplierRoutes = require('./routes/supplierRoutes');
 const app = express();
 
 // Global Middlewares
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Root Hello World Endpoint
