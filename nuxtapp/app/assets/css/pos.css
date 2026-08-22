@@ -13,7 +13,7 @@
 }
 
 :root {
-  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --pos-bg: #090d16;
   --pos-panel: #111827;
   --pos-subpanel: #0d1322;
@@ -25,51 +25,20 @@
   --pos-text-title: #f9fafb;
   --pos-text-muted: #9ca3af;
   --pos-text-sub: #6b7280;
-  --pos-pill-bg: #1f2937;
-  --pos-pill-border: #374151;
-  --pos-pill-text: #9ca3af;
-  --pos-pill-hover-bg: #374151;
-  --pos-pill-hover-text: #ffffff;
-  --pos-modal-bg: #111827;
-  --pos-modal-border: #1f2937;
-  --pos-modal-backdrop: rgba(9, 13, 22, 0.85);
-  --pos-img-box-bg: radial-gradient(circle, #1f2937 0%, #0d1322 100%);
-  --pos-img-box-border: rgba(255, 255, 255, 0.05);
-  --pos-cart-order-bg: #1f2937;
-  --pos-cart-order-border: #374151;
-  --pos-cart-order-btn-active: #374151;
-  --pos-cart-order-btn-active-text: #ffffff;
-  --pos-cart-item-bg: #0d1322;
-  --pos-cart-item-border: #1f2937;
-  --pos-cart-item-hover: #374151;
-  --pos-qty-group-bg: #1f2937;
-  --pos-qty-group-border: #374151;
-  --pos-qty-btn-bg: #374151;
-  --pos-qty-btn-hover: #4b5563;
-  --pos-scrollbar-track: rgba(15, 23, 42, 0.6);
-  --pos-scrollbar-thumb: #374151;
-  --pos-scrollbar-thumb-hover: #4b5563;
-  --db-grid-bg: #111827;
-  --db-grid-toolbar-bg: #0d1322;
-  --db-grid-border: #1f2937;
-  --db-grid-button-bg: #1f2937;
-  --db-grid-button-border: #374151;
-  --db-grid-button-text: #f3f4f6;
-  --db-grid-button-hover-bg: #374151;
-  --db-grid-button-hover-border: #4b5563;
-  --db-grid-input-bg: #090d16;
-  --db-grid-input-border: #374151;
-  --db-grid-th-bg: #1f2937;
-  --db-grid-th-text: #d1d5db;
-  --db-grid-th-hover: #374151;
-  --db-grid-tr-border: #1f2937;
-  --db-grid-tr-hover: #1e293b;
-  --db-grid-tr-selected: #1e3a8a;
-  --db-grid-idx-bg: #0d1322;
-  --db-grid-idx-text: #6b7280;
-  --db-grid-idx-hover-bg: #1f2937;
-  --db-grid-idx-selected-bg: #1e40af;
-  --db-grid-footer-bg: #0d1322;
+
+  /* Windows 7 Theme Tokens */
+  --win7-aero-bg: linear-gradient(180deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
+  --win7-aero-border: #334155;
+  --win7-title-gradient: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --win7-header-border: #334155;
+  --win7-toolbar-gradient: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --win7-active-blue: #2563eb;
+  --win7-active-glow: 0 0 10px rgba(37, 99, 235, 0.4);
+  --win7-button-bg: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+  --win7-button-border: #475569;
+  --win7-button-text: #f8fafc;
+  --win7-button-hover: linear-gradient(180deg, #475569 0%, #334155 100%);
+  --win7-taskbar-bg: linear-gradient(180deg, #0f172a 0%, #020617 100%);
 }
 
 html.dark, [data-theme="dark"] {
@@ -84,110 +53,48 @@ html.dark, [data-theme="dark"] {
   --pos-text-title: #f9fafb;
   --pos-text-muted: #9ca3af;
   --pos-text-sub: #6b7280;
-  --pos-pill-bg: #1f2937;
-  --pos-pill-border: #374151;
-  --pos-pill-text: #9ca3af;
-  --pos-pill-hover-bg: #374151;
-  --pos-pill-hover-text: #ffffff;
-  --pos-modal-bg: #111827;
-  --pos-modal-border: #1f2937;
-  --pos-modal-backdrop: rgba(9, 13, 22, 0.85);
-  --pos-img-box-bg: radial-gradient(circle, #1f2937 0%, #0d1322 100%);
-  --pos-img-box-border: rgba(255, 255, 255, 0.05);
-  --pos-cart-order-bg: #1f2937;
-  --pos-cart-order-border: #374151;
-  --pos-cart-order-btn-active: #374151;
-  --pos-cart-order-btn-active-text: #ffffff;
-  --pos-cart-item-bg: #0d1322;
-  --pos-cart-item-border: #1f2937;
-  --pos-cart-item-hover: #374151;
-  --pos-qty-group-bg: #1f2937;
-  --pos-qty-group-border: #374151;
-  --pos-qty-btn-bg: #374151;
-  --pos-qty-btn-hover: #4b5563;
-  --pos-scrollbar-track: rgba(15, 23, 42, 0.6);
-  --pos-scrollbar-thumb: #374151;
-  --pos-scrollbar-thumb-hover: #4b5563;
-  --db-grid-bg: #111827;
-  --db-grid-toolbar-bg: #0d1322;
-  --db-grid-border: #1f2937;
-  --db-grid-button-bg: #1f2937;
-  --db-grid-button-border: #374151;
-  --db-grid-button-text: #f3f4f6;
-  --db-grid-button-hover-bg: #374151;
-  --db-grid-button-hover-border: #4b5563;
-  --db-grid-input-bg: #090d16;
-  --db-grid-input-border: #374151;
-  --db-grid-th-bg: #1f2937;
-  --db-grid-th-text: #d1d5db;
-  --db-grid-th-hover: #374151;
-  --db-grid-tr-border: #1f2937;
-  --db-grid-tr-hover: #1e293b;
-  --db-grid-tr-selected: #1e3a8a;
-  --db-grid-idx-bg: #0d1322;
-  --db-grid-idx-text: #6b7280;
-  --db-grid-idx-hover-bg: #1f2937;
-  --db-grid-idx-selected-bg: #1e40af;
-  --db-grid-footer-bg: #0d1322;
+
+  /* Windows 7 Dark Theme Tokens */
+  --win7-aero-bg: linear-gradient(180deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
+  --win7-aero-border: #334155;
+  --win7-title-gradient: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --win7-header-border: #334155;
+  --win7-toolbar-gradient: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --win7-active-blue: #2563eb;
+  --win7-active-glow: 0 0 10px rgba(37, 99, 235, 0.4);
+  --win7-button-bg: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+  --win7-button-border: #475569;
+  --win7-button-text: #f8fafc;
+  --win7-button-hover: linear-gradient(180deg, #475569 0%, #334155 100%);
+  --win7-taskbar-bg: linear-gradient(180deg, #0f172a 0%, #020617 100%);
 }
 
 html.light, [data-theme="light"] {
-  --pos-bg: #f1f5f9;
+  --pos-bg: #e2e8f0;
   --pos-panel: #ffffff;
-  --pos-subpanel: #f8fafc;
-  --pos-card-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  --pos-border: #e2e8f0;
-  --pos-border-subtle: rgba(0, 0, 0, 0.06);
+  --pos-subpanel: #f1f5f9;
+  --pos-card-bg: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  --pos-border: #cbd5e1;
+  --pos-border-subtle: rgba(0, 0, 0, 0.08);
   --pos-accent: #d97706;
   --pos-text: #1e293b;
   --pos-text-title: #0f172a;
   --pos-text-muted: #475569;
   --pos-text-sub: #64748b;
-  --pos-pill-bg: #e2e8f0;
-  --pos-pill-border: #cbd5e1;
-  --pos-pill-text: #475569;
-  --pos-pill-hover-bg: #cbd5e1;
-  --pos-pill-hover-text: #0f172a;
-  --pos-modal-bg: #ffffff;
-  --pos-modal-border: #e2e8f0;
-  --pos-modal-backdrop: rgba(15, 23, 42, 0.4);
-  --pos-img-box-bg: radial-gradient(circle, #f1f5f9 0%, #e2e8f0 100%);
-  --pos-img-box-border: rgba(0, 0, 0, 0.08);
-  --pos-cart-order-bg: #f1f5f9;
-  --pos-cart-order-border: #cbd5e1;
-  --pos-cart-order-btn-active: #ffffff;
-  --pos-cart-order-btn-active-text: #0f172a;
-  --pos-cart-item-bg: #f8fafc;
-  --pos-cart-item-border: #e2e8f0;
-  --pos-cart-item-hover: #cbd5e1;
-  --pos-qty-group-bg: #f1f5f9;
-  --pos-qty-group-border: #cbd5e1;
-  --pos-qty-btn-bg: #cbd5e1;
-  --pos-qty-btn-hover: #94a3b8;
-  --pos-scrollbar-track: #f1f5f9;
-  --pos-scrollbar-thumb: #cbd5e1;
-  --pos-scrollbar-thumb-hover: #94a3b8;
-  --db-grid-bg: #ffffff;
-  --db-grid-toolbar-bg: #f8fafc;
-  --db-grid-border: #e2e8f0;
-  --db-grid-button-bg: #f1f5f9;
-  --db-grid-button-border: #cbd5e1;
-  --db-grid-button-text: #1e293b;
-  --db-grid-button-hover-bg: #e2e8f0;
-  --db-grid-button-hover-border: #94a3b8;
-  --db-grid-input-bg: #ffffff;
-  --db-grid-input-border: #cbd5e1;
-  --db-grid-th-bg: #f1f5f9;
-  --db-grid-th-text: #475569;
-  --db-grid-th-hover: #e2e8f0;
-  --db-grid-tr-border: #e2e8f0;
-  --db-grid-tr-hover: #f1f5f9;
-  --db-grid-tr-selected: #dbeafe;
-  --db-grid-idx-bg: #f8fafc;
-  --db-grid-idx-text: #64748b;
-  --db-grid-idx-hover-bg: #e2e8f0;
-  --db-grid-idx-selected-bg: #93c5fd;
-  --db-grid-footer-bg: #f8fafc;
+
+  /* Windows 7 Classic Light Theme Tokens (Aero Blue) */
+  --win7-aero-bg: linear-gradient(180deg, rgba(219, 234, 254, 0.95) 0%, rgba(191, 219, 254, 0.95) 100%);
+  --win7-aero-border: #93c5fd;
+  --win7-title-gradient: linear-gradient(180deg, #7abcff 0%, #3b82f6 100%);
+  --win7-header-border: #2563eb;
+  --win7-toolbar-gradient: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  --win7-active-blue: #0284c7;
+  --win7-active-glow: 0 0 8px rgba(2, 132, 199, 0.3);
+  --win7-button-bg: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  --win7-button-border: #cbd5e1;
+  --win7-button-text: #0f172a;
+  --win7-button-hover: linear-gradient(180deg, #f1f5f9 0%, #cbd5e1 100%);
+  --win7-taskbar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
 }
 
 body {
@@ -862,3 +769,18 @@ body {
   font-size: 11px;
   font-family: inherit;
 }
+
+/* Desktop App Utility Styles */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Desktop Window Shadow */
+.desktop-window-shadow {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+

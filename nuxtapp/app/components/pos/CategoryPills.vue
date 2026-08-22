@@ -1,22 +1,26 @@
 <template>
-  <div class="category-pills-container select-none flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none px-4 pt-3">
+  <div class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none select-none text-xs">
+    <span class="font-extrabold text-[11px] text-slate-600 dark:text-gray-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+      <span>📁</span> CATEGORY:
+    </span>
+
     <button
       v-for="cat in categories"
       :key="cat.id"
       @click="activeCategory = cat.name"
       :class="[
-        'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border shrink-0 cursor-pointer',
+        'flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-sm',
         activeCategory === cat.name 
-          ? 'bg-emerald-500 text-gray-950 border-emerald-400 shadow-md shadow-emerald-500/20 scale-[1.02]' 
-          : 'bg-white dark:bg-gray-900 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-gray-100'
+          ? 'bg-gradient-to-b from-sky-500 to-blue-600 text-white border-sky-400 font-black shadow' 
+          : 'bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 text-slate-700 dark:text-gray-200 border-slate-300 dark:border-gray-700'
       ]"
     >
       <span>{{ getCategoryIcon(cat.name) }}</span>
       <span>{{ cat.name }}</span>
       <span 
         :class="[
-          'px-1.5 py-0.5 rounded-md text-[10px] font-mono font-black',
-          activeCategory === cat.name ? 'bg-gray-950/20 text-gray-950' : 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400'
+          'px-1.5 py-0.2 rounded text-[10px] font-mono font-bold border',
+          activeCategory === cat.name ? 'bg-black/20 text-white border-white/30' : 'bg-slate-100 dark:bg-gray-900 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-gray-800'
         ]"
       >
         {{ cat.count }}
@@ -42,7 +46,7 @@ const getCategoryIcon = (name: string) => {
     case 'Vitamins & Supplements': return '🌿';
     case 'Skincare & First Aid': return '🩹';
     case 'Medical Supplies': return '🩺';
-    default: return '💊';
+    default: return '📁';
   }
 };
 </script>

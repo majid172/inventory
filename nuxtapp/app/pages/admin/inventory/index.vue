@@ -3,91 +3,143 @@
     <div class="space-y-4 select-none">
       <!-- Toolbar & Expiry Summary Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-gray-900 border border-gray-800 p-4 rounded-2xl shadow-lg flex items-center justify-between">
+        <div class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 p-4 rounded-xl shadow-sm flex items-center justify-between transition-colors">
           <div>
-            <div class="text-xs font-bold text-gray-400 uppercase">Total Tracked Batches</div>
-            <div class="text-2xl font-black text-gray-100 font-mono mt-1">{{ products.length }}</div>
+            <div class="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase">Total Tracked Batches</div>
+            <div class="text-2xl font-black text-slate-900 dark:text-gray-100 font-mono mt-1">{{ products.length }}</div>
           </div>
           <span class="text-2xl">📦</span>
         </div>
 
-        <div class="bg-gray-900 border border-gray-800 p-4 rounded-2xl shadow-lg flex items-center justify-between">
+        <div class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 p-4 rounded-xl shadow-sm flex items-center justify-between transition-colors">
           <div>
-            <div class="text-xs font-bold text-amber-400 uppercase">Near Expiry (&lt;90 Days)</div>
-            <div class="text-2xl font-black text-amber-400 font-mono mt-1">{{ expiringSoonCount }}</div>
+            <div class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase">Near Expiry (&lt;90 Days)</div>
+            <div class="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono mt-1">{{ expiringSoonCount }}</div>
           </div>
           <span class="text-2xl">⚠️</span>
         </div>
 
-        <div class="bg-gray-900 border border-gray-800 p-4 rounded-2xl shadow-lg flex items-center justify-between">
+        <div class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 p-4 rounded-xl shadow-sm flex items-center justify-between transition-colors">
           <div>
-            <div class="text-xs font-bold text-emerald-400 uppercase">FEFO Status</div>
-            <div class="text-xs text-emerald-300 font-bold mt-1">First-Expired First-Out Enforced</div>
+            <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">FEFO Status</div>
+            <div class="text-xs text-emerald-700 dark:text-emerald-300 font-bold mt-1">First-Expired First-Out Enforced</div>
           </div>
           <span class="text-2xl">🛡️</span>
         </div>
       </div>
 
-      <!-- Main Batch & Expiry Table -->
-      <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-lg space-y-4 p-4">
-        <div class="flex items-center justify-between pb-3 border-b border-gray-800">
-          <h2 class="text-base font-extrabold text-gray-100 flex items-center gap-2">
-            <span>📦 Batch & Expiry Inventory Balance (FEFO)</span>
-          </h2>
-          <input 
-            type="text" 
-            v-model="filterText" 
-            placeholder="Filter batch #, medicine, or rack..." 
-            class="bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
-          />
+      <!-- Desktop Application Database Data Grid Frame with 1px Gridlines -->
+      <div class="border border-slate-300 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden bg-white dark:bg-gray-950">
+        <!-- Top Desktop Data Grid Toolbar Bar -->
+        <div class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 py-2 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <h2 class="text-xs font-extrabold text-slate-800 dark:text-gray-100 flex items-center gap-1.5 uppercase tracking-wide">
+              <span>📦</span> Batch & Expiry Inventory Balance (FEFO)
+            </h2>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="font-extrabold text-[11px] text-slate-600 dark:text-gray-400 uppercase tracking-wider">FILTER SEARCH:</label>
+            <div class="relative">
+              <input 
+                type="text" 
+                v-model="filterText" 
+                placeholder="Filter batch #, medicine, or rack..." 
+                class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 text-xs text-slate-800 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 font-sans shadow-inner w-56 sm:w-64"
+              />
+              <button v-if="filterText" @click="filterText = ''" class="absolute right-2.5 top-1.5 text-slate-400 hover:text-slate-600 dark:text-gray-500 text-xs">✕</button>
+            </div>
+          </div>
         </div>
 
+        <!-- Desktop Grid Table Viewport with Visible 1px Gridlines -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-sans">
+          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-300 dark:border-gray-800">
             <thead>
-              <tr class="bg-gray-950 border-b border-gray-800 text-gray-400 font-extrabold uppercase tracking-wider">
-                <th class="py-3.5 px-4 w-10">#</th>
-                <th class="py-3.5 px-4">BATCH LOT #</th>
-                <th class="py-3.5 px-4">MEDICINE BRAND & GENERIC</th>
-                <th class="py-3.5 px-4">RACK / SHELF</th>
-                <th class="py-3.5 px-4 text-right">UNITS IN STOCK</th>
-                <th class="py-3.5 px-4">EXPIRY DATE</th>
-                <th class="py-3.5 px-4 text-center">FEFO EXPIRY STATUS</th>
+              <tr class="bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 text-slate-800 dark:text-gray-200 font-extrabold text-[11px] uppercase tracking-wider">
+                <th class="py-2.5 px-3 w-10 text-center border border-slate-300 dark:border-gray-700 bg-slate-300/80 dark:bg-gray-800">#</th>
+                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">BATCH LOT #</th>
+                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">MEDICINE BRAND & GENERIC</th>
+                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">RACK / SHELF</th>
+                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-right">UNITS IN STOCK</th>
+                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">EXPIRY DATE</th>
+                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-center">FEFO EXPIRY STATUS</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-800/60">
-              <tr v-for="(item, idx) in batchList" :key="item.id" class="hover:bg-gray-800/40 transition-colors">
-                <td class="py-3.5 px-4 text-gray-500 font-mono">{{ idx + 1 }}</td>
-                <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">
+            <tbody>
+              <tr v-if="batchList.length === 0">
+                <td colSpan="7" class="py-8 text-center text-slate-400 dark:text-gray-500 font-mono text-xs border border-slate-300 dark:border-gray-800">
+                  No batch inventory items found in database grid.
+                </td>
+              </tr>
+              <tr 
+                v-for="(item, idx) in batchList" 
+                :key="item.id" 
+                @click="selectedRow = item.id"
+                :class="[
+                  'transition-colors cursor-pointer border-b border-slate-300 dark:border-gray-800',
+                  selectedRow === item.id 
+                    ? 'bg-sky-500 text-white font-bold' 
+                    : 'even:bg-slate-50/80 dark:even:bg-gray-900/50 hover:bg-sky-100 dark:hover:bg-gray-800/80'
+                ]"
+              >
+                <!-- Index Column -->
+                <td 
+                  class="py-2 px-3 text-center font-mono font-bold border border-slate-300 dark:border-gray-800 w-10"
+                  :class="selectedRow === item.id ? 'bg-sky-600 text-white' : 'bg-slate-100/90 dark:bg-gray-900 text-slate-600 dark:text-gray-400'"
+                >
+                  {{ idx + 1 }}
+                </td>
+
+                <!-- Batch Lot -->
+                <td class="py-2 px-3 font-mono font-bold border border-slate-300 dark:border-gray-800" :class="selectedRow === item.id ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'">
                   {{ item.batchNumber }}
                 </td>
-                <td class="py-3.5 px-4">
-                  <div class="font-extrabold text-gray-100 flex items-center gap-1.5">
+
+                <!-- Brand & Generic -->
+                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800">
+                  <div class="font-extrabold flex items-center gap-1.5">
                     <span>{{ item.icon }}</span>
-                    <span>{{ item.name }}</span>
+                    <span :class="selectedRow === item.id ? 'text-white' : 'text-blue-700 dark:text-sky-400 hover:underline'">{{ item.name }}</span>
                   </div>
-                  <div class="text-[10px] text-emerald-400 font-medium">🧪 {{ item.genericName }} ({{ item.strength }})</div>
+                  <div class="text-[10px] font-semibold" :class="selectedRow === item.id ? 'text-sky-100' : 'text-emerald-700 dark:text-emerald-400'">🧪 {{ item.genericName }} ({{ item.strength }})</div>
                 </td>
-                <td class="py-3.5 px-4 text-gray-300 font-mono">📍 {{ item.rackLocation }}</td>
-                <td class="py-3.5 px-4 text-right font-mono font-black text-sm text-gray-100">
+
+                <!-- Rack Location -->
+                <td class="py-2 px-3 font-mono font-medium border border-slate-300 dark:border-gray-800" :class="selectedRow === item.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'">
+                  📍 {{ item.rackLocation }}
+                </td>
+
+                <!-- Stock Qty -->
+                <td class="py-2 px-3 text-right font-mono font-black border border-slate-300 dark:border-gray-800" :class="selectedRow === item.id ? 'text-white' : 'text-slate-900 dark:text-gray-100'">
                   {{ item.stockQuantity }} units
                 </td>
-                <td class="py-3.5 px-4 font-mono font-bold text-gray-200">
+
+                <!-- Expiry Date -->
+                <td class="py-2 px-3 font-mono font-bold border border-slate-300 dark:border-gray-800" :class="selectedRow === item.id ? 'text-white' : 'text-slate-700 dark:text-gray-200'">
                   {{ item.expiryDate }}
                 </td>
-                <td class="py-3.5 px-4 text-center">
+
+                <!-- FEFO Status -->
+                <td class="py-2 px-3 text-center border border-slate-300 dark:border-gray-800">
                   <span 
                     :class="[
-                      'px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider',
-                      item.expiryStatus.color
+                      'px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider',
+                      selectedRow === item.id ? 'bg-white text-slate-900 border-white' : item.expiryStatus.color
                     ]"
                   >
-                    {{ item.expiryStatus.label }}
+                    ● {{ item.expiryStatus.label }}
                   </span>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Desktop Grid Footer Bar -->
+        <div class="px-3 py-2 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-t border-slate-300 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400">
+          <div>Displaying <strong>{{ batchList.length }}</strong> batch items (Page 1 of 1)</div>
+          <div class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">PostgreSQL Batch Inventory • Grid Connected</div>
         </div>
       </div>
     </div>
@@ -102,21 +154,22 @@ import { useProductStore } from '~/stores/products';
 const productStore = useProductStore();
 const { products, expiringSoonCount } = storeToRefs(productStore);
 const filterText = ref('');
+const selectedRow = ref<number | string | null>(null);
 
 const getExpiryStatus = (dateStr?: string) => {
-  if (!dateStr) return { label: 'GOOD STOCK', color: 'bg-emerald-950 text-emerald-400 border-emerald-800' };
+  if (!dateStr) return { label: 'GOOD STOCK', color: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800' };
   const today = new Date();
   const exp = new Date(dateStr);
   const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 3600 * 24));
 
   if (diffDays <= 0) {
-    return { label: 'EXPIRED - DO NOT DISPENSE', color: 'bg-rose-950 text-rose-400 border-rose-800 animate-pulse' };
+    return { label: 'EXPIRED - DO NOT DISPENSE', color: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800 animate-pulse' };
   } else if (diffDays <= 30) {
-    return { label: `CRITICAL (${diffDays} DAYS LEFT)`, color: 'bg-rose-950 text-rose-300 border-rose-800' };
+    return { label: `CRITICAL (${diffDays} DAYS LEFT)`, color: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800' };
   } else if (diffDays <= 90) {
-    return { label: `WARNING (${diffDays} DAYS LEFT)`, color: 'bg-amber-950 text-amber-400 border-amber-800' };
+    return { label: `WARNING (${diffDays} DAYS LEFT)`, color: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800' };
   } else {
-    return { label: 'GOOD STOCK', color: 'bg-emerald-950 text-emerald-400 border-emerald-800' };
+    return { label: 'GOOD STOCK', color: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800' };
   }
 };
 

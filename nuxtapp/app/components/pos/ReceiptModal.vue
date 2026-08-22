@@ -1,8 +1,8 @@
 <template>
-  <div v-if="showReceiptModal && completedReceipt" class="fixed inset-0 bg-gray-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none">
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+  <div v-if="showReceiptModal && completedReceipt" class="fixed inset-0 bg-slate-900/40 dark:bg-gray-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none">
+    <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <!-- Printable Pharmacy Receipt / Invoice Area -->
-      <div class="bg-white text-gray-900 p-6 rounded-xl font-mono text-xs shadow-2xl space-y-3">
+      <div class="bg-white text-gray-900 p-6 rounded-xl font-mono text-xs shadow-xl space-y-3 border border-slate-200">
         <!-- Header -->
         <div class="text-center border-b border-dashed border-gray-300 pb-3">
           <div class="text-lg font-black tracking-wider text-emerald-900 flex items-center justify-center gap-1">
@@ -58,14 +58,10 @@
             <span class="font-mono">-${{ completedReceipt.discount.toFixed(2) }}</span>
           </div>
           <div class="flex justify-between font-black text-sm border-t border-gray-900 pt-1 mt-1 text-gray-900">
-            <span>TOTAL AMOUNT PAID</span>
-            <span class="font-mono text-emerald-800">${{ completedReceipt.total.toFixed(2) }}</span>
+            <span>TOTAL DISPENSED</span>
+            <span class="font-mono text-emerald-900">${{ completedReceipt.total.toFixed(2) }}</span>
           </div>
-        </div>
-
-        <!-- Payment Method Details -->
-        <div class="bg-gray-100 p-2 rounded text-[10px] space-y-1 border border-gray-200">
-          <div class="flex justify-between">
+          <div class="flex justify-between text-[11px] text-gray-600 pt-1">
             <span>PAYMENT METHOD:</span>
             <span class="font-bold">{{ completedReceipt.paymentMethod }}</span>
           </div>
@@ -94,13 +90,13 @@
       <div class="flex gap-2">
         <button 
           @click="windowPrint" 
-          class="flex-1 bg-gray-950 hover:bg-gray-800 border border-gray-800 text-gray-200 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1"
+          class="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-950 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-800 text-slate-700 dark:text-gray-200 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer"
         >
           🖨️ Print Prescription Invoice
         </button>
         <button 
           @click="showReceiptModal = false" 
-          class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black py-2.5 rounded-xl text-xs"
+          class="flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-gray-950 font-black py-2.5 rounded-xl text-xs shadow-lg cursor-pointer"
         >
           NEW DISPENSE
         </button>

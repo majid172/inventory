@@ -1,34 +1,38 @@
 <template>
-  <header class="h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md border-b border-slate-200 dark:border-gray-800 px-4 sm:px-6 flex items-center justify-between select-none transition-colors duration-200">
-    <div class="flex items-center gap-3">
-      <!-- Mobile Sidebar Hamburger Toggle Button -->
-      <button 
-        @click="toggleSidebar"
-        class="lg:hidden p-2 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white font-bold text-sm"
-        title="Toggle Menu"
-      >
+  <header
+    class="h-11 bg-slate-100 dark:bg-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 sm:px-4 flex items-center justify-between select-none transition-colors duration-200 shadow-sm">
+    <div class="flex items-center gap-2 flex-1 max-w-xl">
+      <!-- Mobile Sidebar Toggle -->
+      <button @click="toggleSidebar"
+        class="lg:hidden p-1.5 bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 rounded text-slate-700 dark:text-gray-300 font-bold text-xs"
+        title="Toggle Navigation Tree">
         ☰
       </button>
 
-      <div class="flex items-center gap-1.5 sm:gap-2">
-        <span class="hidden sm:inline text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest">Admin /</span>
-        <h2 class="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-gray-100 uppercase tracking-wider">{{ currentTitle }}</h2>
+      <!-- Windows 7 Explorer Address Bar -->
+      <div
+        class="flex items-center gap-1 bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 rounded px-2 py-1 text-xs w-full text-slate-700 dark:text-gray-200 font-sans shadow-inner">
+        <span class="text-blue-600 dark:text-blue-400 font-bold text-sm">📁</span>
+        <span class="text-slate-400 dark:text-gray-500 font-bold">Computer</span>
+        <span class="text-slate-400 dark:text-gray-500">▶</span>
+        <span class="text-slate-400 dark:text-gray-500 font-bold">PharmaCare ERP</span>
+        <span class="text-slate-400 dark:text-gray-500">▶</span>
+        <h2 class="font-extrabold text-blue-700 dark:text-sky-400 truncate">{{ currentTitle }}</h2>
       </div>
     </div>
 
-    <div class="flex items-center gap-2 sm:gap-4">
+    <div class="flex items-center gap-3">
       <!-- Live Clock Badge -->
-      <div class="hidden sm:flex items-center gap-2 text-xs font-mono bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 px-3.5 py-1.5 rounded-xl text-amber-600 dark:text-amber-400 font-bold">
+      <div
+        class="hidden sm:flex items-center gap-1.5 text-xs font-mono bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 px-3 py-1 rounded text-blue-700 dark:text-sky-400 font-bold shadow-sm">
         <span>🕒</span>
         <span>{{ formattedTime }}</span>
       </div>
 
-      <!-- Theme Switcher Toggle -->
-      <ThemeToggle />
-
-      <!-- Administrator Profile -->
-      <div class="flex items-center gap-2 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-gray-200">
-        <span class="w-6 h-6 rounded-lg bg-amber-500 text-gray-950 flex items-center justify-center font-black">
+      <!-- Administrator Badge -->
+      <div
+        class="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 px-2.5 py-1 rounded text-xs font-bold text-slate-700 dark:text-gray-200 shadow-sm">
+        <span class="w-5 h-5 rounded bg-blue-600 text-white flex items-center justify-center font-black text-[10px]">
           AD
         </span>
         <span class="hidden md:inline">Administrator</span>
@@ -41,7 +45,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAdminNav } from '~/composables/useAdminNav';
-import ThemeToggle from '~/components/ThemeToggle.vue';
 
 const route = useRoute();
 const { toggleSidebar } = useAdminNav();
@@ -64,13 +67,12 @@ onUnmounted(() => {
 
 const currentTitle = computed(() => {
   const path = route.path;
-  if (path.includes('/categories')) return 'Categories';
+  if (path.includes('/categories')) return 'Medicine Categories';
   if (path.includes('/products')) return 'Products Catalog';
   if (path.includes('/ingredients')) return 'Ingredients Stock';
   if (path.includes('/suppliers')) return 'Suppliers Directory';
   if (path.includes('/inventory')) return 'Inventory Balance';
-  if (path.includes('/orders')) return 'Sales Orders Log';
+  if (path.includes('/orders')) return 'Dispensed Rx Sales';
   return 'Executive Dashboard';
 });
 </script>
-

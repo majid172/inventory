@@ -1,22 +1,22 @@
 <template>
-  <div v-if="showModifierModal && activeEditingItem" class="fixed inset-0 bg-gray-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none">
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
-        <h2 class="text-base font-black text-emerald-400">Dosage Instructions: {{ activeEditingItem.product.name }}</h2>
-        <button @click="showModifierModal = false" class="text-gray-400 hover:text-gray-200 font-bold">✕</button>
+  <div v-if="showModifierModal && activeEditingItem" class="fixed inset-0 bg-slate-900/40 dark:bg-gray-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none">
+    <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-gray-800 pb-3">
+        <h2 class="text-base font-black text-emerald-600 dark:text-emerald-400">Dosage Instructions: {{ activeEditingItem.product.name }}</h2>
+        <button @click="showModifierModal = false" class="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 font-bold cursor-pointer">✕</button>
       </div>
 
       <!-- Quick Preset Directions -->
       <div class="space-y-2 text-xs">
-        <label class="block font-bold text-gray-300">PRESET DOSAGE DIRECTIONS</label>
+        <label class="block font-bold text-slate-700 dark:text-gray-300">PRESET DOSAGE DIRECTIONS</label>
         <div class="space-y-1.5">
           <button 
             v-for="preset in presetDosages" 
             :key="preset"
             @click="tempDosage = preset"
             :class="[
-              'w-full text-left p-2.5 rounded-xl border text-xs transition-all font-sans',
-              tempDosage === preset ? 'bg-emerald-950 text-emerald-300 border-emerald-500 font-bold' : 'bg-gray-950 text-gray-300 border-gray-800 hover:bg-gray-800'
+              'w-full text-left p-2.5 rounded-xl border text-xs transition-all font-sans cursor-pointer',
+              tempDosage === preset ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500 font-bold' : 'bg-slate-50 dark:bg-gray-950 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800'
             ]"
           >
             📋 {{ preset }}
@@ -26,20 +26,20 @@
 
       <!-- Custom Dosage Input -->
       <div class="space-y-1.5 text-xs">
-        <label class="block font-bold text-gray-300">CUSTOM DOSAGE DIRECTION</label>
+        <label class="block font-bold text-slate-700 dark:text-gray-300">CUSTOM DOSAGE DIRECTION</label>
         <input 
           type="text" 
           v-model="tempDosage" 
           placeholder="e.g. Take 1 tablet every 8 hours after meals"
-          class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-xs text-gray-100 focus:outline-none focus:border-emerald-500"
+          class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-3 text-xs text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500"
         />
       </div>
 
       <div class="flex gap-2 pt-2">
-        <button @click="showModifierModal = false" class="flex-1 bg-gray-950 border border-gray-800 text-gray-300 font-bold py-2.5 rounded-xl text-xs">
+        <button @click="showModifierModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-950 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-800 text-slate-700 dark:text-gray-300 font-bold py-2.5 rounded-xl text-xs cursor-pointer">
           Cancel
         </button>
-        <button @click="saveModifiers" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-black py-2.5 rounded-xl text-xs shadow-lg shadow-emerald-950/40">
+        <button @click="saveModifiers" class="flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-gray-950 font-black py-2.5 rounded-xl text-xs shadow-lg cursor-pointer">
           Save Dosage
         </button>
       </div>
