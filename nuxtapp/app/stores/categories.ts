@@ -34,7 +34,7 @@ export const useCategoryStore = defineStore('categories', () => {
           name: item.name,
           slug: item.slug || (item.name ? item.name.toLowerCase().replace(/\s+/g, '-') : ''),
           status: item.status || 'ACTIVE',
-          product_count: item.product_count ?? 0,
+          product_count: parseInt(item.product_count ?? item.productCount ?? 0) || 0,
           created_at: item.created_at || item.createdAt
         }));
       }

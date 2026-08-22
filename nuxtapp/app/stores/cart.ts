@@ -97,11 +97,23 @@ export const useCartStore = defineStore('cart', {
 
   actions: {
     addToCart(product: ProductItem) {
+      const maxStock = product.stockQuantity !== undefined && product.stockQuantity !== null ? product.stockQuantity : 100;
+      
+      if (maxStock <= 0) {
+        alert(`Cannot add '${product.name}': Item is currently OUT OF STOCK!`);
+        return;
+      }
+
       const existingIndex = this.cartItems.findIndex(item => 
         item.product.id === product.id
       );
 
       if (existingIndex > -1) {
+        const currentQty = this.cartItems[existingIndex].quantity;
+        if (currentQty + 1 > maxStock) {
+          alert(`Cannot order over available stock! Only ${maxStock} units available in stock for '${product.name}'.`);
+          return;
+        }
         this.cartItems[existingIndex].quantity += 1;
         this.cartItems[existingIndex].itemTotal = this.cartItems[existingIndex].quantity * this.cartItems[existingIndex].unitPrice;
       } else {
@@ -129,6 +141,13 @@ export const useCartStore = defineStore('cart', {
     updateQuantity(cartId: string, delta: number) {
       const item = this.cartItems.find(i => i.cartId === cartId);
       if (!item) return;
+
+      const maxStock = item.product.stockQuantity !== undefined && item.product.stockQuantity !== null ? item.product.stockQuantity : 100;
+
+      if (delta > 0 && item.quantity + delta > maxStock) {
+        alert(`Cannot order over available stock! Maximum stock limit is ${maxStock} units for '${item.product.name}'.`);
+        return;
+      }
 
       item.quantity += delta;
       if (item.quantity <= 0) {

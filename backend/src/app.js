@@ -8,6 +8,7 @@ const productRoutes = require('./routes/productRoutes');
 const ingredientRoutes = require('./routes/ingredientRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
+const superAdminRoutes = require('./routes/superAdminRoutes');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/suppliers', supplierRoutes);
+app.use('/api/super-admin', superAdminRoutes);
 
 // Global Error Handler Middleware
 app.use(errorHandler);

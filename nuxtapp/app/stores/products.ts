@@ -15,6 +15,7 @@ export interface ProductItem {
   taxRate: number;
   status: 'AVAILABLE' | 'OUT OF STOCK';
   rxRequired?: boolean;
+  planTierAccess?: 'starter' | 'pro' | 'enterprise';
   batchNumber?: string;
   expiryDate?: string;
   manufacturer?: string;
@@ -107,6 +108,7 @@ export const useProductStore = defineStore('products', {
             taxRate: parseFloat(item.taxRate || item.tax_rate) || 0,
             status: item.status || 'AVAILABLE',
             rxRequired: !!(item.rxRequired || item.rx_required),
+            planTierAccess: item.planTierAccess || item.plan_tier_access || item.plan_tier || (item.price > 100 ? 'enterprise' : item.price > 25 ? 'pro' : 'starter'),
             batchNumber: item.batchNumber || item.batch_number || `BATCH-${item.id}`,
             expiryDate: item.expiryDate || (item.expiry_date ? String(item.expiry_date).split('T')[0] : '2027-12-31'),
             manufacturer: item.manufacturer || '',

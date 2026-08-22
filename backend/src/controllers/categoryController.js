@@ -2,11 +2,31 @@ const db = require('../config/db');
 
 const getCategories = async (req, res, next) => {
   try {
-    const [categories] = await db.query('SELECT * FROM categories ORDER BY id ASC');
+    const sql = `
+      SELECT 
+        c.*, 
+        (
+          SELECT COUNT(*) 
+          FROM products p 
+          WHERE p.category_id = c.id 
+            
+             
+        ) AS product_count 
+      FROM categories c 
+      ORDER BY c.id ASC
+    `;
+    const [categories] = await db.query(sql);
+
+    // Format product_count as integer
+    const formatted = (categories || []).map(cat => ({
+      ...cat,
+      product_count: parseInt(cat.product_count) || 0
+    }));
+
     res.json({
       success: true,
-      count: categories.length,
-      data: categories
+      count: formatted.length,
+      data: formatted
     });
   } catch (error) {
     next(error);

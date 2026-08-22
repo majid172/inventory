@@ -5,36 +5,93 @@ const db = require('../config/db');
 const getProducts = async (req, res, next) => {
   try {
     if (db && db.query) {
+      // 1. Query products JOINED with master_drug_catalog to get plan_tier_access, generic_name, dosage_form
       const sql = `
-        SELECT p.*, c.name AS category_name, c.id AS cat_code 
+        SELECT 
+          p.id,
+          p.master_drug_id,
+          p.name,
+          COALESCE(p.retail_price, m.default_retail_price, 0) AS price,
+          COALESCE(p.cost_price, 0) AS cost,
+          COALESCE(p.total_stock_quantity, 100) AS stock_quantity,
+          COALESCE(p.rack_location, 'Shelf A-01') AS rack_location,
+          COALESCE(m.generic_name, p.name) AS generic_name,
+          COALESCE(m.dosage_form, '-') AS dosage_form,
+          COALESCE(m.plan_tier_access, 'starter') AS plan_tier_access,
+          COALESCE(p.rx_required, m.rx_required, 0) AS rx_required,
+          COALESCE(c.name, m.therapeutic_class, 'General') AS category_name
         FROM products p 
-        LEFT JOIN categories c ON (p.category_id = c.id OR p.category_id = c.id)
+        LEFT JOIN master_drug_catalog m ON (p.master_drug_id = m.id OR LOWER(p.name) = LOWER(m.brand_name))
+        LEFT JOIN categories c ON (p.category_id = c.id)
         ORDER BY p.id ASC
       `;
       const [rows] = await db.query(sql);
 
-      if (rows && Array.isArray(rows)) {
+      if (rows && Array.isArray(rows) && rows.length > 0) {
         const formatted = rows.map(r => ({
           id: r.id,
           name: r.name,
           genericName: r.generic_name || r.name,
-          dosageForm: r.dosage_form || 'Tablet',
+          dosageForm: r.dosage_form || '-',
           strength: r.strength || '',
           categoryId: r.category_id,
-          category: r.category_name || r.category_id || 'General',
+          category: r.category_name || 'General',
           price: parseFloat(r.price) || 0,
           cost: parseFloat(r.cost) || 0,
-          taxRate: parseFloat(r.tax_rate) || 0,
-          status: r.status || 'AVAILABLE',
+          taxRate: 0,
+          status: 'AVAILABLE',
           rxRequired: !!r.rx_required,
-          batchNumber: r.batch_number || `BATCH-${r.id}`,
-          expiryDate: r.expiry_date ? String(r.expiry_date).split('T')[0] : '2027-12-31',
-          manufacturer: r.manufacturer || 'Pharma Corp',
-          rackLocation: r.rack_location || 'Rack A-01',
+          planTierAccess: r.plan_tier_access || 'starter',
+          batchNumber: `BATCH-${r.id}`,
+          expiryDate: '2027-12-31',
+          manufacturer: 'Pharma Corp',
+          rackLocation: r.rack_location || 'Shelf A-01',
           stockQuantity: r.stock_quantity || 100,
-          minReorderLevel: r.min_reorder_level || 15
+          minReorderLevel: 15
         }));
         return res.json({ success: true, count: formatted.length, data: formatted });
+      }
+
+      // 2. Fallback: If products table is empty for new store, query master_drug_catalog directly!
+      const masterSql = `
+        SELECT 
+          id,
+          drug_code,
+          brand_name AS name,
+          generic_name,
+          dosage_form,
+          manufacturer,
+          default_retail_price AS price,
+          rx_required,
+          plan_tier_access,
+          therapeutic_class AS category_name
+        FROM master_drug_catalog
+        ORDER BY id ASC
+      `;
+      const [masterRows] = await db.query(masterSql);
+      if (masterRows && Array.isArray(masterRows) && masterRows.length > 0) {
+        const formattedMaster = masterRows.map(m => ({
+          id: m.id,
+          productId: m.drug_code,
+          name: m.name,
+          genericName: m.generic_name || m.name,
+          dosageForm: m.dosage_form || '-',
+          strength: 'Standard',
+          category: m.category_name || 'General',
+          price: parseFloat(m.price) || 0,
+          cost: parseFloat(m.price) * 0.7 || 0,
+          taxRate: 0,
+          status: 'AVAILABLE',
+          rxRequired: !!m.rx_required,
+          planTierAccess: m.plan_tier_access || 'starter',
+          batchNumber: `BATCH-${m.id}`,
+          expiryDate: '2027-12-31',
+          manufacturer: m.manufacturer || 'Generic Pharma',
+          rackLocation: 'Shelf A-01',
+          stockQuantity: 100,
+          minReorderLevel: 15
+        }));
+        return res.json({ success: true, count: formattedMaster.length, data: formattedMaster });
       }
     }
     return res.json({ success: true, count: 0, data: [] });

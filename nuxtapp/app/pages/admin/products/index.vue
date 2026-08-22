@@ -2,9 +2,11 @@
   <NuxtLayout name="admin">
     <div class="space-y-4 select-none">
       <!-- Desktop Application Database Data Grid Frame with 1px Gridlines -->
-      <div class="border border-slate-300 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden bg-white dark:bg-gray-950">
+      <div
+        class="border border-slate-300 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden bg-white dark:bg-gray-950">
         <!-- Top Desktop Data Grid Toolbar Bar -->
-        <div class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 py-2 flex flex-wrap items-center justify-between gap-3">
+        <div
+          class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 py-2 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <button @click="openAddModal"
               class="bg-gradient-to-b from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white dark:text-gray-950 font-bold px-3 py-1.5 rounded border border-emerald-600 text-xs flex items-center gap-1 shadow-sm cursor-pointer active:scale-95">
@@ -12,8 +14,8 @@
             </button>
             <button @click="fetchProducts" :disabled="loading"
               class="bg-gradient-to-b from-white to-slate-100 dark:from-gray-800 dark:to-gray-900 hover:bg-slate-100 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-bold px-3 py-1.5 rounded text-xs flex items-center gap-1 transition-all shadow-sm cursor-pointer">
-              <svg :class="['w-3.5 h-3.5 mr-1 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
+              <svg :class="['w-3.5 h-3.5 mr-1 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                 </path>
@@ -23,21 +25,27 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <label class="font-extrabold text-[11px] text-slate-600 dark:text-gray-400 uppercase tracking-wider">FILTER SEARCH:</label>
+            <label class="font-extrabold text-[11px] text-slate-600 dark:text-gray-400 uppercase tracking-wider">FILTER
+              SEARCH:</label>
             <div class="relative">
               <input type="text" v-model="filterText" placeholder="Search generic, brand, supplier..."
                 class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 text-xs text-slate-800 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 font-sans shadow-inner w-56 sm:w-72" />
-              <button v-if="filterText" @click="filterText = ''" class="absolute right-2.5 top-1.5 text-slate-400 hover:text-slate-600 dark:text-gray-500 text-xs">✕</button>
+              <button v-if="filterText" @click="filterText = ''"
+                class="absolute right-2.5 top-1.5 text-slate-400 hover:text-slate-600 dark:text-gray-500 text-xs">✕</button>
             </div>
           </div>
         </div>
 
         <!-- Desktop Grid Table Viewport with Visible 1px Gridlines -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-300 dark:border-gray-800">
+          <table
+            class="w-full text-left text-xs font-sans border-collapse border border-slate-300 dark:border-gray-800">
             <thead>
-              <tr class="bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 text-slate-800 dark:text-gray-200 font-extrabold text-[11px] uppercase tracking-wider">
-                <th class="py-2.5 px-3 w-10 text-center border border-slate-300 dark:border-gray-700 bg-slate-300/80 dark:bg-gray-800">#</th>
+              <tr
+                class="bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 text-slate-800 dark:text-gray-200 font-extrabold text-[11px] uppercase tracking-wider">
+                <th
+                  class="py-2.5 px-3 w-10 text-center border border-slate-300 dark:border-gray-700 bg-slate-300/80 dark:bg-gray-800">
+                  #</th>
                 <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">BRAND NAME</th>
                 <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">GENERIC COMPOUND</th>
                 <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">FORM & STRENGTH</th>
@@ -54,26 +62,20 @@
 
             <tbody>
               <tr v-if="filteredProducts.length === 0">
-                <td colSpan="12" class="py-8 text-center text-slate-400 dark:text-gray-500 font-mono text-xs border border-slate-300 dark:border-gray-800">
+                <td colSpan="12"
+                  class="py-8 text-center text-slate-400 dark:text-gray-500 font-mono text-xs border border-slate-300 dark:border-gray-800">
                   No medicines found in database catalog.
                 </td>
               </tr>
-              <tr 
-                v-for="(row, idx) in filteredProducts" 
-                :key="row.id" 
-                @click="selectedRow = row.id"
-                :class="[
-                  'transition-colors cursor-pointer border-b border-slate-300 dark:border-gray-800',
-                  selectedRow === row.id 
-                    ? 'bg-sky-500 text-white font-bold' 
-                    : 'even:bg-slate-50/80 dark:even:bg-gray-900/50 hover:bg-sky-100 dark:hover:bg-gray-800/80'
-                ]"
-              >
+              <tr v-for="(row, idx) in filteredProducts" :key="row.id" @click="selectedRow = row.id" :class="[
+                'transition-colors cursor-pointer border-b border-slate-300 dark:border-gray-800',
+                selectedRow === row.id
+                  ? 'bg-sky-500 text-white font-bold'
+                  : 'even:bg-slate-50/80 dark:even:bg-gray-900/50 hover:bg-sky-100 dark:hover:bg-gray-800/80'
+              ]">
                 <!-- Index Column -->
-                <td 
-                  class="py-2 px-3 text-center font-mono font-bold border border-slate-300 dark:border-gray-800 w-10"
-                  :class="selectedRow === row.id ? 'bg-sky-600 text-white' : 'bg-slate-100/90 dark:bg-gray-900 text-slate-600 dark:text-gray-400'"
-                >
+                <td class="py-2 px-3 text-center font-mono font-bold border border-slate-300 dark:border-gray-800 w-10"
+                  :class="selectedRow === row.id ? 'bg-sky-600 text-white' : 'bg-slate-100/90 dark:bg-gray-900 text-slate-600 dark:text-gray-400'">
                   {{ idx + 1 }}
                 </td>
 
@@ -81,36 +83,48 @@
                 <td class="py-2 px-3 font-extrabold border border-slate-300 dark:border-gray-800">
                   <div class="flex items-center gap-2">
                     <span>{{ row.icon || '💊' }}</span>
-                    <span :class="selectedRow === row.id ? 'text-white' : 'text-blue-700 dark:text-sky-400 hover:underline'">{{ row.name }}</span>
+                    <span
+                      :class="selectedRow === row.id ? 'text-white' : 'text-blue-700 dark:text-sky-400 hover:underline'">{{
+                        row.name }}</span>
                   </div>
                 </td>
 
                 <!-- Generic -->
-                <td class="py-2 px-3 font-semibold border border-slate-300 dark:border-gray-800" :class="selectedRow === row.id ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'">
+                <td class="py-2 px-3 font-semibold border border-slate-300 dark:border-gray-800"
+                  :class="selectedRow === row.id ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'">
                   🧪 {{ row.genericName || row.name }}
                 </td>
 
                 <!-- Form & Strength -->
-                <td class="py-2 px-3 font-mono border border-slate-300 dark:border-gray-800" :class="selectedRow === row.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'">
-                  <span :class="selectedRow === row.id ? 'bg-white/20 border-white/40 text-white' : 'bg-slate-100 dark:bg-gray-950 border-slate-200 dark:border-gray-800 text-slate-700 dark:text-gray-300'" class="px-2 py-0.5 rounded border text-[11px] font-semibold">
+                <td class="py-2 px-3 font-mono border border-slate-300 dark:border-gray-800"
+                  :class="selectedRow === row.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'">
+                  <span
+                    :class="selectedRow === row.id ? 'bg-white/20 border-white/40 text-white' : 'bg-slate-100 dark:bg-gray-950 border-slate-200 dark:border-gray-800 text-slate-700 dark:text-gray-300'"
+                    class="px-2 py-0.5 rounded border text-[11px] font-semibold">
                     {{ row.dosageForm }} ({{ row.strength }})
                   </span>
                 </td>
 
                 <!-- Category -->
-                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800 font-medium" :class="selectedRow === row.id ? 'text-white' : 'text-slate-600 dark:text-gray-400'">
+                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800 font-medium"
+                  :class="selectedRow === row.id ? 'text-white' : 'text-slate-600 dark:text-gray-400'">
                   {{ row.category }}
                 </td>
 
                 <!-- Supplier -->
-                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800 font-semibold" :class="selectedRow === row.id ? 'text-white' : 'text-sky-700 dark:text-sky-400'">
+                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800 font-semibold"
+                  :class="selectedRow === row.id ? 'text-white' : 'text-sky-700 dark:text-sky-400'">
                   🏭 {{ row.manufacturer || 'GSK Pharmaceuticals' }}
                 </td>
 
                 <!-- Price / Cost -->
                 <td class="py-2 px-3 text-right font-mono border border-slate-300 dark:border-gray-800">
-                  <div class="font-extrabold" :class="selectedRow === row.id ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'">${{ row.price.toFixed(2) }}</div>
-                  <div class="text-[10px]" :class="selectedRow === row.id ? 'text-sky-100' : 'text-slate-400 dark:text-gray-500'">Cost: ${{ row.cost.toFixed(2) }}</div>
+                  <div class="font-extrabold"
+                    :class="selectedRow === row.id ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'">${{
+                      row.price.toFixed(2) }}</div>
+                  <div class="text-[10px]"
+                    :class="selectedRow === row.id ? 'text-sky-100' : 'text-slate-400 dark:text-gray-500'">Cost: ${{
+                      row.cost.toFixed(2) }}</div>
                 </td>
 
                 <!-- Stock Qty -->
@@ -135,8 +149,12 @@
 
                 <!-- Batch & Expiry -->
                 <td class="py-2 px-3 font-mono text-[11px] border border-slate-300 dark:border-gray-800">
-                  <div class="font-semibold" :class="selectedRow === row.id ? 'text-white' : 'text-slate-800 dark:text-gray-200'">Lot: {{ row.batchNumber }}</div>
-                  <div class="font-semibold" :class="selectedRow === row.id ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'">Exp: {{ row.expiryDate }}</div>
+                  <div class="font-semibold"
+                    :class="selectedRow === row.id ? 'text-white' : 'text-slate-800 dark:text-gray-200'">Lot: {{
+                      row.batchNumber }}</div>
+                  <div class="font-semibold"
+                    :class="selectedRow === row.id ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'">Exp: {{
+                      row.expiryDate }}</div>
                 </td>
 
                 <!-- Status -->
@@ -170,9 +188,11 @@
         </div>
 
         <!-- Desktop Grid Footer Bar -->
-        <div class="px-3 py-2 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-t border-slate-300 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400">
+        <div
+          class="px-3 py-2 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-t border-slate-300 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400">
           <div>Displaying <strong>{{ filteredProducts.length }}</strong> medicine entries (Page 1 of 1)</div>
-          <div class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">PostgreSQL Medicines Catalog • Grid Connected</div>
+          <div class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">PostgreSQL Medicines
+            Catalog • Grid Connected</div>
         </div>
       </div>
 
@@ -185,7 +205,8 @@
             <h3 class="font-black text-emerald-600 dark:text-emerald-400 text-base flex items-center gap-2">
               <span>💊</span> Add New Medicine to Catalog
             </h3>
-            <button @click="showAddModal = false" class="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 font-bold">✕</button>
+            <button @click="showAddModal = false"
+              class="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 font-bold">✕</button>
           </div>
 
           <div class="space-y-3 text-xs">
@@ -300,7 +321,8 @@
               <div class="flex items-center gap-2">
                 <input type="checkbox" id="rxReq" v-model="newProd.rxRequired"
                   class="w-4 h-4 rounded bg-slate-50 dark:bg-gray-950 border-slate-300 dark:border-gray-800 text-emerald-600 focus:ring-emerald-500" />
-                <label for="rxReq" class="font-bold text-rose-600 dark:text-rose-400 cursor-pointer">Prescription Required (Rx
+                <label for="rxReq" class="font-bold text-rose-600 dark:text-rose-400 cursor-pointer">Prescription
+                  Required (Rx
                   Medicine)</label>
               </div>
 
@@ -337,7 +359,8 @@
             <h3 class="font-black text-emerald-600 dark:text-emerald-400 text-base flex items-center gap-2">
               <span>✏️</span> Edit Medicine: {{ editProd.name }}
             </h3>
-            <button @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 font-bold">✕</button>
+            <button @click="showEditModal = false"
+              class="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 font-bold">✕</button>
           </div>
 
           <div class="space-y-3 text-xs">
@@ -450,7 +473,8 @@
               <div class="flex items-center gap-2">
                 <input type="checkbox" id="rxReqEdit" v-model="editProd.rxRequired"
                   class="w-4 h-4 rounded bg-slate-50 dark:bg-gray-950 border-slate-300 dark:border-gray-800 text-emerald-600 focus:ring-emerald-500" />
-                <label for="rxReqEdit" class="font-bold text-rose-600 dark:text-rose-400 cursor-pointer">Prescription Required (Rx
+                <label for="rxReqEdit" class="font-bold text-rose-600 dark:text-rose-400 cursor-pointer">Prescription
+                  Required (Rx
                   Medicine)</label>
               </div>
 
