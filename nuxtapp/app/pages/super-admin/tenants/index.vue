@@ -111,10 +111,27 @@
                   {{ tenant.terminalsCount }} Terminals
                 </td>
                 <td class="py-2 px-2.5 font-mono text-xs border border-slate-300 dark:border-gray-800" :class="selectedRow === tenant.id ? 'text-white' : 'text-slate-800 dark:text-gray-200'">
-                  {{ tenant.nextBillingDate }}
+                  <div>{{ tenant.nextBillingDate }}</div>
+                  <div v-if="tenant.status === 'trial'" class="text-[9px] font-bold" :class="new Date(tenant.nextBillingDate) < new Date() ? 'text-rose-500 font-black' : 'text-amber-600 dark:text-amber-400'">
+                    {{ new Date(tenant.nextBillingDate) < new Date() ? '🚨 Trial Completed' : '🎁 Trial Active' }}
+                  </div>
                 </td>
                 <td class="py-2 px-2.5 text-right border border-slate-300 dark:border-gray-800">
-                  <div class="flex items-center justify-end gap-1.5">
+                  <div class="flex items-center justify-end gap-1 flex-wrap">
+                    <button 
+                      @click.stop="extendTrialDays(tenant, 7)"
+                      title="Extend Trial by +7 Days"
+                      class="px-1.5 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 rounded text-[9px] font-black shadow-sm"
+                    >
+                      +7D
+                    </button>
+                    <button 
+                      @click.stop="extendTrialDays(tenant, 14)"
+                      title="Extend Trial by +14 Days"
+                      class="px-1.5 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 rounded text-[9px] font-black shadow-sm"
+                    >
+                      +14D
+                    </button>
                     <button 
                       @click.stop="openEditModal(tenant)"
                       class="px-2 py-0.5 bg-white dark:bg-gray-800 hover:bg-slate-100 border border-slate-300 dark:border-gray-700 rounded text-[10px] font-bold text-slate-800 dark:text-gray-200 shadow-sm"
@@ -122,11 +139,11 @@
                       ✏️ Edit
                     </button>
                     <button 
-                      v-if="tenant.status === 'suspended'"
+                      v-if="tenant.status === 'suspended' || tenant.status === 'expired' || tenant.status === 'trial'"
                       @click.stop="toggleStatus(tenant, 'active')"
                       class="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-extrabold hover:bg-emerald-500 shadow-sm"
                     >
-                      Unsuspend
+                      Activate
                     </button>
                     <button 
                       v-else
@@ -328,4 +345,10 @@ const saveTenantEdit = async () => {
 const toggleStatus = async (t: TenantStore, newStatus: 'active' | 'suspended') => {
   await updateTenant(t.id, { status: newStatus });
 };
+
+const extendTrialDays = async (t: TenantStore, days: number) => {
+  await updateTenant(t.id, { extendDays: days, status: 'trial' });
+  alert(`Trial period for '${t.storeName}' extended by +${days} days!`);
+};
 </script>
+

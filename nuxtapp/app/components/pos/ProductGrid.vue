@@ -141,7 +141,7 @@ const { addToCart } = cartStore;
 
 const activeTenantPlan = ref('pro');
 
-onMounted(() => {
+onMounted(async () => {
   if (process.client) {
     const saved = localStorage.getItem('active_tenant_store');
     if (saved) {
@@ -151,6 +151,7 @@ onMounted(() => {
       } catch (e) { }
     }
   }
+  await productStore.fetchProducts();
 });
 
 const isPlanAllowed = (itemTier?: string) => {

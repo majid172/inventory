@@ -102,10 +102,29 @@
         <!-- Theme Toggle Switcher -->
         <ThemeToggle />
 
-        <!-- Active Tenant Free Trial Badge -->
-        <div v-if="isLoggedIn && !isSuperAdmin && activeTenantStatus === 'trial'" class="hidden sm:flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+        <!-- Active Tenant Free Trial / Expired Badge -->
+        <div v-if="isLoggedIn && !isSuperAdmin && subInfo.status === 'trial' && !subInfo.isExpired" class="hidden sm:flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
           <span>🎁</span>
-          <span>14-Day Free Trial</span>
+          <span>14-Day Free Trial ({{ subInfo.daysRemaining }} Days Left)</span>
+        </div>
+
+        <div v-else-if="isLoggedIn && !isSuperAdmin && subInfo.isExpired" @click="showLockedModal = true" class="hidden sm:flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-rose-500/20 text-rose-500 border border-rose-500/40 cursor-pointer animate-pulse">
+          <span>🚨</span>
+          <span>Trial Completed (Locked)</span>
+        </div>
+
+        <!-- Active Tenant Store Switcher Dropdown (Tenant Isolation Control) -->
+        <div v-if="isLoggedIn" class="relative flex items-center gap-1 text-xs font-bold bg-slate-200/90 dark:bg-gray-900 border border-slate-300 dark:border-gray-800 px-2 py-1 rounded-lg text-slate-800 dark:text-gray-100 shadow-sm">
+          <span class="text-xs">🏥</span>
+          <select 
+            v-model="currentActiveTenantId" 
+            @change="handleTenantSwitch"
+            class="bg-transparent font-bold text-xs outline-none text-emerald-700 dark:text-emerald-400 cursor-pointer"
+          >
+            <option value="TENANT_101">🏥 MediCare Central (TENANT_101)</option>
+            <option value="TENANT_102">💊 HealthPlus Retail (TENANT_102)</option>
+            <option value="TENANT_103">🏢 Apex City Chain (TENANT_103)</option>
+          </select>
         </div>
 
         <!-- Store Plan Tier Badge (For Regular Pharmacy Subscribers) -->
@@ -121,7 +140,7 @@
               {{ isSuperAdmin ? '👑' : 'Rx' }}
             </span>
             <span class="font-sans">
-              {{ isSuperAdmin ? 'Platform Super Admin' : (activeTenantStoreName || 'khan pharmacy') }}
+              {{ isSuperAdmin ? 'Platform Super Admin' : (activeTenantStoreName || 'MediCare Central') }}
             </span>
             <span class="text-[9px] text-slate-400">▼</span>
           </button>
@@ -131,7 +150,7 @@
             <!-- Active Store Details Header -->
             <div class="px-3 py-2 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800">
               <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Active Pharmacy Store:</span>
-              <span class="font-black text-slate-900 dark:text-white block truncate">{{ activeTenantStoreName || 'khan pharmacy' }}</span>
+              <span class="font-black text-slate-900 dark:text-white block truncate">{{ activeTenantStoreName || 'MediCare Central' }}</span>
               <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase block">{{ isSuperAdmin ? 'Super Admin' : (activeTenantPlan + ' Tier') }}</span>
             </div>
 
@@ -178,11 +197,11 @@
           <div>
             <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">New 4-Digit Staff PIN *</label>
             <input 
-              v-model="newPin"
+              v-model="newPin" 
               type="password" 
-              required
-              maxlength="10"
-              placeholder="e.g. 5678"
+              maxLength="4" 
+              placeholder="••••" 
+              required 
               class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 font-mono text-center text-lg tracking-widest font-black text-slate-900 dark:text-white outline-none focus:border-emerald-500"
             />
           </div>
@@ -198,21 +217,63 @@
         </form>
       </div>
     </div>
+
+    <!-- Trial Expired Lock Screen Modal Overlay -->
+    <TrialExpiredModal :is-open="showLockedModal" @close="showLockedModal = false" />
   </header>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ThemeToggle from '~/components/ThemeToggle.vue';
+import TrialExpiredModal from '~/components/TrialExpiredModal.vue';
+import { useProductStore } from '~/stores/products';
+import { useTenantSubscription } from '~/composables/useTenantSubscription';
+import { useAuth } from '~/composables/useAuth';
 
 const route = useRoute();
 const router = useRouter();
+const productStore = useProductStore();
+const { getSubscriptionInfo } = useTenantSubscription();
+
 const formattedTime = ref('');
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const showPinModal = ref(false);
+const showLockedModal = ref(false);
 const newPin = ref('');
+const currentActiveTenantId = ref('TENANT_101');
+
+const subInfo = computed(() => getSubscriptionInfo());
+
+const allTenantsList = [
+  { id: 'TENANT_101', storeName: 'MediCare Central Pharmacy', slug: 'medicare-central', ownerName: 'Dr. Robert Vance', planTier: 'pro', status: 'active', joinedDate: '2026-01-15', nextBillingDate: '2028-12-31' },
+  { id: 'TENANT_102', storeName: 'HealthPlus Retail Pharma', slug: 'healthplus-pharma', ownerName: 'Sarah Jenkins', planTier: 'starter', status: 'trial', joinedDate: '2026-02-01', nextBillingDate: '2026-02-15' }, // Expired trial example
+  { id: 'TENANT_103', storeName: 'Apex City Pharmacy Chain', slug: 'apex-city-pharma', ownerName: 'David Sterling', planTier: 'enterprise', status: 'active', joinedDate: '2025-11-10', nextBillingDate: '2028-11-10' }
+];
+
+const checkAndLockIfExpired = () => {
+  if (isSuperAdmin.value) {
+    showLockedModal.value = false;
+    return;
+  }
+  const isPosOrAdminRoute = route.path.startsWith('/pos') || route.path.startsWith('/admin');
+  if (isPosOrAdminRoute && subInfo.value.isExpired) {
+    showLockedModal.value = true;
+  } else {
+    showLockedModal.value = false;
+  }
+};
+
+const handleTenantSwitch = async () => {
+  const selected = allTenantsList.find(t => t.id === currentActiveTenantId.value);
+  if (selected && process.client) {
+    localStorage.setItem('active_tenant_store', JSON.stringify(selected));
+    await productStore.fetchProducts(selected.id);
+    checkAndLockIfExpired();
+  }
+};
 
 const isLoggedIn = computed(() => {
   if (route.path.startsWith('/pos') || route.path.startsWith('/admin') || route.path.startsWith('/super-admin')) {
@@ -288,12 +349,9 @@ const reloadApp = () => {
 };
 
 const handleLogout = () => {
-  if (process.client) {
-    localStorage.removeItem('active_tenant_store');
-    localStorage.removeItem('is_logged_in');
-    localStorage.removeItem('is_super_admin');
-    router.push('/login');
-  }
+  const { logout } = useAuth();
+  logout();
+  router.push('/login');
 };
 
 const handleChangePin = () => {
@@ -303,12 +361,31 @@ const handleChangePin = () => {
   newPin.value = '';
 };
 
+watch(() => route.path, () => {
+  checkAndLockIfExpired();
+});
+
 onMounted(() => {
   updateClock();
   timer = setInterval(updateClock, 1000);
+
+  if (process.client) {
+    const saved = localStorage.getItem('active_tenant_store');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.id) {
+          currentActiveTenantId.value = parsed.id;
+        }
+      } catch (e) {}
+    }
+    checkAndLockIfExpired();
+  }
 });
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
 });
 </script>
+
+

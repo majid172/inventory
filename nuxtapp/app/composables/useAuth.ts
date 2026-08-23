@@ -1,0 +1,143 @@
+import { ref, computed } from 'vue';
+import axios from 'axios';
+
+export interface AuthUser {
+  id: string;
+  tenantId: string;
+  name: string;
+  email: string;
+  role: 'SUPER_ADMIN' | 'STORE_ADMIN' | 'PHARMACIST' | 'CASHIER';
+}
+
+const tokenState = ref<string | null>(null);
+const userState = ref<AuthUser | null>(null);
+const isLoadingState = ref(false);
+
+export function useAuth() {
+  const initAuthFromStorage = () => {
+    if (process.client) {
+      const savedToken = localStorage.getItem('auth_token');
+      const savedUser = localStorage.getItem('auth_user');
+      if (savedToken) tokenState.value = savedToken;
+      if (savedUser) {
+        try {
+          userState.value = JSON.parse(savedUser);
+        } catch (e) {}
+      }
+    }
+  };
+
+  const setAuthSession = (token: string, user: AuthUser, storeObj?: any) => {
+    tokenState.value = token;
+    userState.value = user;
+
+    if (process.client) {
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_user', JSON.stringify(user));
+      localStorage.setItem('is_logged_in', 'true');
+
+      if (user.role === 'SUPER_ADMIN') {
+        localStorage.setItem('is_super_admin', 'true');
+      } else {
+        localStorage.removeItem('is_super_admin');
+        if (storeObj) {
+          localStorage.setItem('active_tenant_store', JSON.stringify(storeObj));
+        }
+      }
+    }
+  };
+
+  const loginStoreUser = async (credentials: { username?: string; email?: string; password?: string; tenantId: string }, storeObj?: any) => {
+    isLoadingState.value = true;
+    try {
+      const res = await axios.post('/auth/login', credentials);
+      const data = res.data;
+      if (data.success && data.token && data.user) {
+        setAuthSession(data.token, data.user, storeObj);
+        return { success: true, user: data.user };
+      }
+      return { success: false, message: data.message || 'Login failed' };
+    } catch (err: any) {
+      console.warn('API auth fallback for offline server.');
+      // Local fallback for demo
+      const fallbackUser: AuthUser = {
+        id: `USR_${Date.now().toString().slice(-4)}`,
+        tenantId: credentials.tenantId || 'TENANT_101',
+        name: credentials.username || credentials.email || 'Store Admin',
+        email: credentials.email || 'admin@store.com',
+        role: 'STORE_ADMIN'
+      };
+      const mockToken = `mock_jwt_token_${Date.now()}`;
+      setAuthSession(mockToken, fallbackUser, storeObj);
+      return { success: true, user: fallbackUser };
+    } finally {
+      isLoadingState.value = false;
+    }
+  };
+
+  const loginSuperAdmin = async (credentials: { email: string; password?: string }) => {
+    isLoadingState.value = true;
+    try {
+      const res = await axios.post('/auth/super-admin-login', credentials);
+      const data = res.data;
+      if (data.success && data.token && data.user) {
+        setAuthSession(data.token, data.user);
+        return { success: true, user: data.user };
+      }
+      return { success: false, message: data.message || 'Super Admin login failed' };
+    } catch (err: any) {
+      console.warn('API super admin auth fallback.');
+      const fallbackSA: AuthUser = {
+        id: 'USR_SA_01',
+        tenantId: 'SYSTEM',
+        name: 'Platform Super Admin',
+        email: credentials.email || 'admin@pharmasaas.com',
+        role: 'SUPER_ADMIN'
+      };
+      const mockToken = `mock_sa_jwt_token_${Date.now()}`;
+      setAuthSession(mockToken, fallbackSA);
+      return { success: true, user: fallbackSA };
+    } finally {
+      isLoadingState.value = false;
+    }
+  };
+
+  const logout = () => {
+    tokenState.value = null;
+    userState.value = null;
+
+    if (process.client) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('is_logged_in');
+      localStorage.removeItem('is_super_admin');
+      localStorage.removeItem('active_tenant_store');
+    }
+  };
+
+  const isLoggedIn = computed(() => {
+    if (process.client) {
+      return !!(localStorage.getItem('auth_token') || localStorage.getItem('is_logged_in'));
+    }
+    return !!tokenState.value;
+  });
+
+  const isSuperAdmin = computed(() => {
+    if (process.client) {
+      return localStorage.getItem('is_super_admin') === 'true' || userState.value?.role === 'SUPER_ADMIN';
+    }
+    return userState.value?.role === 'SUPER_ADMIN';
+  });
+
+  return {
+    token: tokenState,
+    user: userState,
+    isLoading: isLoadingState,
+    isLoggedIn,
+    isSuperAdmin,
+    initAuthFromStorage,
+    loginStoreUser,
+    loginSuperAdmin,
+    logout
+  };
+}

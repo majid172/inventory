@@ -3,6 +3,7 @@ import axios from 'axios';
 
 export interface ProductItem {
   id: number;
+  tenantId?: string;
   productId?: string;
   name: string;
   genericName?: string;
@@ -36,18 +37,43 @@ export const useProductStore = defineStore('products', {
   }),
 
   getters: {
+    getActiveTenantId: () => (): string => {
+      if (process.client) {
+        const saved = localStorage.getItem('active_tenant_store');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.id) return parsed.id;
+          } catch (e) {}
+        }
+      }
+      return 'TENANT_101';
+    },
+
     filteredProducts: (state) => {
       const query = (state.searchQuery || '').trim().toLowerCase();
       const cat = (state.activeCategory || 'All Items').toLowerCase();
 
+      let activeTenantId = 'TENANT_101';
+      if (process.client) {
+        const saved = localStorage.getItem('active_tenant_store');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.id) activeTenantId = parsed.id;
+          } catch (e) {}
+        }
+      }
+
       return state.products.filter(p => {
+        const matchesTenant = !p.tenantId || p.tenantId === activeTenantId || activeTenantId === 'ALL';
         const matchesCategory = cat === "all items" || (p.category && p.category.toLowerCase() === cat);
         const matchesSearch = !query || 
                               (p.name && p.name.toLowerCase().includes(query)) || 
                               (p.genericName && p.genericName.toLowerCase().includes(query)) ||
                               (p.batchNumber && p.batchNumber.toLowerCase().includes(query)) ||
                               (p.category && p.category.toLowerCase().includes(query));
-        return matchesCategory && matchesSearch;
+        return matchesTenant && matchesCategory && matchesSearch;
       });
     },
 
@@ -84,18 +110,35 @@ export const useProductStore = defineStore('products', {
   },
 
   actions: {
-    // ALWAYS fetch products dynamically from API database endpoint
-    async fetchProducts() {
+    // Fetch products dynamically from API filtered by active tenant store
+    async fetchProducts(overrideTenantId?: string) {
       this.loading = true;
       this.error = null;
+
+      let tenantId = overrideTenantId;
+      if (!tenantId && process.client) {
+        const saved = localStorage.getItem('active_tenant_store');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.id) tenantId = parsed.id;
+          } catch (e) {}
+        }
+      }
+      if (!tenantId) tenantId = 'TENANT_101';
+
       try {
-        const response = await axios.get('/products');
+        const response = await axios.get('/products', {
+          params: { tenant_id: tenantId },
+          headers: { 'x-tenant-id': tenantId }
+        });
         const json = response.data;
         const itemsList = json && json.data ? json.data : (Array.isArray(json) ? json : []);
 
         if (Array.isArray(itemsList)) {
           this.products = itemsList.map((item: any) => ({
             id: item.id,
+            tenantId: item.tenantId || item.tenant_id || tenantId,
             productId: item.productId || item.product_id || `MED_${item.id}`,
             name: item.name,
             genericName: item.genericName || item.generic_name || item.name,
@@ -126,11 +169,23 @@ export const useProductStore = defineStore('products', {
       }
     },
 
-    // Save product directly to database API
+    // Save product directly to database API for active tenant
     async addProduct(newProd: Partial<ProductItem>) {
       this.loading = true;
+      let tenantId = 'TENANT_101';
+      if (process.client) {
+        const saved = localStorage.getItem('active_tenant_store');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.id) tenantId = parsed.id;
+          } catch (e) {}
+        }
+      }
+
       try {
         const payload = {
+          tenantId,
           name: newProd.name,
           genericName: newProd.genericName || newProd.name,
           dosageForm: newProd.dosageForm || 'Tablet',
@@ -150,8 +205,10 @@ export const useProductStore = defineStore('products', {
           minReorderLevel: newProd.minReorderLevel || 0
         };
 
-        await axios.post('/products', payload);
-        await this.fetchProducts();
+        await axios.post('/products', payload, {
+          headers: { 'x-tenant-id': tenantId }
+        });
+        await this.fetchProducts(tenantId);
       } catch (e: any) {
         console.error('Failed to add product to API:', e);
       } finally {
@@ -186,3 +243,4 @@ export const useProductStore = defineStore('products', {
     }
   }
 });
+

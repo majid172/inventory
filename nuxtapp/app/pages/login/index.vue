@@ -177,6 +177,15 @@
             <span v-if="isSubmitting" class="animate-spin">⏳</span>
             <span>{{ isSubmitting ? 'Authenticating...' : '👑 Sign In to Super Admin Console' }}</span>
           </button>
+
+          <!-- 1-Click Direct Super Admin Demo Login Button -->
+          <button 
+            type="button" 
+            @click="handleSuperAdminSignIn"
+            class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-extrabold text-xs border border-emerald-500/30 transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+          >
+            <span>⚡ 1-Click Direct Super Admin Login (Demo)</span>
+          </button>
         </form>
 
         <!-- Onboarding Shortcut Footer -->
@@ -290,9 +299,11 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSuperAdmin, type TenantStore } from '~/composables/useSuperAdmin';
+import { useAuth } from '~/composables/useAuth';
 
 const router = useRouter();
 const { tenants, fetchTenants, createTenant } = useSuperAdmin();
+const { loginStoreUser, loginSuperAdmin } = useAuth();
 
 const isSuperAdminLogin = ref(false);
 const selectedTenantId = ref('');
@@ -331,7 +342,7 @@ const defaultTenants: TenantStore[] = [
     terminalsCount: 3,
     branchesCount: 1,
     joinedDate: '2026-01-15',
-    nextBillingDate: '2026-09-15',
+    nextBillingDate: '2028-09-15',
     mrr: 149
   },
   {
@@ -346,7 +357,7 @@ const defaultTenants: TenantStore[] = [
     terminalsCount: 1,
     branchesCount: 1,
     joinedDate: '2026-02-01',
-    nextBillingDate: '2026-09-01',
+    nextBillingDate: '2026-02-15', // 14-Day Free Trial Expired!
     mrr: 49
   },
   {
@@ -361,7 +372,7 @@ const defaultTenants: TenantStore[] = [
     terminalsCount: 5,
     branchesCount: 3,
     joinedDate: '2025-11-10',
-    nextBillingDate: '2026-11-10',
+    nextBillingDate: '2028-11-10',
     mrr: 399
   }
 ];
@@ -374,34 +385,31 @@ const updateSelectedStoreInfo = () => {
   activeSelectedStore.value = availableTenants.value.find(t => t.id === selectedTenantId.value) || null;
 };
 
-const handleStoreSignIn = () => {
+const handleStoreSignIn = async () => {
   isSubmitting.value = true;
-  setTimeout(() => {
-    const store = availableTenants.value.find(t => t.id === selectedTenantId.value);
-    if (store && process.client) {
-      localStorage.setItem('active_tenant_store', JSON.stringify(store));
-      localStorage.setItem('is_logged_in', 'true');
-    }
-    isSubmitting.value = false;
-    
-    if (destinationModule.value === 'pos') {
-      router.push('/pos');
-    } else {
-      router.push('/admin');
-    }
-  }, 400);
+  const store = availableTenants.value.find(t => t.id === selectedTenantId.value);
+  await loginStoreUser({
+    username: username.value,
+    password: password.value,
+    tenantId: selectedTenantId.value || 'TENANT_101'
+  }, store);
+  isSubmitting.value = false;
+  
+  if (destinationModule.value === 'pos') {
+    router.push('/pos');
+  } else {
+    router.push('/admin');
+  }
 };
 
-const handleSuperAdminSignIn = () => {
+const handleSuperAdminSignIn = async () => {
   isSubmitting.value = true;
-  setTimeout(() => {
-    if (process.client) {
-      localStorage.setItem('is_logged_in', 'true');
-      localStorage.setItem('is_super_admin', 'true');
-    }
-    isSubmitting.value = false;
-    router.push('/super-admin');
-  }, 400);
+  await loginSuperAdmin({
+    email: superAdminEmail.value,
+    password: superAdminPassword.value
+  });
+  isSubmitting.value = false;
+  router.push('/super-admin');
 };
 
 const generateSlug = () => {

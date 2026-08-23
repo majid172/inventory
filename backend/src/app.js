@@ -4,6 +4,7 @@ const corsOptions = require('./config/cors');
 const errorHandler = require('./middleware/errorHandler');
 
 // Route Imports
+const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const ingredientRoutes = require('./routes/ingredientRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
@@ -22,6 +23,7 @@ app.get('/', (req, res) => {
 });
 
 // API Routes Mount
+app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -32,3 +34,4 @@ app.use('/api/super-admin', superAdminRoutes);
 app.use(errorHandler);
 
 module.exports = app;
+
