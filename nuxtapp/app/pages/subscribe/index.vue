@@ -301,11 +301,11 @@
               <p class="text-[11px] text-slate-400">Complete setup to provision your MySQL tenant store</p>
             </div>
           </div>
-          <button @click="showModal = false" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs">✕</button>
+          <button @click="resetModal" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs">✕</button>
         </div>
 
-        <!-- Onboarding Form -->
-        <form @submit.prevent="handleRegisterStore" class="p-6 space-y-4 text-xs">
+        <!-- Step 1: Onboarding Details Form -->
+        <form v-if="currentStep === 1 && !accountExistsEmail" @submit.prevent="handleRegisterStore" class="p-6 space-y-4 text-xs">
           <!-- Selected Plan Banner -->
           <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
             <div>
@@ -360,14 +360,26 @@
             </div>
           </div>
 
-          <div>
-            <label class="block font-bold text-slate-200 mb-1">Contact Phone Number</label>
-            <input 
-              v-model="signupForm.phone"
-              type="text" 
-              placeholder="+1 (555) 234-5678"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono outline-none focus:border-sky-500 transition-all text-xs"
-            />
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-200 mb-1">Contact Phone Number</label>
+              <input 
+                v-model="signupForm.phone"
+                type="text" 
+                placeholder="+1 (555) 234-5678"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono outline-none focus:border-sky-500 transition-all text-xs"
+              />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-200 mb-1">Admin Password *</label>
+              <input 
+                v-model="signupForm.password"
+                type="password" 
+                required
+                placeholder="Secure access password"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-sky-500 transition-all text-xs"
+              />
+            </div>
           </div>
 
           <!-- Billing Options Toggle -->
@@ -404,7 +416,7 @@
           <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
             <button 
               type="button" 
-              @click="showModal = false"
+              @click="resetModal"
               class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition-colors text-xs"
             >
               Cancel
@@ -415,10 +427,90 @@
               class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black shadow-lg shadow-sky-500/25 flex items-center gap-2 text-xs transition-all active:scale-95"
             >
               <span v-if="isSubmitting" class="animate-spin">⏳</span>
-              <span>{{ isSubmitting ? 'Provisioning Store in MySQL...' : 'Complete Onboarding & Launch Store' }}</span>
+              <span>{{ signupForm.billingType === 'card' ? 'Continue to Payment' : (isSubmitting ? 'Provisioning...' : 'Launch Free Trial') }}</span>
             </button>
           </div>
         </form>
+
+        <!-- Step 2: Simulated Secure Payment Checkout -->
+        <div v-else-if="currentStep === 2 && !accountExistsEmail" class="p-6">
+          <div class="text-center mb-6">
+            <div class="w-14 h-14 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center text-2xl mx-auto mb-3 border border-emerald-500/30">
+              🔒
+            </div>
+            <h4 class="text-lg font-black text-white">Secure Checkout</h4>
+            <p class="text-xs text-slate-400 mt-1">Complete your payment to activate the {{ signupForm.planTier }} tier.</p>
+          </div>
+
+          <div class="bg-slate-950 rounded-2xl p-4 border border-slate-800 mb-6 font-mono text-xs text-slate-300 space-y-2">
+            <div class="flex justify-between">
+              <span>Plan:</span><span class="text-white font-bold uppercase">{{ signupForm.planTier }} Plan</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Billing Cycle:</span><span class="text-white">Monthly</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-800/80 pt-2 mt-2">
+              <span>Total Due:</span><span class="text-emerald-400 font-black text-sm">${{ signupForm.planTier === 'enterprise' ? '399.00' : signupForm.planTier === 'pro' ? '149.00' : '49.00' }}</span>
+            </div>
+          </div>
+
+          <form @submit.prevent="processPaymentAndRegister" class="space-y-4 text-xs">
+            <div>
+              <label class="block font-bold text-slate-200 mb-1">Card Number</label>
+              <div class="relative">
+                <input type="text" placeholder="0000 0000 0000 0000" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-white font-mono outline-none focus:border-sky-500 transition-all text-xs tracking-widest pl-10" />
+                <span class="absolute left-3.5 top-3 text-slate-500 text-sm">💳</span>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-200 mb-1">Expiry (MM/YY)</label>
+                <input type="text" placeholder="12/26" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono outline-none focus:border-sky-500 transition-all text-xs" />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-200 mb-1">CVC</label>
+                <input type="text" placeholder="123" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono outline-none focus:border-sky-500 transition-all text-xs" />
+              </div>
+            </div>
+
+            <div class="pt-4 flex items-center justify-between gap-3">
+              <button type="button" @click="currentStep = 1" :disabled="isProcessingPayment" class="text-slate-400 hover:text-white font-bold px-3">
+                ← Back
+              </button>
+              <button 
+                type="submit" 
+                :disabled="isProcessingPayment"
+                class="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 text-xs transition-all w-full flex-1"
+              >
+                <span v-if="isProcessingPayment" class="animate-spin">⌛</span>
+                <span>{{ isProcessingPayment ? 'Processing Payment...' : 'Pay & Provision Store' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Account Exists State -->
+        <div v-else-if="accountExistsEmail" class="p-8 text-center space-y-4">
+          <div class="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center text-3xl mx-auto border border-amber-500/30">
+            ⚠️
+          </div>
+          <h4 class="text-xl font-black text-white">Account Already Exists</h4>
+          <p class="text-xs text-slate-400 max-w-sm mx-auto">
+            The email <strong class="text-slate-200">{{ accountExistsEmail }}</strong> is already registered to a pharmacy tenant in our system.
+          </p>
+          <div class="pt-6 border-t border-slate-800/80">
+            <p class="text-[11px] text-slate-500 mb-4 uppercase font-bold tracking-wider">Want to renew or upgrade your plan?</p>
+            <NuxtLink 
+              to="/login"
+              class="inline-flex px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-white font-bold transition-all items-center gap-2 text-xs"
+            >
+              <span>🔑</span> Log In to Renew Subscription
+            </NuxtLink>
+            <button @click="resetModal" class="block w-full text-center text-slate-500 hover:text-slate-300 mt-4 text-xs font-bold transition-colors">
+              Use a different email
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -477,13 +569,20 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useSuperAdmin, type TenantStore, type SubscriptionPlan } from '~/composables/useSuperAdmin';
+import { useAuth } from '~/composables/useAuth';
 
-const { plans, fetchPlans, createTenant } = useSuperAdmin();
+const router = useRouter();
+const { plans, fetchPlans } = useSuperAdmin();
+const { onboardNewTenant } = useAuth();
 
 const isYearly = ref(false);
 const showModal = ref(false);
 const isSubmitting = ref(false);
+const isProcessingPayment = ref(false);
+const currentStep = ref(1);
+const accountExistsEmail = ref('');
 const createdTenant = ref<TenantStore | null>(null);
 
 onMounted(() => {
@@ -558,6 +657,7 @@ const signupForm = reactive({
   ownerName: '',
   email: '',
   phone: '',
+  password: '',
   planTier: 'pro' as 'starter' | 'pro' | 'enterprise',
   billingType: 'trial' as 'trial' | 'card'
 });
@@ -569,30 +669,82 @@ const generateSlug = () => {
     .replace(/(^-|-$)/g, '');
 };
 
+const resetModal = () => {
+  currentStep.value = 1;
+  accountExistsEmail.value = '';
+  showModal.value = false;
+  isSubmitting.value = false;
+  isProcessingPayment.value = false;
+};
+
 const openRegisterModal = (tier: string) => {
   signupForm.planTier = (tier === 'enterprise' ? 'enterprise' : tier === 'starter' ? 'starter' : 'pro') as 'starter' | 'pro' | 'enterprise';
+  currentStep.value = 1;
+  accountExistsEmail.value = '';
   showModal.value = true;
 };
 
-const handleRegisterStore = async () => {
-  isSubmitting.value = true;
+const executeBackendOnboarding = async () => {
   try {
-    const tenant = await createTenant({
+    const res = await onboardNewTenant({
       storeName: signupForm.storeName,
+      slug: signupForm.slug,
       ownerName: signupForm.ownerName,
       email: signupForm.email,
       phone: signupForm.phone,
+      password: signupForm.password,
       planTier: signupForm.planTier
     });
 
-    if (tenant) {
-      createdTenant.value = tenant;
+    if (res.success && res.user) {
+      createdTenant.value = {
+        id: res.user.tenantId,
+        storeName: res.user.storeName || signupForm.storeName,
+        slug: signupForm.slug,
+        ownerName: res.user.name,
+        email: res.user.email,
+        phone: res.user.phone,
+        planTier: res.user.planTier || signupForm.planTier,
+        status: signupForm.billingType === 'card' ? 'active' : 'trial',
+        nextBillingDate: new Date(Date.now() + (signupForm.billingType === 'card' ? 30 : 14) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      } as any;
       showModal.value = false;
+      return true;
+    } else {
+      if (res.message && (res.message.includes('already exists') || res.message.includes('A user with this email'))) {
+        accountExistsEmail.value = signupForm.email;
+      } else {
+        alert(res.message || "Error onboarding pharmacy store. Please try again.");
+      }
+      return false;
     }
-  } catch (e) {
-    alert("Error onboarding pharmacy store. Please try again.");
-  } finally {
+  } catch (e: any) {
+    alert("An unexpected error occurred during onboarding.");
+    return false;
+  }
+};
+
+const handleRegisterStore = async () => {
+  if (signupForm.billingType === 'card') {
+    // Move to payment step
+    currentStep.value = 2;
+  } else {
+    // Execute free trial onboarding directly
+    isSubmitting.value = true;
+    await executeBackendOnboarding();
     isSubmitting.value = false;
   }
+};
+
+const processPaymentAndRegister = async () => {
+  isProcessingPayment.value = true;
+  
+  // Simulate 2 second secure payment processing
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  const success = await executeBackendOnboarding();
+  isProcessingPayment.value = false;
+  
+  // If failed (e.g. email exists), it will stay on step 2 but show the accountExists state
 };
 </script>

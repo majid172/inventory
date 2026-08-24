@@ -140,18 +140,24 @@
               {{ isSuperAdmin ? '👑' : 'Rx' }}
             </span>
             <span class="font-sans">
-              {{ isSuperAdmin ? 'Platform Super Admin' : (activeTenantStoreName || 'MediCare Central') }}
+              {{ isSuperAdmin ? 'Platform Super Admin' : (loggedInUserName || activeTenantStoreName || 'MediCare Central') }}
+            </span>
+            <span v-if="userRole && !isSuperAdmin" class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+              {{ userRole }}
             </span>
             <span class="text-[9px] text-slate-400">▼</span>
           </button>
 
           <!-- User Profile Dropdown Menu -->
-          <div class="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 rounded-xl shadow-2xl py-1 text-xs hidden group-hover:block z-50 overflow-hidden">
+          <div class="absolute right-0 top-full mt-1 w-60 bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 rounded-xl shadow-2xl py-1 text-xs hidden group-hover:block z-50 overflow-hidden">
             <!-- Active Store Details Header -->
             <div class="px-3 py-2 bg-slate-50 dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800">
-              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Active Pharmacy Store:</span>
-              <span class="font-black text-slate-900 dark:text-white block truncate">{{ activeTenantStoreName || 'MediCare Central' }}</span>
-              <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase block">{{ isSuperAdmin ? 'Super Admin' : (activeTenantPlan + ' Tier') }}</span>
+              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Signed In As:</span>
+              <span class="font-black text-slate-900 dark:text-white block truncate">{{ loggedInUserName || 'Store Pharmacist' }}</span>
+              <div class="flex items-center justify-between mt-0.5">
+                <span class="text-[10px] text-slate-500 truncate">{{ loggedInUserEmail || activeTenantStoreName }}</span>
+                <span class="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase">{{ isSuperAdmin ? 'SUPER ADMIN' : (activeTenantPlan + ' Tier') }}</span>
+              </div>
             </div>
 
             <!-- Menu Links -->
@@ -236,6 +242,7 @@ const route = useRoute();
 const router = useRouter();
 const productStore = useProductStore();
 const { getSubscriptionInfo } = useTenantSubscription();
+const { user, isLoggedIn: authIsLoggedIn, isSuperAdmin: authIsSuperAdmin, changePin, logout, initAuthFromStorage, fetchCurrentUser } = useAuth();
 
 const formattedTime = ref('');
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -276,22 +283,24 @@ const handleTenantSwitch = async () => {
 };
 
 const isLoggedIn = computed(() => {
-  if (route.path.startsWith('/pos') || route.path.startsWith('/admin') || route.path.startsWith('/super-admin')) {
-    return true;
-  }
-  if (process.client) {
-    const activeTenant = localStorage.getItem('active_tenant_store');
-    const authState = localStorage.getItem('auth_token') || localStorage.getItem('is_logged_in');
-    return !!(activeTenant || authState);
-  }
-  return false;
+  return authIsLoggedIn.value;
 });
 
 const isSuperAdmin = computed(() => {
-  if (process.client) {
-    return localStorage.getItem('is_super_admin') === 'true';
-  }
-  return false;
+  return authIsSuperAdmin.value;
+});
+
+const loggedInUserName = computed(() => {
+  return user.value?.name || '';
+});
+
+const loggedInUserEmail = computed(() => {
+  return user.value?.email || '';
+});
+
+const userRole = computed(() => {
+  if (!user.value?.role) return '';
+  return user.value.role.replace('_', ' ');
 });
 
 const activeTenantStatus = computed(() => {
@@ -348,15 +357,15 @@ const reloadApp = () => {
   }
 };
 
-const handleLogout = () => {
-  const { logout } = useAuth();
-  logout();
+const handleLogout = async () => {
+  await logout();
   router.push('/login');
 };
 
-const handleChangePin = () => {
+const handleChangePin = async () => {
   if (!newPin.value) return;
-  alert(`Store access PIN updated successfully to: ${newPin.value}`);
+  const res = await changePin(newPin.value);
+  alert(res.message || `Store access PIN updated successfully to: ${newPin.value}`);
   showPinModal.value = false;
   newPin.value = '';
 };
@@ -365,9 +374,12 @@ watch(() => route.path, () => {
   checkAndLockIfExpired();
 });
 
-onMounted(() => {
+onMounted(async () => {
+  initAuthFromStorage();
+  await fetchCurrentUser();
   updateClock();
   timer = setInterval(updateClock, 1000);
+
 
   if (process.client) {
     const saved = localStorage.getItem('active_tenant_store');

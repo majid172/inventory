@@ -27,9 +27,36 @@ export default defineNuxtPlugin(() => {
     return reqConfig;
   });
 
+  // Response interceptor to handle token expiry
+  axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (process.client && error.response && error.response.status === 401) {
+        const isAuthRoute = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/super-admin-login');
+        if (!isAuthRoute) {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          localStorage.removeItem('is_logged_in');
+          localStorage.removeItem('is_super_admin');
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/login' && currentPath !== '/') {
+            window.location.href = '/login';
+          }
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
+
   const api = axios.create({
     baseURL: apiBase,
   });
+
+  api.interceptors.request.use(axios.interceptors.request.handlers[0]?.fulfilled);
+  api.interceptors.response.use(
+    axios.interceptors.response.handlers[0]?.fulfilled,
+    axios.interceptors.response.handlers[0]?.rejected
+  );
 
   return {
     provide: {
@@ -37,4 +64,5 @@ export default defineNuxtPlugin(() => {
     }
   };
 });
+
 
