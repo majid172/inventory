@@ -511,8 +511,8 @@ const demoAccounts = [
   {
     name: 'Super Admin',
     storeName: 'Global SaaS Control',
-    email: 'admin@pharmasaas.com',
-    pin: 'admin123',
+    email: 'admin@yourapp.com',
+    pin: 'password',
     tenantId: 'SYSTEM',
     isSuperAdmin: true,
     icon: '👑'

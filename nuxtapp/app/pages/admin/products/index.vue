@@ -1,22 +1,21 @@
 <template>
   <NuxtLayout name="admin">
-    <div class="space-y-4 select-none">
-      <!-- Desktop Application Database Data Grid Frame with 1px Gridlines -->
-      <div
-        class="border border-slate-300 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden bg-white dark:bg-gray-950">
-        <!-- Top Desktop Data Grid Toolbar Bar -->
+    <div class="space-y-3 select-none">
+      <!-- Desktop Application Database Data Grid Frame (Clean, Sharp Edges, Regular Font) -->
+      <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
+        <!-- Top Toolbar -->
         <div
-          class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 py-2 flex flex-wrap items-center justify-between gap-3">
+          class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <button @click="openAddModal"
-              class="bg-gradient-to-b from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white dark:text-gray-950 font-bold px-3 py-1.5 rounded border border-emerald-600 text-xs flex items-center gap-1 shadow-sm cursor-pointer active:scale-95">
-              <span class="text-sm font-black mr-1">+</span> Add New Medicine
+              class="bg-emerald-600 hover:bg-emerald-700 text-white font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all">
+              <span class="text-sm">+</span> Add New Medicine
             </button>
             <button @click="fetchProducts" :disabled="loading"
-              class="bg-gradient-to-b from-white to-slate-100 dark:from-gray-800 dark:to-gray-900 hover:bg-slate-100 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-bold px-3 py-1.5 rounded text-xs flex items-center gap-1 transition-all shadow-sm cursor-pointer">
-              <svg :class="['w-3.5 h-3.5 mr-1 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+              class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-normal px-2.5 py-1 text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer">
+              <svg :class="['w-3.5 h-3.5 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                 </path>
               </svg>
@@ -25,160 +24,142 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <label class="font-extrabold text-[11px] text-slate-600 dark:text-gray-400 uppercase tracking-wider">FILTER
-              SEARCH:</label>
+            <label
+              class="font-normal text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">FILTER:</label>
             <div class="relative">
-              <input type="text" v-model="filterText" placeholder="Search generic, brand, supplier..."
-                class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 text-xs text-slate-800 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 font-sans shadow-inner w-56 sm:w-72" />
+              <input type="text" v-model="filterText" placeholder="Search brand, generic, supplier..."
+                class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1 text-xs text-slate-800 dark:text-gray-200 placeholder-slate-400 font-normal focus:outline-none focus:border-emerald-500 w-56 sm:w-72" />
               <button v-if="filterText" @click="filterText = ''"
-                class="absolute right-2.5 top-1.5 text-slate-400 hover:text-slate-600 dark:text-gray-500 text-xs">✕</button>
+                class="absolute right-2 top-1 text-slate-400 hover:text-slate-600 text-xs cursor-pointer font-normal">
+                ✕
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- Desktop Grid Table Viewport with Visible 1px Gridlines -->
+        <!-- Desktop Grid Table Viewport with Exact Match to Reference Typography -->
         <div class="overflow-x-auto">
           <table
-            class="w-full text-left text-xs font-sans border-collapse border border-slate-300 dark:border-gray-800">
+            class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
             <thead>
               <tr
-                class="bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 text-slate-800 dark:text-gray-200 font-extrabold text-[11px] uppercase tracking-wider">
-                <th
-                  class="py-2.5 px-3 w-10 text-center border border-slate-300 dark:border-gray-700 bg-slate-300/80 dark:bg-gray-800">
-                  #</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">BRAND NAME</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">GENERIC COMPOUND</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">FORM & STRENGTH</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">CATEGORY</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">SUPPLIER / DISTRIBUTOR</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-right">PRICE / COST</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-center">STOCK QTY</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-center">Rx FLAG</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">BATCH & EXPIRY</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-center">STATUS</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-center">ACTIONS</th>
+                class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
+                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># ID
+                </th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Brand Name</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Generic Compound</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Form & Strength</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Category</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Supplier / Dist</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-right font-normal">Price /
+                  Cost</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Stock Qty
+                </th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Rx Flag
+                </th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Batch & Exp</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Status
+                </th>
+                <th class="py-1.5 px-3 text-center w-24 font-normal">Actions</th>
               </tr>
             </thead>
 
             <tbody>
               <tr v-if="filteredProducts.length === 0">
-                <td colSpan="12"
-                  class="py-8 text-center text-slate-400 dark:text-gray-500 font-mono text-xs border border-slate-300 dark:border-gray-800">
+                <td colspan="12" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No medicines found in database catalog.
                 </td>
               </tr>
               <tr v-for="(row, idx) in filteredProducts" :key="row.id" @click="selectedRow = row.id" :class="[
-                'transition-colors cursor-pointer border-b border-slate-300 dark:border-gray-800',
+                'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
                 selectedRow === row.id
-                  ? 'bg-sky-500 text-white font-bold'
-                  : 'even:bg-slate-50/80 dark:even:bg-gray-900/50 hover:bg-sky-100 dark:hover:bg-gray-800/80'
+                  ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
+                  : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
               ]">
-                <!-- Index Column -->
-                <td class="py-2 px-3 text-center font-mono font-bold border border-slate-300 dark:border-gray-800 w-10"
-                  :class="selectedRow === row.id ? 'bg-sky-600 text-white' : 'bg-slate-100/90 dark:bg-gray-900 text-slate-600 dark:text-gray-400'">
-                  {{ idx + 1 }}
+                <!-- ID Column -->
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 font-normal text-slate-500 dark:text-gray-400">
+                  {{ ++idx }}
                 </td>
 
                 <!-- Brand Name -->
-                <td class="py-2 px-3 font-extrabold border border-slate-300 dark:border-gray-800">
-                  <div class="flex items-center gap-2">
-                    <span>{{ row.icon || '💊' }}</span>
-                    <span
-                      :class="selectedRow === row.id ? 'text-white' : 'text-blue-700 dark:text-sky-400 hover:underline'">{{
-                        row.name }}</span>
-                  </div>
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-800 dark:text-gray-200">
+                  {{ row.name }}
                 </td>
 
-                <!-- Generic -->
-                <td class="py-2 px-3 font-semibold border border-slate-300 dark:border-gray-800"
-                  :class="selectedRow === row.id ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'">
-                  🧪 {{ row.genericName || row.name }}
+                <!-- Generic Compound -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-600 dark:text-gray-400">
+                  {{ row.genericName || row.name }}
                 </td>
 
                 <!-- Form & Strength -->
-                <td class="py-2 px-3 font-mono border border-slate-300 dark:border-gray-800"
-                  :class="selectedRow === row.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'">
-                  <span
-                    :class="selectedRow === row.id ? 'bg-white/20 border-white/40 text-white' : 'bg-slate-100 dark:bg-gray-950 border-slate-200 dark:border-gray-800 text-slate-700 dark:text-gray-300'"
-                    class="px-2 py-0.5 rounded border text-[11px] font-semibold">
-                    {{ row.dosageForm }} ({{ row.strength }})
-                  </span>
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-600 dark:text-gray-400">
+                  {{ row.dosageForm || 'Tablet' }} ({{ row.strength || '500mg' }})
                 </td>
 
                 <!-- Category -->
-                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800 font-medium"
-                  :class="selectedRow === row.id ? 'text-white' : 'text-slate-600 dark:text-gray-400'">
-                  {{ row.category }}
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-600 dark:text-gray-400">
+                  {{ row.category || 'General' }}
                 </td>
 
                 <!-- Supplier -->
-                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800 font-semibold"
-                  :class="selectedRow === row.id ? 'text-white' : 'text-sky-700 dark:text-sky-400'">
-                  🏭 {{ row.manufacturer || 'GSK Pharmaceuticals' }}
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-600 dark:text-gray-400">
+                  {{ row.manufacturer || 'GSK Pharma' }}
                 </td>
 
                 <!-- Price / Cost -->
-                <td class="py-2 px-3 text-right font-mono border border-slate-300 dark:border-gray-800">
-                  <div class="font-extrabold"
-                    :class="selectedRow === row.id ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'">${{
-                      row.price.toFixed(2) }}</div>
-                  <div class="text-[10px]"
-                    :class="selectedRow === row.id ? 'text-sky-100' : 'text-slate-400 dark:text-gray-500'">Cost: ${{
-                      row.cost.toFixed(2) }}</div>
+                <td class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal">
+                  <div class="text-slate-800 dark:text-gray-200 font-normal">${{ Number(row.price || 0).toFixed(2) }}
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-normal">Cost: ${{ Number(row.cost || 0).toFixed(2) }}
+                  </div>
                 </td>
 
                 <!-- Stock Qty -->
-                <td class="py-2 px-3 text-center font-mono font-bold border border-slate-300 dark:border-gray-800">
-                  <span :class="[
-                    'px-2 py-0.5 rounded text-xs border font-bold',
-                    (row.stockQuantity || 0) <= (row.minReorderLevel || 15) ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800' : selectedRow === row.id ? 'bg-white text-slate-900 border-white' : 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-gray-950 dark:text-gray-200 dark:border-gray-800'
-                  ]">
-                    {{ row.stockQuantity || 0 }}
-                  </span>
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal text-slate-800 dark:text-gray-200">
+                  {{ row.stockQuantity || 0 }}
                 </td>
 
                 <!-- Rx Flag -->
-                <td class="py-2 px-3 text-center border border-slate-300 dark:border-gray-800">
-                  <span :class="[
-                    'px-2 py-0.5 rounded text-[10px] font-black font-mono border uppercase tracking-wider',
-                    row.rxRequired ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800' : selectedRow === row.id ? 'bg-white text-emerald-900 border-white' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800'
-                  ]">
-                    {{ row.rxRequired ? 'Rx Required' : 'OTC' }}
+                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
+                  <span :class="row.rxRequired ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'">
+                    {{ row.rxRequired ? 'Rx Req' : 'OTC' }}
                   </span>
                 </td>
 
-                <!-- Batch & Expiry -->
-                <td class="py-2 px-3 font-mono text-[11px] border border-slate-300 dark:border-gray-800">
-                  <div class="font-semibold"
-                    :class="selectedRow === row.id ? 'text-white' : 'text-slate-800 dark:text-gray-200'">Lot: {{
-                      row.batchNumber }}</div>
-                  <div class="font-semibold"
-                    :class="selectedRow === row.id ? 'text-amber-200' : 'text-amber-600 dark:text-amber-400'">Exp: {{
-                      row.expiryDate }}</div>
+                <!-- Batch & Exp -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-600 dark:text-gray-400">
+                  <div>{{ row.batchNumber || '-' }}</div>
+                  <div class="text-[10px] text-slate-400">{{ row.expiryDate || '-' }}</div>
                 </td>
 
                 <!-- Status -->
-                <td class="py-2 px-3 text-center font-bold border border-slate-300 dark:border-gray-800">
-                  <span :class="[
-                    'px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider',
-                    row.status == 1 || row.status === 'AVAILABLE' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800' : 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800'
-                  ]">
+                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
+                  <span
+                    :class="row.status == 1 || row.status === 'AVAILABLE' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600'">
                     {{ row.status == 1 || row.status === 'AVAILABLE' ? 'Available' : 'Out of Stock' }}
                   </span>
                 </td>
 
                 <!-- Actions -->
-                <td class="py-2 px-3 text-center border border-slate-300 dark:border-gray-800" @click.stop>
-                  <div class="flex items-center justify-center gap-1.5">
+                <td class="py-1.5 px-3 text-center" @click.stop>
+                  <div class="flex items-center justify-center gap-1">
                     <button @click="openEditModal(row)"
-                      class="bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 px-2 py-0.5 rounded text-[11px] font-bold shadow-sm transition-all cursor-pointer"
+                      class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 px-2 py-0.5 text-[11px] font-normal cursor-pointer"
                       title="Edit Medicine">
-                      ✏️ Edit
+                      Edit
                     </button>
                     <button @click="handleDeleteMedicine(row.id, row.name)"
-                      class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-900 px-2 py-0.5 rounded text-[11px] font-bold shadow-sm transition-all cursor-pointer"
+                      class="bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 dark:bg-gray-800 dark:text-rose-400 dark:border-gray-700 px-2 py-0.5 text-[11px] font-normal cursor-pointer"
                       title="Delete Medicine">
-                      🗑️ Delete
+                      Delete
                     </button>
                   </div>
                 </td>
@@ -189,318 +170,345 @@
 
         <!-- Desktop Grid Footer Bar -->
         <div
-          class="px-3 py-2 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-t border-slate-300 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400">
-          <div>Displaying <strong>{{ filteredProducts.length }}</strong> medicine entries (Page 1 of 1)</div>
-          <div class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">PostgreSQL Medicines
-            Catalog • Grid Connected</div>
+          class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 font-normal">
+          <div>Total <strong>{{ filteredProducts.length }}</strong> products</div>
+          <div class="text-[10px] text-slate-400 font-normal">
+            MySQL: <code>products</code>
+          </div>
         </div>
       </div>
 
-      <!-- Add Medicine Modal Form -->
+      <!-- ===================================================================== -->
+      <!-- CLEAN & SHARP DESKTOP MODAL: ADD MEDICINE (REGULAR FONT) -->
+      <!-- ===================================================================== -->
       <div v-if="showAddModal"
-        class="fixed inset-0 bg-slate-900/40 dark:bg-gray-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none animate-fadeIn">
         <div
-          class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-          <div class="flex items-center justify-between border-b border-slate-200 dark:border-gray-800 pb-3">
-            <h3 class="font-black text-emerald-600 dark:text-emerald-400 text-base flex items-center gap-2">
-              <span>💊</span> Add New Medicine to Catalog
+          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-2xl shadow-lg overflow-hidden max-h-[90vh] flex flex-col">
+          <!-- Window Titlebar -->
+          <div
+            class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
+            <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100">
+              Add New Medicine to Catalog
             </h3>
             <button @click="showAddModal = false"
-              class="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 font-bold">✕</button>
+              class="text-slate-400 hover:text-slate-700 dark:hover:text-white font-normal text-xs cursor-pointer">✕</button>
           </div>
 
-          <div class="space-y-3 text-xs">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">BRAND NAME *</label>
-                <input type="text" v-model="newProd.name" placeholder="e.g. Amoxicillin 500mg"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
-              </div>
-
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">GENERIC COMPOUND NAME</label>
-                <input type="text" v-model="newProd.genericName" placeholder="e.g. Amoxicillin Trihydrate"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+          <!-- Form Body -->
+          <form @submit.prevent="handleSaveProduct" class="p-4 space-y-3 text-xs font-sans overflow-y-auto flex-1">
+            <!-- Product Classification Selector (Medicine vs General Non-Medicine) -->
+            <div
+              class="bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 p-2.5 flex items-center justify-between">
+              <span class="text-slate-600 dark:text-gray-300 font-normal text-xs">Product Classification:</span>
+              <div class="flex items-center gap-4">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="radio" value="medicine" v-model="newProd.productType"
+                    class="text-emerald-600 focus:ring-emerald-500" />
+                  <span>💊 Medicine (Drug)</span>
+                </label>
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="radio" value="general" v-model="newProd.productType"
+                    class="text-emerald-600 focus:ring-emerald-500" />
+                  <span>📦 General / Non-Medicine</span>
+                </label>
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-3">
+            <div :class="newProd.productType === 'medicine' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">DOSAGE FORM</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  {{ newProd.productType === 'medicine' ? 'Brand / Medicine Name *' : 'Product Name *' }}
+                </label>
+                <input type="text" v-model="newProd.name" required
+                  :placeholder="newProd.productType === 'medicine' ? 'e.g. Amoxicillin 500mg' : 'e.g. Savlon Antiseptic 500ml, Baby Diaper L'"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+              <div v-if="newProd.productType === 'medicine'">
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Generic Compound Name</label>
+                <input type="text" v-model="newProd.genericName" placeholder="e.g. Amoxicillin Trihydrate"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+            </div>
+
+            <div :class="newProd.productType === 'medicine' ? 'grid grid-cols-3 gap-3' : 'grid grid-cols-1 gap-3'">
+              <div v-if="newProd.productType === 'medicine'">
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
                 <select v-model="newProd.dosageForm"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans">
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
                   <option value="Tablet">Tablet</option>
                   <option value="Capsule">Capsule</option>
                   <option value="Syrup">Syrup</option>
                   <option value="Injection">Injection</option>
                   <option value="Ointment">Ointment</option>
                   <option value="Eye Drops">Eye Drops</option>
-                  <option value="Inhaler">Inhaler</option>
-                  <option value="Supplies">Supplies</option>
                 </select>
               </div>
-
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">STRENGTH</label>
+              <div v-if="newProd.productType === 'medicine'">
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Strength</label>
                 <input type="text" v-model="newProd.strength" placeholder="e.g. 500mg"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">CATEGORY</label>
-                <select v-model="newProd.categoryId"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans">
-                  <option value="" disabled>Select Category</option>
-                  <option v-for="cat in dbCategories" :key="cat.id" :value="cat.id">
-                    {{ cat.name }}
-                  </option>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Category *</label>
+                <select v-model="newProd.categoryId" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
+                  <option value="" disabled>-- Select Category --</option>
+                  <option v-for="cat in dbCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                 </select>
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">SUPPLIER / DISTRIBUTOR</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Supplier / Brand</label>
                 <select v-model="newProd.manufacturer"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans">
-                  <option value="" disabled>Select Supplier</option>
-                  <option v-for="sup in supplierList" :key="sup.id" :value="sup.name">
-                    {{ sup.name }}
-                  </option>
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
+                  <option v-for="sup in supplierList" :key="sup.id" :value="sup.name">{{ sup.name }}</option>
                 </select>
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">SHELF / RACK LOCATION</label>
-                <input type="text" v-model="newProd.rackLocation" placeholder="Shelf A-04"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Shelf / Rack Location</label>
+                <input type="text" v-model="newProd.rackLocation" placeholder="Shelf A-01"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
             </div>
 
             <div class="grid grid-cols-4 gap-3">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">RETAIL PRICE ($)</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Retail Price ($)</label>
                 <input type="number" step="0.10" v-model.number="newProd.price"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 font-mono text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-500 font-bold" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">COST PRICE ($)</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Cost Price ($)</label>
                 <input type="number" step="0.10" v-model.number="newProd.cost"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 font-mono text-slate-700 dark:text-gray-300 focus:outline-none focus:border-emerald-500" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">STOCK QTY</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Stock Qty</label>
                 <input type="number" v-model.number="newProd.stockQuantity"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 font-mono text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-bold" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">MIN REORDER</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Min Reorder</label>
                 <input type="number" v-model.number="newProd.minReorderLevel"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 font-mono text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">BATCH LOT #</label>
-                <input type="text" v-model="newProd.batchNumber" placeholder="BATCH-2026-X1"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Batch / Lot #</label>
+                <input type="text" v-model="newProd.batchNumber"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">EXPIRY DATE</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Expiry Date</label>
                 <input type="date" v-model="newProd.expiryDate"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
             </div>
 
             <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-gray-800">
               <div class="flex items-center gap-2">
-                <input type="checkbox" id="rxReq" v-model="newProd.rxRequired"
-                  class="w-4 h-4 rounded bg-slate-50 dark:bg-gray-950 border-slate-300 dark:border-gray-800 text-emerald-600 focus:ring-emerald-500" />
-                <label for="rxReq" class="font-bold text-rose-600 dark:text-rose-400 cursor-pointer">Prescription
-                  Required (Rx
-                  Medicine)</label>
+                <template v-if="newProd.productType === 'medicine'">
+                  <input type="checkbox" id="rxReqNew" v-model="newProd.rxRequired"
+                    class="w-4 h-4 border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                  <label for="rxReqNew"
+                    class="font-normal text-slate-700 dark:text-gray-300 cursor-pointer">Prescription
+                    Required (Rx Medicine)</label>
+                </template>
+                <span v-else class="text-slate-400 font-normal text-[11px]">OTC / General Retail Product</span>
               </div>
-
               <div class="flex items-center gap-2">
-                <label class="font-bold text-slate-700 dark:text-gray-300">STATUS:</label>
+                <label class="font-normal text-slate-700 dark:text-gray-300">Status:</label>
                 <select v-model="newProd.status"
-                  class="bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg p-1 text-xs text-slate-800 dark:text-gray-200">
-                  <option value="1">AVAILABLE</option>
-                  <option value="0">OUT OF STOCK</option>
+                  class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-100 font-normal">
+                  <option value="1">Available</option>
+                  <option value="0">Out of Stock</option>
                 </select>
               </div>
             </div>
-          </div>
 
-          <div class="flex gap-2 pt-3 border-t border-slate-200 dark:border-gray-800">
-            <button @click="showAddModal = false"
-              class="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-950 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-800 text-slate-700 dark:text-gray-300 font-bold py-2.5 rounded-xl text-xs cursor-pointer">
-              Cancel
-            </button>
-            <button @click="handleSaveProduct" :disabled="!newProd.name"
-              class="flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 disabled:opacity-50 text-white dark:text-gray-950 font-black py-2.5 rounded-xl text-xs shadow-lg cursor-pointer">
-              Save Medicine to Catalog
-            </button>
-          </div>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-gray-800">
+              <button type="button" @click="showAddModal = false"
+                class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-xs cursor-pointer">
+                Cancel
+              </button>
+              <button type="submit" :disabled="!newProd.name"
+                class="px-4 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-normal text-xs cursor-pointer">
+                Save Product
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
-      <!-- Edit Medicine Modal Form -->
+
       <div v-if="showEditModal"
-        class="fixed inset-0 bg-slate-900/40 dark:bg-gray-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none animate-fadeIn">
         <div
-          class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-          <div class="flex items-center justify-between border-b border-slate-200 dark:border-gray-800 pb-3">
-            <h3 class="font-black text-emerald-600 dark:text-emerald-400 text-base flex items-center gap-2">
-              <span>✏️</span> Edit Medicine: {{ editProd.name }}
+          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-2xl shadow-lg overflow-hidden max-h-[90vh] flex flex-col">
+          <!-- Window Titlebar -->
+          <div
+            class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
+            <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100">
+              Edit Product Record (#{{ editingId }})
             </h3>
             <button @click="showEditModal = false"
-              class="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 font-bold">✕</button>
+              class="text-slate-400 hover:text-slate-700 dark:hover:text-white font-normal text-xs cursor-pointer">✕</button>
           </div>
 
-          <div class="space-y-3 text-xs">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">BRAND NAME *</label>
-                <input type="text" v-model="editProd.name"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
-              </div>
-
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">GENERIC COMPOUND NAME</label>
-                <input type="text" v-model="editProd.genericName"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+          <!-- Form Body -->
+          <form @submit.prevent="handleUpdateProduct" class="p-4 space-y-3 text-xs font-sans overflow-y-auto flex-1">
+            <!-- Product Classification Selector -->
+            <div
+              class="bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 p-2.5 flex items-center justify-between">
+              <span class="text-slate-600 dark:text-gray-300 font-normal text-xs">Product Classification:</span>
+              <div class="flex items-center gap-4">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="radio" value="medicine" v-model="editProd.productType"
+                    class="text-emerald-600 focus:ring-emerald-500" />
+                  <span>💊 Medicine (Drug)</span>
+                </label>
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="radio" value="general" v-model="editProd.productType"
+                    class="text-emerald-600 focus:ring-emerald-500" />
+                  <span>📦 General / Non-Medicine</span>
+                </label>
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-3">
+            <div :class="editProd.productType === 'medicine' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">DOSAGE FORM</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  {{ editProd.productType === 'medicine' ? 'Brand / Medicine Name *' : 'Product Name *' }}
+                </label>
+                <input type="text" v-model="editProd.name" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+              <div v-if="editProd.productType === 'medicine'">
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Generic Compound Name</label>
+                <input type="text" v-model="editProd.genericName"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+            </div>
+
+            <div :class="editProd.productType === 'medicine' ? 'grid grid-cols-3 gap-3' : 'grid grid-cols-1 gap-3'">
+              <div v-if="editProd.productType === 'medicine'">
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
                 <select v-model="editProd.dosageForm"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans">
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
                   <option value="Tablet">Tablet</option>
                   <option value="Capsule">Capsule</option>
                   <option value="Syrup">Syrup</option>
                   <option value="Injection">Injection</option>
                   <option value="Ointment">Ointment</option>
                   <option value="Eye Drops">Eye Drops</option>
-                  <option value="Inhaler">Inhaler</option>
-                  <option value="Supplies">Supplies</option>
                 </select>
               </div>
-
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">STRENGTH</label>
+              <div v-if="editProd.productType === 'medicine'">
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Strength</label>
                 <input type="text" v-model="editProd.strength"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">CATEGORY</label>
-                <select v-model="editProd.categoryId"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans">
-                  <option v-for="cat in dbCategories" :key="cat.id" :value="cat.id">
-                    {{ cat.name }}
-                  </option>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Category *</label>
+                <select v-model="editProd.categoryId" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
+                  <option value="" disabled>-- Select Category --</option>
+                  <option v-for="cat in dbCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                 </select>
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">SUPPLIER / DISTRIBUTOR</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Supplier / Distributor</label>
                 <select v-model="editProd.manufacturer"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans">
-                  <option v-for="sup in supplierList" :key="sup.id" :value="sup.name">
-                    {{ sup.name }}
-                  </option>
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
+                  <option v-for="sup in supplierList" :key="sup.id" :value="sup.name">{{ sup.name }}</option>
                 </select>
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">SHELF / RACK LOCATION</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Shelf / Rack Location</label>
                 <input type="text" v-model="editProd.rackLocation"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
             </div>
 
             <div class="grid grid-cols-4 gap-3">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">RETAIL PRICE ($)</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Retail Price ($)</label>
                 <input type="number" step="0.10" v-model.number="editProd.price"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 font-mono text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-500 font-bold" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">COST PRICE ($)</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Cost Price ($)</label>
                 <input type="number" step="0.10" v-model.number="editProd.cost"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 font-mono text-slate-700 dark:text-gray-300 focus:outline-none focus:border-emerald-500" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">STOCK QTY</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Stock Qty</label>
                 <input type="number" v-model.number="editProd.stockQuantity"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 font-mono text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-bold" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">MIN REORDER</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Min Reorder</label>
                 <input type="number" v-model.number="editProd.minReorderLevel"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 font-mono text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">BATCH LOT #</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Batch Lot #</label>
                 <input type="text" v-model="editProd.batchNumber"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
-
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">EXPIRY DATE</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Expiry Date</label>
                 <input type="date" v-model="editProd.expiryDate"
-                  class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 font-sans" />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
               </div>
             </div>
 
             <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-gray-800">
               <div class="flex items-center gap-2">
                 <input type="checkbox" id="rxReqEdit" v-model="editProd.rxRequired"
-                  class="w-4 h-4 rounded bg-slate-50 dark:bg-gray-950 border-slate-300 dark:border-gray-800 text-emerald-600 focus:ring-emerald-500" />
-                <label for="rxReqEdit" class="font-bold text-rose-600 dark:text-rose-400 cursor-pointer">Prescription
-                  Required (Rx
-                  Medicine)</label>
+                  class="w-4 h-4 border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                <label for="rxReqEdit" class="font-normal text-slate-700 dark:text-gray-300 cursor-pointer">Prescription
+                  Required (Rx Medicine)</label>
               </div>
-
               <div class="flex items-center gap-2">
-                <label class="font-bold text-slate-700 dark:text-gray-300">STATUS:</label>
+                <label class="font-normal text-slate-700 dark:text-gray-300">Status:</label>
                 <select v-model="editProd.status"
-                  class="bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg p-1 text-xs text-slate-800 dark:text-gray-200">
-                  <option value="1">AVAILABLE</option>
-                  <option value="0">OUT OF STOCK</option>
+                  class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-100 font-normal">
+                  <option value="1">Available</option>
+                  <option value="0">Out of Stock</option>
                 </select>
               </div>
             </div>
-          </div>
 
-          <div class="flex gap-2 pt-3 border-t border-slate-200 dark:border-gray-800">
-            <button @click="showEditModal = false"
-              class="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-950 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-800 text-slate-700 dark:text-gray-300 font-bold py-2.5 rounded-xl text-xs cursor-pointer">
-              Cancel
-            </button>
-            <button @click="handleUpdateProduct" :disabled="!editProd.name"
-              class="flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 disabled:opacity-50 text-white dark:text-gray-950 font-black py-2.5 rounded-xl text-xs shadow-lg cursor-pointer">
-              Update Medicine Record
-            </button>
-          </div>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-gray-800">
+              <button type="button" @click="showEditModal = false"
+                class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-xs cursor-pointer">
+                Cancel
+              </button>
+              <button type="submit" :disabled="!editProd.name"
+                class="px-4 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-normal text-xs cursor-pointer">
+                Update Medicine
+              </button>
+            </div>
+          </form>
         </div>
       </div>
+
     </div>
   </NuxtLayout>
 </template>
@@ -518,6 +526,7 @@ const { suppliers: supplierList } = useAdminSuppliers();
 
 const { products, loading } = storeToRefs(productStore);
 const { fetchProducts, addProduct, updateProduct, deleteProduct } = productStore;
+console.log(categoryStore.categories);
 
 const { categories: dbCategories } = storeToRefs(categoryStore);
 const { fetchCategories } = categoryStore;
@@ -528,22 +537,23 @@ const selectedRow = ref<number | null>(null);
 // Add Modal State
 const showAddModal = ref(false);
 const newProd = ref<Partial<ProductItem>>({
+  productType: 'medicine',
   name: '',
   genericName: '',
   dosageForm: 'Tablet',
   strength: '500mg',
-  categoryId: 1,
-  manufacturer: 'GSK Pharmaceuticals Ltd.',
+  categoryId: '',
+  manufacturer: '',
   price: 0.00,
   cost: 0.00,
   taxRate: 0,
-  status: 'AVAILABLE',
+  status: 1,
   rxRequired: false,
-  batchNumber: 'BATCH-2026-NEW',
-  expiryDate: '2028-06-30',
+  batchNumber: '',
+  expiryDate: '',
   rackLocation: 'Shelf A-01',
-  stockQuantity: 100,
-  minReorderLevel: 15
+  stockQuantity: 0,
+  minReorderLevel: 10
 });
 
 // Edit Modal State
@@ -567,7 +577,8 @@ const filteredProducts = computed(() => {
   );
 });
 
-const openAddModal = () => {
+const openAddModal = async () => {
+  await fetchCategories();
   if (dbCategories.value && dbCategories.value.length > 0) {
     newProd.value.categoryId = dbCategories.value[0].id;
   }
@@ -576,44 +587,62 @@ const openAddModal = () => {
 
 const handleSaveProduct = async () => {
   if (!newProd.value.name) return;
-  await addProduct(newProd.value);
-  newProd.value = {
-    name: '',
-    genericName: '',
-    dosageForm: 'Tablet',
-    strength: '500mg',
-    categoryId: dbCategories.value?.[0]?.id || 1,
-    manufacturer: supplierList.value?.[0]?.name || 'GSK Pharmaceuticals Ltd.',
-    price: 0.00,
-    cost: 0.00,
-    taxRate: 0,
-    status: 'AVAILABLE',
-    rxRequired: false,
-    batchNumber: 'BATCH-2026-NEW',
-    expiryDate: '2028-06-30',
-    rackLocation: 'Shelf A-01',
-    stockQuantity: 100,
-    minReorderLevel: 15
-  };
-  showAddModal.value = false;
+  try {
+    await addProduct(newProd.value);
+    newProd.value = {
+      productType: 'medicine',
+      name: '',
+      genericName: '',
+      dosageForm: 'Tablet',
+      strength: '500mg',
+      categoryId: dbCategories.value?.[0]?.id || 1,
+      manufacturer: supplierList.value?.[0]?.name || 'GSK Pharmaceuticals Ltd.',
+      price: 0.00,
+      cost: 0.00,
+      taxRate: 0,
+      status: 1,
+      rxRequired: false,
+      batchNumber: '',
+      expiryDate: '',
+      rackLocation: 'Shelf A-01',
+      stockQuantity: 0,
+      minReorderLevel: 10
+    };
+    showAddModal.value = false;
+  } catch (e: any) {
+    alert("Error saving medicine: " + (e.message || "Failed to save to MySQL"));
+  }
 };
 
-const openEditModal = (product: ProductItem) => {
+const openEditModal = async (product: ProductItem) => {
+  await fetchCategories();
   editingId.value = product.id;
-  editProd.value = { ...product };
+  const isMed = !!(product.masterDrugId || (product.genericName && product.genericName !== product.name && product.genericName.trim() !== ''));
+  editProd.value = {
+    ...product,
+    productType: isMed ? 'medicine' : 'general'
+  };
   showEditModal.value = true;
 };
 
 const handleUpdateProduct = async () => {
   if (!editingId.value || !editProd.value.name) return;
-  await updateProduct(editingId.value, editProd.value);
-  showEditModal.value = false;
-  editingId.value = null;
+  try {
+    await updateProduct(editingId.value, editProd.value);
+    showEditModal.value = false;
+    editingId.value = null;
+  } catch (e: any) {
+    alert("Error updating medicine: " + (e.message || "Failed to update in MySQL"));
+  }
 };
 
 const handleDeleteMedicine = async (id: number, name: string) => {
   if (confirm(`Are you sure you want to delete medicine "${name}" from database?`)) {
-    await deleteProduct(id);
+    try {
+      await deleteProduct(id);
+    } catch (e: any) {
+      alert("Error deleting medicine: " + (e.message || "Failed to delete from MySQL"));
+    }
   }
 };
 </script>

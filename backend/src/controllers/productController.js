@@ -1,366 +1,379 @@
+// ============================================================================
+// PharmaCare SaaS — Product Controller (100% Matched to MySQL Schema)
+// Tables: products, categories, master_drugs, inventory_batches, suppliers
+// ============================================================================
+
 const db = require('../config/db');
 
-// Auto-migration helper to ensure tenant_id column exists on products table
-let isTenantColumnChecked = false;
-const ensureTenantColumn = async () => {
-  if (isTenantColumnChecked || !db || !db.query) return;
-  try {
-    const [cols] = await db.query("SHOW COLUMNS FROM products LIKE 'tenant_id'");
-    if (!cols || cols.length === 0) {
-      await db.query("ALTER TABLE products ADD COLUMN tenant_id VARCHAR(50) DEFAULT 'TENANT_101'");
-      console.log("Added tenant_id column to products table.");
-    }
-    isTenantColumnChecked = true;
-  } catch (err) {
-    // Ignore error if table does not exist yet or ALTER fails silently
-    console.warn("Tenant column check warning:", err.message);
+// Helper to get a valid tenant_id
+const resolveTenantId = async (req) => {
+  if (req.tenantId && req.tenantId !== 'SYSTEM') {
+    return parseInt(req.tenantId, 10);
   }
+  const xTenant = req.headers['x-tenant-id'] || req.headers['X-Tenant-Id'];
+  if (xTenant && !isNaN(parseInt(xTenant, 10))) {
+    return parseInt(xTenant, 10);
+  }
+  try {
+    const [[firstTenant]] = await db.query('SELECT id FROM tenants ORDER BY id ASC LIMIT 1');
+    if (firstTenant && firstTenant.id) {
+      return firstTenant.id;
+    }
+  } catch (e) {}
+  return 1;
 };
 
-// Seed / Demo product catalog per tenant store for fallback or unseeded DB
-const demoTenantProducts = {
-  TENANT_101: [
-    { id: 101, tenantId: 'TENANT_101', name: 'Amoxil 500mg', genericName: 'Amoxicillin Trihydrate', dosageForm: 'Capsule', strength: '500mg', category: 'Antibiotics', price: 12.50, cost: 8.50, rxRequired: true, planTierAccess: 'starter', stockQuantity: 250, rackLocation: 'Shelf A-01', batchNumber: 'BATCH-101A', expiryDate: '2027-11-30' },
-    { id: 102, tenantId: 'TENANT_101', name: 'Napa Extra 500mg', genericName: 'Paracetamol + Caffeine', dosageForm: 'Tablet', strength: '500mg+65mg', category: 'Analgesics', price: 3.50, cost: 2.10, rxRequired: false, planTierAccess: 'starter', stockQuantity: 500, rackLocation: 'Shelf A-02', batchNumber: 'BATCH-101B', expiryDate: '2028-06-15' },
-    { id: 103, tenantId: 'TENANT_101', name: 'Seclo 20mg', genericName: 'Omeprazole', dosageForm: 'Capsule', strength: '20mg', category: 'Gastric & Ulcer', price: 7.00, cost: 4.50, rxRequired: false, planTierAccess: 'starter', stockQuantity: 320, rackLocation: 'Shelf B-01', batchNumber: 'BATCH-101C', expiryDate: '2027-09-30' },
-    { id: 104, tenantId: 'TENANT_101', name: 'Sergel 20mg', genericName: 'Esomeprazole', dosageForm: 'Capsule', strength: '20mg', category: 'Gastric & Ulcer', price: 8.00, cost: 5.20, rxRequired: false, planTierAccess: 'pro', stockQuantity: 180, rackLocation: 'Shelf B-02', batchNumber: 'BATCH-101D', expiryDate: '2027-12-31' },
-    { id: 105, tenantId: 'TENANT_101', name: 'Ace 500mg Tablet', genericName: 'Paracetamol', dosageForm: 'Tablet', strength: '500mg', category: 'Analgesics', price: 2.50, cost: 1.50, rxRequired: false, planTierAccess: 'starter', stockQuantity: 600, rackLocation: 'Shelf A-03', batchNumber: 'BATCH-101E', expiryDate: '2028-01-20' }
-  ],
-  TENANT_102: [
-    { id: 201, tenantId: 'TENANT_102', name: 'Panadol Extra 500mg', genericName: 'Paracetamol + Caffeine', dosageForm: 'Tablet', strength: '500mg', category: 'Analgesics', price: 4.20, cost: 2.80, rxRequired: false, planTierAccess: 'starter', stockQuantity: 400, rackLocation: 'Rack 1-A', batchNumber: 'BATCH-202A', expiryDate: '2027-10-31' },
-    { id: 202, tenantId: 'TENANT_102', name: 'Losec 20mg', genericName: 'Omeprazole', dosageForm: 'Capsule', strength: '20mg', category: 'Gastroenterology', price: 9.50, cost: 6.00, rxRequired: false, planTierAccess: 'pro', stockQuantity: 150, rackLocation: 'Rack 1-B', batchNumber: 'BATCH-202B', expiryDate: '2027-08-20' },
-    { id: 203, tenantId: 'TENANT_102', name: 'Zithromax 500mg', genericName: 'Azithromycin', dosageForm: 'Tablet', strength: '500mg', category: 'Antibiotics', price: 35.00, cost: 24.00, rxRequired: true, planTierAccess: 'pro', stockQuantity: 90, rackLocation: 'Rack 2-A', batchNumber: 'BATCH-202C', expiryDate: '2026-12-15' },
-    { id: 204, tenantId: 'TENANT_102', name: 'Cef-3 200mg/5ml Syrup', genericName: 'Cefixime', dosageForm: 'Syrup', strength: '200mg/5ml', category: 'Antibiotics', price: 18.00, cost: 12.50, rxRequired: true, planTierAccess: 'starter', stockQuantity: 75, rackLocation: 'Rack 2-B', batchNumber: 'BATCH-202D', expiryDate: '2027-05-10' }
-  ],
-  TENANT_103: [
-    { id: 301, tenantId: 'TENANT_103', name: 'Lantus SoloStar Pen 100u/ml', genericName: 'Insulin Glargine', dosageForm: 'Injection', strength: '100u/ml', category: 'Diabetes Care', price: 120.00, cost: 95.00, rxRequired: true, planTierAccess: 'enterprise', stockQuantity: 60, rackLocation: 'Cold Storage R-1', batchNumber: 'BATCH-303A', expiryDate: '2026-11-20' },
-    { id: 302, tenantId: 'TENANT_103', name: 'Lipitor 20mg Tablet', genericName: 'Atorvastatin', dosageForm: 'Tablet', strength: '20mg', category: 'Cardiology', price: 45.00, cost: 30.00, rxRequired: true, planTierAccess: 'enterprise', stockQuantity: 210, rackLocation: 'Cabinet C-4', batchNumber: 'BATCH-303B', expiryDate: '2028-02-28' },
-    { id: 303, tenantId: 'TENANT_103', name: 'Januvia 100mg Tablet', genericName: 'Sitagliptin', dosageForm: 'Tablet', strength: '100mg', category: 'Diabetes Care', price: 85.00, cost: 62.00, rxRequired: true, planTierAccess: 'pro', stockQuantity: 110, rackLocation: 'Cabinet C-2', batchNumber: 'BATCH-303C', expiryDate: '2027-07-15' },
-    { id: 304, tenantId: 'TENANT_103', name: 'Crestor 10mg Tablet', genericName: 'Rosuvastatin', dosageForm: 'Tablet', strength: '100mg', category: 'Cardiology', price: 55.00, cost: 38.00, rxRequired: true, planTierAccess: 'enterprise', stockQuantity: 140, rackLocation: 'Cabinet C-5', batchNumber: 'BATCH-303D', expiryDate: '2027-10-10' }
-  ]
-};
-
-// @desc    Get all medicines/products for a specific tenant from database
-// @route   GET /api/products
+// ---------------------------------------------------------------------------
+// GET /api/products
+// ---------------------------------------------------------------------------
 const getProducts = async (req, res, next) => {
   try {
-    const tenantId = req.query.tenant_id || req.headers['x-tenant-id'] || 'TENANT_101';
-    await ensureTenantColumn();
+    const tid = await resolveTenantId(req);
 
-    if (db && db.query) {
-      let sql = `
-        SELECT 
-          p.id,
-          p.tenant_id,
-          p.master_drug_id,
-          p.name,
-          COALESCE(p.retail_price, m.default_retail_price, 0) AS price,
-          COALESCE(p.cost_price, 0) AS cost,
-          COALESCE(p.total_stock_quantity, 100) AS stock_quantity,
-          COALESCE(p.rack_location, 'Shelf A-01') AS rack_location,
-          COALESCE(m.generic_name, p.name) AS generic_name,
-          COALESCE(m.dosage_form, '-') AS dosage_form,
-          COALESCE(m.plan_tier_access, 'starter') AS plan_tier_access,
-          COALESCE(p.rx_required, m.rx_required, 0) AS rx_required,
-          COALESCE(c.name, m.therapeutic_class, 'General') AS category_name
-        FROM products p 
-        LEFT JOIN master_drug_catalog m ON (p.master_drug_id = m.id OR LOWER(p.name) = LOWER(m.brand_name))
-        LEFT JOIN categories c ON (p.category_id = c.id)
-      `;
+    const sql = `
+      SELECT 
+        p.id,
+        p.tenant_id,
+        p.master_drug_id,
+        p.category_id,
+        p.name,
+        p.barcode,
+        p.retail_price AS price,
+        p.reorder_level AS min_reorder_level,
+        p.rack_location,
+        p.created_at,
+        c.name AS category_name,
+        COALESCE(m.generic_name, p.name) AS generic_name,
+        COALESCE(m.dosage_form, 'Tablet') AS dosage_form,
+        COALESCE(m.manufacturer, 'Pharma Corp') AS manufacturer,
+        COALESCE(m.rx_required, 0) AS rx_required,
+        COALESCE((
+          SELECT SUM(b.quantity) 
+          FROM inventory_batches b 
+          WHERE b.product_id = p.id
+        ), 0) AS stock_quantity,
+        COALESCE((
+          SELECT b.purchase_price 
+          FROM inventory_batches b 
+          WHERE b.product_id = p.id 
+          ORDER BY b.id DESC 
+          LIMIT 1
+        ), 0) AS cost,
+        COALESCE((
+          SELECT b.batch_number 
+          FROM inventory_batches b 
+          WHERE b.product_id = p.id 
+          ORDER BY b.id DESC 
+          LIMIT 1
+        ), 'LOT-DEFAULT') AS batch_number,
+        COALESCE((
+          SELECT DATE_FORMAT(b.expiry_date, '%Y-%m-%d')
+          FROM inventory_batches b 
+          WHERE b.product_id = p.id 
+          ORDER BY b.id DESC 
+          LIMIT 1
+        ), '2028-12-31') AS expiry_date,
+        COALESCE((
+          SELECT s.name 
+          FROM inventory_batches b 
+          LEFT JOIN suppliers s ON b.supplier_id = s.id 
+          WHERE b.product_id = p.id 
+          ORDER BY b.id DESC 
+          LIMIT 1
+        ), m.manufacturer, 'Pharma Corp') AS supplier_name
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN master_drugs m ON p.master_drug_id = m.id
+      WHERE p.tenant_id = ? OR ? IS NULL
+      ORDER BY p.id DESC
+    `;
 
-      const params = [];
-      if (tenantId && tenantId !== 'ALL') {
-        sql += ` WHERE (p.tenant_id = ? OR p.tenant_id IS NULL OR p.tenant_id = '') `;
-        params.push(tenantId);
-      }
-      sql += ` ORDER BY p.id ASC `;
+    const [rows] = await db.query(sql, [tid, tid]);
 
-      const [rows] = await db.query(sql, params);
+    const formatted = (rows || []).map(r => {
+      const stock = parseInt(r.stock_quantity, 10) || 0;
+      return {
+        id: r.id,
+        tenantId: r.tenant_id,
+        name: r.name,
+        genericName: r.generic_name,
+        dosageForm: r.dosage_form,
+        strength: 'Standard',
+        categoryId: r.category_id,
+        category: r.category_name || 'General',
+        barcode: r.barcode || `MED-${r.id}`,
+        price: parseFloat(r.price) || 0,
+        cost: parseFloat(r.cost) || 0,
+        taxRate: 0,
+        status: stock > 0 ? 1 : 0,
+        statusLabel: stock > 0 ? 'Available' : 'Out of Stock',
+        rxRequired: !!r.rx_required,
+        batchNumber: r.batch_number,
+        expiryDate: r.expiry_date,
+        manufacturer: r.manufacturer || r.supplier_name,
+        rackLocation: r.rack_location || 'Shelf A-01',
+        stockQuantity: stock,
+        minReorderLevel: parseInt(r.min_reorder_level, 10) || 10,
+        created_at: r.created_at
+      };
+    });
 
-      if (rows && Array.isArray(rows) && rows.length > 0) {
-        const formatted = rows.map(r => ({
-          id: r.id,
-          tenantId: r.tenant_id || tenantId,
-          name: r.name,
-          genericName: r.generic_name || r.name,
-          dosageForm: r.dosage_form || '-',
-          strength: r.strength || '',
-          categoryId: r.category_id,
-          category: r.category_name || 'General',
-          price: parseFloat(r.price) || 0,
-          cost: parseFloat(r.cost) || 0,
-          taxRate: 0,
-          status: 'AVAILABLE',
-          rxRequired: !!r.rx_required,
-          planTierAccess: r.plan_tier_access || 'starter',
-          batchNumber: `BATCH-${r.id}`,
-          expiryDate: '2027-12-31',
-          manufacturer: 'Pharma Corp',
-          rackLocation: r.rack_location || 'Shelf A-01',
-          stockQuantity: r.stock_quantity || 100,
-          minReorderLevel: 15
-        }));
-        return res.json({ success: true, count: formatted.length, tenantId, data: formatted });
-      }
-
-      // Fallback: Use demo tenant product catalog if DB table returns empty for requested tenant
-      if (demoTenantProducts[tenantId]) {
-        return res.json({
-          success: true,
-          count: demoTenantProducts[tenantId].length,
-          tenantId,
-          data: demoTenantProducts[tenantId]
-        });
-      }
-
-      // Default master catalog fallback
-      const masterSql = `
-        SELECT 
-          id,
-          drug_code,
-          brand_name AS name,
-          generic_name,
-          dosage_form,
-          manufacturer,
-          default_retail_price AS price,
-          rx_required,
-          plan_tier_access,
-          therapeutic_class AS category_name
-        FROM master_drug_catalog
-        ORDER BY id ASC
-      `;
-      const [masterRows] = await db.query(masterSql);
-      if (masterRows && Array.isArray(masterRows) && masterRows.length > 0) {
-        const formattedMaster = masterRows.map(m => ({
-          id: m.id,
-          tenantId,
-          productId: m.drug_code,
-          name: m.name,
-          genericName: m.generic_name || m.name,
-          dosageForm: m.dosage_form || '-',
-          strength: 'Standard',
-          category: m.category_name || 'General',
-          price: parseFloat(m.price) || 0,
-          cost: parseFloat(m.price) * 0.7 || 0,
-          taxRate: 0,
-          status: 'AVAILABLE',
-          rxRequired: !!m.rx_required,
-          planTierAccess: m.plan_tier_access || 'starter',
-          batchNumber: `BATCH-${m.id}`,
-          expiryDate: '2027-12-31',
-          manufacturer: m.manufacturer || 'Generic Pharma',
-          rackLocation: 'Shelf A-01',
-          stockQuantity: 100,
-          minReorderLevel: 15
-        }));
-        return res.json({ success: true, count: formattedMaster.length, tenantId, data: formattedMaster });
-      }
-    }
-
-    // Secondary fallback for offline / mock DB
-    const mockList = demoTenantProducts[tenantId] || demoTenantProducts['TENANT_101'];
-    return res.json({ success: true, count: mockList.length, tenantId, data: mockList });
+    return res.json({
+      success: true,
+      count: formatted.length,
+      data: formatted,
+      products: formatted
+    });
   } catch (error) {
-    console.error('Database query error in getProducts:', error.message);
-    const mockList = demoTenantProducts[req.query.tenant_id || req.headers['x-tenant-id']] || demoTenantProducts['TENANT_101'];
-    return res.json({ success: true, count: mockList.length, tenantId: req.query.tenant_id || 'TENANT_101', data: mockList });
+    console.error('getProducts error:', error);
+    next(error);
   }
 };
 
-// @desc    Create a new medicine in database according to exact schema
-// @route   POST /api/products
+// ---------------------------------------------------------------------------
+// POST /api/products
+// ---------------------------------------------------------------------------
 const createProduct = async (req, res, next) => {
   try {
-    const tenantId = req.body.tenantId || req.body.tenant_id || req.headers['x-tenant-id'] || 'TENANT_101';
-    await ensureTenantColumn();
-
+    const tid = await resolveTenantId(req);
     const {
       name,
       genericName,
       dosageForm,
-      strength,
       categoryId,
       category,
       price,
       cost,
-      taxRate,
-      status,
-      rxRequired,
-      batchNumber,
-      expiryDate,
-      manufacturer,
+      barcode,
+      reorderLevel,
+      minReorderLevel,
       rackLocation,
       stockQuantity,
-      minReorderLevel
+      batchNumber,
+      expiryDate,
+      supplierId,
+      manufacturer,
+      rxRequired,
+      masterDrugId
     } = req.body;
 
-    const catId = categoryId || category || 1;
-    const isRx = rxRequired ? 1 : 0;
-    const prodPrice = parseFloat(price) || 0;
-    const prodCost = parseFloat(cost) || 0;
-    const prodTax = parseFloat(taxRate) || 0;
-    const prodStatus = status || 'AVAILABLE';
-    const prodStock = parseInt(stockQuantity) || 100;
-    const prodMin = parseInt(minReorderLevel) || 15;
-
-    if (db && db.query) {
-      const sql = `
-        INSERT INTO products 
-        (tenant_id, name, generic_name, dosage_form, strength, category_id, price, cost, tax_rate, status, rx_required, batch_number, expiry_date, manufacturer, rack_location, stock_quantity, min_reorder_level) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      const [result] = await db.query(sql, [
-        tenantId,
-        name,
-        genericName || name,
-        dosageForm || 'Tablet',
-        strength || '500mg',
-        catId,
-        prodPrice,
-        prodCost,
-        prodTax,
-        prodStatus,
-        isRx,
-        batchNumber || `BATCH-${Date.now().toString().slice(-4)}`,
-        expiryDate || '2028-01-01',
-        manufacturer || 'Pharma Inc',
-        rackLocation || 'Rack A-01',
-        prodStock,
-        prodMin
-      ]);
-
-      const [newRow] = await db.query('SELECT * FROM products WHERE id = ?', [result.insertId]);
-      const createdItem = newRow[0] || {};
-      createdItem.tenantId = tenantId;
-      return res.status(201).json({ success: true, data: createdItem });
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Medicine/Product name is required.' });
     }
 
-    // In-memory mock add for fallback
-    const newMockItem = {
-      id: Date.now(),
-      tenantId,
-      name,
-      genericName: genericName || name,
-      dosageForm: dosageForm || 'Tablet',
-      strength: strength || '500mg',
-      category: category || 'General',
-      price: prodPrice,
-      cost: prodCost,
-      taxRate: prodTax,
-      status: prodStatus,
-      rxRequired: !!isRx,
-      batchNumber: batchNumber || `BATCH-${Date.now().toString().slice(-4)}`,
-      expiryDate: expiryDate || '2028-01-01',
-      manufacturer: manufacturer || 'Pharma Inc',
-      rackLocation: rackLocation || 'Rack A-01',
-      stockQuantity: prodStock,
-      minReorderLevel: prodMin
-    };
-    if (!demoTenantProducts[tenantId]) demoTenantProducts[tenantId] = [];
-    demoTenantProducts[tenantId].unshift(newMockItem);
+    // 1. Resolve Category ID (Ensure valid category_id exists for this tenant)
+    let catId = categoryId ? parseInt(categoryId, 10) : null;
+    if (!catId || isNaN(catId)) {
+      const [[foundCat]] = await db.query('SELECT id FROM categories WHERE tenant_id = ? LIMIT 1', [tid]);
+      if (foundCat && foundCat.id) {
+        catId = foundCat.id;
+      } else {
+        const [newCatRes] = await db.query(
+          'INSERT INTO categories (tenant_id, name, description, status) VALUES (?, ?, ?, 1)',
+          [tid, category || 'General Therapeutics', 'Auto-created product category']
+        );
+        catId = newCatRes.insertId;
+      }
+    }
 
-    res.status(201).json({ success: true, data: newMockItem });
+    // 2. Resolve Master Drug ID (Optional FK)
+    let mdId = masterDrugId ? parseInt(masterDrugId, 10) : null;
+    const isMedicine = req.body.productType !== 'general' && genericName && genericName.trim() !== '';
+
+    if (!mdId && isMedicine) {
+      const [mdRes] = await db.query(
+        `INSERT INTO master_drugs (brand_name, generic_name, dosage_form, manufacturer, rx_required, plan_tier)
+         VALUES (?, ?, ?, ?, ?, 'starter')`,
+        [name.trim(), genericName.trim(), dosageForm || 'Tablet', manufacturer || 'Pharma Corp', rxRequired ? 1 : 0]
+      );
+      mdId = mdRes.insertId;
+    }
+
+    const retailPrice = parseFloat(price) || 0.00;
+    const reorder = parseInt(minReorderLevel || reorderLevel, 10) || 10;
+    const prodBarcode = barcode || `BC-${Date.now().toString().slice(-6)}`;
+    const rack = rackLocation || 'Shelf A-01';
+
+    // 3. Insert Product
+    const [prodResult] = await db.query(
+      `INSERT INTO products (tenant_id, master_drug_id, category_id, name, barcode, retail_price, reorder_level, rack_location)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [tid, mdId, catId, name.trim(), prodBarcode, retailPrice, reorder, rack]
+    );
+    const newProdId = prodResult.insertId;
+
+    // 4. Resolve Supplier (for Batch)
+    let supId = supplierId ? parseInt(supplierId, 10) : null;
+    if (!supId && manufacturer) {
+      const [[foundSup]] = await db.query('SELECT id FROM suppliers WHERE tenant_id = ? AND name = ? LIMIT 1', [tid, manufacturer]);
+      if (foundSup && foundSup.id) {
+        supId = foundSup.id;
+      } else {
+        const [supRes] = await db.query(
+          'INSERT INTO suppliers (tenant_id, name, contact_person, phone) VALUES (?, ?, ?, ?)',
+          [tid, manufacturer, 'Sales Representative', '+1-800-555-0100']
+        );
+        supId = supRes.insertId;
+      }
+    }
+
+    // 5. Insert Initial Inventory Batch (if stock or batch info provided)
+    const initialQty = parseInt(stockQuantity, 10) || 0;
+    const batchNum = batchNumber || `LOT-${Date.now().toString().slice(-4)}`;
+    const expDate = expiryDate || '2028-12-31';
+    const purchasePrice = parseFloat(cost) || (retailPrice * 0.7);
+
+    if (initialQty > 0 || batchNumber) {
+      await db.query(
+        `INSERT INTO inventory_batches (tenant_id, product_id, supplier_id, batch_number, expiry_date, quantity, purchase_price)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [tid, newProdId, supId, batchNum, expDate, initialQty, purchasePrice]
+      );
+    }
+
+    const [[createdProd]] = await db.query('SELECT * FROM products WHERE id = ?', [newProdId]);
+
+    const formatted = {
+      id: createdProd.id,
+      tenantId: createdProd.tenant_id,
+      name: createdProd.name,
+      genericName: genericName || createdProd.name,
+      dosageForm: dosageForm || 'Tablet',
+      strength: 'Standard',
+      categoryId: createdProd.category_id,
+      category: category || 'General',
+      barcode: createdProd.barcode,
+      price: parseFloat(createdProd.retail_price) || 0,
+      cost: purchasePrice,
+      status: initialQty > 0 ? 1 : 0,
+      statusLabel: initialQty > 0 ? 'Available' : 'Out of Stock',
+      rxRequired: !!rxRequired,
+      batchNumber: batchNum,
+      expiryDate: expDate,
+      manufacturer: manufacturer || 'Pharma Corp',
+      rackLocation: createdProd.rack_location,
+      stockQuantity: initialQty,
+      minReorderLevel: createdProd.reorder_level
+    };
+
+    return res.status(201).json({
+      success: true,
+      message: 'Product created and committed to MySQL successfully.',
+      data: formatted,
+      product: formatted
+    });
   } catch (error) {
-    console.error('Error creating product in DB:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.error('createProduct error:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Database Insert Error: ${error.message}`
+    });
   }
 };
 
-// @desc    Update an existing medicine in database
-// @route   PUT /api/products/:id
+// ---------------------------------------------------------------------------
+// PUT /api/products/:id
+// ---------------------------------------------------------------------------
 const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const tenantId = req.body.tenantId || req.body.tenant_id || req.headers['x-tenant-id'];
-
+    const tid = await resolveTenantId(req);
     const {
       name,
       genericName,
       dosageForm,
-      strength,
       categoryId,
-      category,
       price,
       cost,
-      taxRate,
-      status,
-      rxRequired,
+      barcode,
+      minReorderLevel,
+      reorderLevel,
+      rackLocation,
+      stockQuantity,
       batchNumber,
       expiryDate,
       manufacturer,
-      rackLocation,
-      stockQuantity,
-      minReorderLevel
+      rxRequired
     } = req.body;
 
-    const catId = categoryId || category || 1;
-
-    if (db && db.query) {
-      let sql = `
-        UPDATE products SET 
-        name = ?, generic_name = ?, dosage_form = ?, strength = ?, category_id = ?, 
-        price = ?, cost = ?, tax_rate = ?, status = ?, rx_required = ?, 
-        batch_number = ?, expiry_date = ?, manufacturer = ?, rack_location = ?, 
-        stock_quantity = ?, min_reorder_level = ? 
-        WHERE id = ?
-      `;
-      const params = [
-        name,
-        genericName,
-        dosageForm,
-        strength,
-        catId,
-        price,
-        cost,
-        taxRate || 0,
-        status || 'AVAILABLE',
-        rxRequired ? 1 : 0,
-        batchNumber,
-        expiryDate,
-        manufacturer,
-        rackLocation,
-        stockQuantity,
-        minReorderLevel,
-        id
-      ];
-
-      if (tenantId) {
-        sql = sql.replace('WHERE id = ?', 'WHERE id = ? AND (tenant_id = ? OR tenant_id IS NULL)');
-        params.push(tenantId);
-      }
-
-      await db.query(sql, params);
-
-      const [updatedRow] = await db.query('SELECT * FROM products WHERE id = ?', [id]);
-      return res.json({ success: true, data: updatedRow[0] });
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Product name is required.' });
     }
 
-    res.json({ success: true, message: 'Updated product' });
+    const retailPrice = parseFloat(price) || 0.00;
+    const reorder = parseInt(minReorderLevel || reorderLevel, 10) || 10;
+    const catId = categoryId ? parseInt(categoryId, 10) : 1;
+
+    // 1. Update Product
+    await db.query(
+      `UPDATE products 
+       SET name = ?, category_id = ?, retail_price = ?, reorder_level = ?, rack_location = ?
+       WHERE id = ?`,
+      [name.trim(), catId, retailPrice, reorder, rackLocation || 'Shelf A-01', id]
+    );
+
+    // 2. Update Master Drug Details (if attached)
+    const [[prod]] = await db.query('SELECT master_drug_id FROM products WHERE id = ?', [id]);
+    if (prod && prod.master_drug_id) {
+      await db.query(
+        `UPDATE master_drugs 
+         SET brand_name = ?, generic_name = ?, dosage_form = ?, manufacturer = ?, rx_required = ?
+         WHERE id = ?`,
+        [name.trim(), genericName || name.trim(), dosageForm || 'Tablet', manufacturer || 'Pharma Corp', rxRequired ? 1 : 0, prod.master_drug_id]
+      );
+    }
+
+    // 3. Update Latest Batch
+    const [[latestBatch]] = await db.query('SELECT id FROM inventory_batches WHERE product_id = ? ORDER BY id DESC LIMIT 1', [id]);
+    const purchasePrice = parseFloat(cost) || (retailPrice * 0.7);
+    const newQty = parseInt(stockQuantity, 10) || 0;
+
+    if (latestBatch && latestBatch.id) {
+      await db.query(
+        `UPDATE inventory_batches 
+         SET quantity = ?, purchase_price = ?, batch_number = ?, expiry_date = ?
+         WHERE id = ?`,
+        [newQty, purchasePrice, batchNumber || 'LOT-UPDATED', expiryDate || '2028-12-31', latestBatch.id]
+      );
+    } else if (newQty > 0 || batchNumber) {
+      await db.query(
+        `INSERT INTO inventory_batches (tenant_id, product_id, batch_number, expiry_date, quantity, purchase_price)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [tid, id, batchNumber || 'LOT-NEW', expiryDate || '2028-12-31', newQty, purchasePrice]
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: 'Product updated successfully in MySQL database.'
+    });
   } catch (error) {
-    console.error('Error updating product in DB:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.error('updateProduct error:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Database Update Error: ${error.message}`
+    });
   }
 };
 
-// @desc    Delete a medicine from database
-// @route   DELETE /api/products/:id
+// ---------------------------------------------------------------------------
+// DELETE /api/products/:id
+// ---------------------------------------------------------------------------
 const deleteProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const tenantId = req.headers['x-tenant-id'];
+    await db.query('DELETE FROM products WHERE id = ?', [id]);
 
-    if (db && db.query) {
-      if (tenantId) {
-        await db.query('DELETE FROM products WHERE id = ? AND (tenant_id = ? OR tenant_id IS NULL)', [id, tenantId]);
-      } else {
-        await db.query('DELETE FROM products WHERE id = ?', [id]);
-      }
-      return res.json({ success: true, message: 'Medicine deleted successfully' });
-    }
-    res.json({ success: true, message: 'Deleted product' });
+    return res.json({
+      success: true,
+      message: 'Product and associated inventory batches deleted successfully from MySQL.'
+    });
   } catch (error) {
-    console.error('Error deleting product in DB:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.error('deleteProduct error:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Database Delete Error: ${error.message}`
+    });
   }
 };
 
@@ -370,4 +383,3 @@ module.exports = {
   updateProduct,
   deleteProduct
 };
-

@@ -1,0 +1,172 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8f9fb 0%, #f0f4ff 100%);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.bg { position: absolute; inset: 0; pointer-events: none; }
+.bgCircle1 {
+  position: absolute;
+  top: -120px;
+  right: -80px;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59,32,19,0.08) 0%, transparent 70%);
+}
+.bgCircle2 {
+  position: absolute;
+  bottom: -100px;
+  left: -60px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180,83,9,0.06) 0%, transparent 70%);
+}
+.card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.1), 0 4px 20px rgba(0,0,0,0.06);
+  border: 1px solid #f0f0f0;
+  position: relative;
+  z-index: 1;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  text-decoration: none;
+  margin-bottom: 28px;
+  justify-content: center;
+}
+.logo span:first-child { font-size: 1.5rem; }
+.logo strong { color: #3b2013; }
+.header { text-align: center; margin-bottom: 28px; }
+.header h1 { font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; letter-spacing: -0.02em; }
+.header p { font-size: 0.9rem; color: #6b7280; }
+.error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+  font-size: 0.87rem;
+  color: #dc2626;
+  margin-bottom: 20px;
+}
+.form { display: flex; flex-direction: column; gap: 18px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.84rem; font-weight: 600; color: #374151; }
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.inputIcon {
+  position: absolute;
+  left: 12px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+.inputWrap input {
+  width: 100%;
+  padding: 11px 12px 11px 38px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 9px;
+  font-size: 0.93rem;
+  color: #1a1a2e;
+  background: #fafafa;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.inputWrap input:focus {
+  border-color: #3b2013;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(59,32,19,0.08);
+}
+.eyeBtn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}
+.eyeBtn:hover { color: #6b7280; }
+.submitBtn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #3b2013, #5d2e17);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.97rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(59,32,19,0.3);
+  margin-top: 4px;
+}
+.submitBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,32,19,0.4); }
+.submitBtn:disabled { opacity: 0.7; cursor: not-allowed; }
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 12px;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #f0f0f0;
+}
+.demoBox {
+  background: #f8fafc;
+  border: 1px solid #e8eaf0;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.demoRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.demoRow span { font-size: 0.78rem; font-weight: 600; color: #6b7280; }
+.demoRow code { font-size: 0.8rem; color: #374151; background: #fff; padding: 3px 8px; border-radius: 4px; border: 1px solid #e5e7eb; }
+.footer { text-align: center; margin-top: 24px; }
+.footer p { font-size: 0.85rem; color: #6b7280; margin-bottom: 6px; }
+.footer a { color: #3b2013; font-weight: 600; text-decoration: none; }
+.footer a:hover { text-decoration: underline; }

@@ -11,6 +11,7 @@ export function useSuperAdmin() {
     fetchPlans: store.fetchPlans,
     createPlanTier: store.createPlanTier,
     updatePlanTier: store.updatePlanTier,
+    deletePlanTier: store.deletePlanTier,
     fetchTenants: store.fetchTenants,
     createTenant: store.createTenant,
     updateTenant: store.updateTenant,

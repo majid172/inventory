@@ -1,192 +1,161 @@
 <template>
   <NuxtLayout name="super-admin">
-    <div class="space-y-4 select-none">
-      <!-- Top Action Bar & Plan-Wise Filters (Matching Admin Toolbar Style) -->
-      <div
-        class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg p-2.5 shadow-sm flex flex-wrap items-center justify-between gap-2.5">
-        <div class="flex items-center gap-2 flex-wrap flex-1">
-          <!-- Search input -->
-          <div class="relative min-w-[260px] flex-1 max-w-md">
-            <input v-model="searchFilter" type="text" placeholder="Search generic chemical, brand name, barcode..."
-              class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded pl-8 pr-3 py-1 text-xs focus:ring-1 focus:ring-sky-500 font-sans outline-none shadow-inner" />
-            <span class="absolute left-2.5 top-1.5 text-slate-400 text-xs">💊</span>
-          </div>
-
-          <!-- Plan-Wise Access Tier Filter -->
-          <select v-model="masterDrugTierFilter"
-            class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-gray-200 outline-none shadow-sm">
-            <option value="all">All Subscription Plan Tiers</option>
-            <option value="starter">🟢 Starter Tier Access (Essential Generics)</option>
-            <option value="pro">🟦 Pro Tier Access (National Brands & Rx)</option>
-            <option value="enterprise">🟧 Enterprise Tier Access (Biologics & Specialty)</option>
-          </select>
-        </div>
-
-        <div class="flex items-center gap-2 font-mono text-xs">
-          <button @click="triggerSync"
-            class="px-3 py-1.5 bg-gradient-to-b from-white to-slate-100 dark:from-gray-800 dark:to-gray-900 border border-slate-300 dark:border-gray-700 text-blue-700 dark:text-sky-400 font-black rounded text-xs hover:border-blue-500 shadow-sm transition-all flex items-center gap-1">
-            <span>🔄 Push Sync to Subscriber Stores</span>
-          </button>
-
-          <button @click="openAddModal()"
-            class="px-3 py-1.5 bg-gradient-to-b from-sky-500 to-blue-600 border border-sky-400 text-white rounded font-black text-xs hover:from-sky-600 hover:to-blue-700 shadow-sm transition-all">
-            + Add Master Medicine
-          </button>
-        </div>
-      </div>
-
-      <!-- Plan-Wise Drug Metric Stats Banner (Matching Admin Metric Cards) -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div @click="masterDrugTierFilter = 'starter'"
-          class="p-3 bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg cursor-pointer hover:border-emerald-500 transition-colors shadow-sm">
-          <div
-            class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-between uppercase">
-            <span>🟢 STARTER CATALOG TIER</span>
-            <span class="font-mono font-bold">{{ starterDrugsCount }} Items</span>
-          </div>
-          <div class="text-[10px] text-slate-500 dark:text-gray-500 mt-1">Essential Generics & OTC (Paracetamol,
-            Amoxicillin, Metformin)</div>
-        </div>
-
-        <div @click="masterDrugTierFilter = 'pro'"
-          class="p-3 bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg cursor-pointer hover:border-sky-500 transition-colors shadow-sm">
-          <div class="text-[11px] font-bold text-sky-700 dark:text-sky-400 flex items-center justify-between uppercase">
-            <span>🟦 PRO CATALOG TIER</span>
-            <span class="font-mono font-bold">{{ proDrugsCount }} Items</span>
-          </div>
-          <div class="text-[10px] text-slate-500 dark:text-gray-500 mt-1">National Brands, Controlled Rx & Statins
-            (Lipitor, Nexium)</div>
-        </div>
-
-        <div @click="masterDrugTierFilter = 'enterprise'"
-          class="p-3 bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg cursor-pointer hover:border-purple-500 transition-colors shadow-sm">
-          <div
-            class="text-[11px] font-bold text-purple-700 dark:text-purple-400 flex items-center justify-between uppercase">
-            <span>🟧 ENTERPRISE CATALOG TIER</span>
-            <span class="font-mono font-bold">{{ enterpriseDrugsCount }} Items</span>
-          </div>
-          <div class="text-[10px] text-slate-500 dark:text-gray-500 mt-1">Specialty Biologics, Oncology & Compounding
-            (Humira, Keytruda)</div>
-        </div>
-      </div>
-
-      <!-- Master Drug Catalog Table (Matching Admin Grid Style) -->
-      <div
-        class="border border-slate-300 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden bg-white dark:bg-gray-950">
+    <div class="space-y-3 font-sans">
+      <!-- Desktop Application Header Toolbar Frame (Exact Match with Categories / Products / Users Design) -->
+      <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
+        <!-- Top Toolbar -->
         <div
-          class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 py-2 flex items-center justify-between">
-          <h2
-            class="font-extrabold text-xs uppercase tracking-wider text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
-            <span>💊</span> Central Master Drug Dictionary ({{ filteredMasterDrugs.length }} Items Dynamic DB)
-          </h2>
-          <span class="font-mono text-[10px] text-slate-500">Global Master Drug Ref ID</span>
+          class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <!-- Left: Action Buttons -->
+          <div class="flex items-center gap-2">
+            <button @click="openAddModal"
+              class="bg-[#107c41] hover:bg-[#0e6b37] text-white font-normal px-3 py-1 text-xs flex items-center gap-1 shadow-xs cursor-pointer active:scale-95 transition-all">
+              <span class="text-sm">+</span> Add Master Medicine
+            </button>
+            <button @click="fetchMasterDrugs" :disabled="loading"
+              class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-normal px-2.5 py-1 text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer">
+              <svg :class="['w-3.5 h-3.5 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                </path>
+              </svg>
+              Refresh Table
+            </button>
+          </div>
+
+          <!-- Right: Tier Filter & Search -->
+          <div class="flex items-center gap-2">
+            <select v-model="tierFilter"
+              class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 text-xs text-slate-700 dark:text-gray-200 font-normal outline-none focus:border-[#107c41]">
+              <option value="all">All Plan Tiers</option>
+              <option value="starter">Starter Tier</option>
+              <option value="pro">Pro Tier</option>
+              <option value="enterprise">Enterprise Tier</option>
+            </select>
+
+            <div class="relative">
+              <input type="text" v-model="searchFilter" placeholder="Search brand, generic, manufacturer..."
+                class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1 text-xs text-slate-800 dark:text-gray-200 placeholder-slate-400 font-normal focus:outline-none focus:border-[#107c41] w-56 sm:w-64" />
+              <button v-if="searchFilter" @click="searchFilter = ''"
+                class="absolute right-2 top-1 text-slate-400 hover:text-slate-600 text-xs cursor-pointer font-normal">
+                ✕
+              </button>
+            </div>
+          </div>
         </div>
 
+        <!-- Desktop Grid Table Viewport -->
         <div class="overflow-x-auto">
           <table
-            class="w-full text-left text-xs font-sans border-collapse border border-slate-300 dark:border-gray-800">
+            class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
             <thead>
               <tr
-                class="bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 text-slate-800 dark:text-gray-200 font-extrabold text-[11px] uppercase tracking-wider">
-                <th
-                  class="py-2 px-2.5 w-10 text-center border border-slate-300 dark:border-gray-700 bg-slate-300/80 dark:bg-gray-800">
-                  #</th>
-                <th class="py-2 px-2.5 border border-slate-300 dark:border-gray-700">BRAND NAME & GENERIC CHEMICAL</th>
-                <th class="py-2 px-2.5 border border-slate-300 dark:border-gray-700">DOSAGE FORM</th>
-                <th class="py-2 px-2.5 border border-slate-300 dark:border-gray-700">MANUFACTURER</th>
-                <th class="py-2 px-2.5 border border-slate-300 dark:border-gray-700 text-center">PLAN ACCESS TIER</th>
-                <th class="py-2 px-2.5 border border-slate-300 dark:border-gray-700 text-center">RX MANDATORY</th>
-                <th class="py-2 px-2.5 border border-slate-300 dark:border-gray-700 text-right">DEFAULT PRICE</th>
-                <th class="py-2 px-2.5 border border-slate-300 dark:border-gray-700 text-center w-24">ACTIONS</th>
+                class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
+                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># ID</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Brand Name</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Generic Chemical Name</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">Dosage Form</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Manufacturer</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">Plan Tier</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-24">Rx Required</th>
+                <th class="py-1.5 px-3 text-center w-24 font-normal">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              <tr v-for="(drug, idx) in filteredMasterDrugs" :key="drug.id" @click="selectedRow = drug.id" :class="[
-                'transition-colors cursor-pointer border-b border-slate-300 dark:border-gray-800',
+            <tbody class="divide-y divide-slate-200 dark:divide-gray-800 bg-white dark:bg-gray-950">
+              <!-- Loading State -->
+              <tr v-if="loading">
+                <td colspan="8" class="py-8 text-center text-slate-400 dark:text-gray-500 font-normal">
+                  <span class="inline-block animate-spin mr-1">⏳</span> Loading master medicines from MySQL...
+                </td>
+              </tr>
+
+              <!-- Empty State -->
+              <tr v-else-if="displayedMasterDrugs.length === 0">
+                <td colspan="8" class="py-8 text-center text-slate-400 dark:text-gray-500 font-normal">
+                  No master medicines found matching your search.
+                </td>
+              </tr>
+
+              <!-- Rows -->
+              <tr v-for="(drug, idx) in displayedMasterDrugs" :key="drug.id" @click="selectedRow = drug.id" :class="[
+                'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
                 selectedRow === drug.id
-                  ? 'bg-sky-500 text-white font-bold'
-                  : 'even:bg-slate-50/80 dark:even:bg-gray-900/50 hover:bg-sky-100 dark:hover:bg-gray-800/80'
+                  ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
+                  : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
               ]">
+                <!-- ID Column -->
                 <td
-                  class="py-2 px-2.5 text-center font-mono font-bold border border-slate-300 dark:border-gray-800 w-10"
-                  :class="selectedRow === drug.id ? 'bg-sky-600 text-white' : 'bg-slate-100/90 dark:bg-gray-900 text-slate-600 dark:text-gray-400'">
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 font-normal text-slate-500 dark:text-gray-400">
                   {{ idx + 1 }}
                 </td>
-                <td class="py-2 px-2.5 border border-slate-300 dark:border-gray-800">
-                  <div class="font-extrabold flex items-center gap-1.5"
-                    :class="selectedRow === drug.id ? 'text-white' : 'text-slate-900 dark:text-gray-100'">
-                    <span>{{ drug.brandName }}</span>
-                    <span class="text-[9px] font-mono px-1 rounded"
-                      :class="selectedRow === drug.id ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-gray-800 text-slate-600 dark:text-gray-300'">{{
-                        drug.drugCode }}</span>
-                  </div>
-                  <div class="text-[11px] font-medium"
-                    :class="selectedRow === drug.id ? 'text-sky-100' : 'text-blue-700 dark:text-sky-400'">{{
-                      drug.genericName }}</div>
-                  <div class="text-[9px] font-mono"
-                    :class="selectedRow === drug.id ? 'text-white/80' : 'text-slate-400'">{{ drug.therapeuticClass }}
-                  </div>
+
+                <!-- Brand Name -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-800 dark:text-gray-200">
+                  {{ drug.brandName || drug.brand_name }}
                 </td>
-                <td class="py-2 px-2.5 border border-slate-300 dark:border-gray-800 font-medium"
-                  :class="selectedRow === drug.id ? 'text-white' : 'text-slate-800 dark:text-gray-200'">
-                  {{ drug.dosageForm }}
+
+                <!-- Generic Name -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300">
+                  {{ drug.genericName || drug.generic_name }}
                 </td>
-                <td class="py-2 px-2.5 border border-slate-300 dark:border-gray-800 font-medium"
-                  :class="selectedRow === drug.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'">
-                  {{ drug.manufacturer }}
-                </td>
-                <td class="py-2 px-2.5 text-center border border-slate-300 dark:border-gray-800 font-mono">
-                  <span
-                    :class="selectedRow === drug.id ? 'bg-white/20 text-white border-white/40' : drug.planTierAccess === 'enterprise' ? 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800' : drug.planTierAccess === 'pro' ? 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-800' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'"
-                    class="px-1.5 py-0.2 rounded border text-[10px] font-black uppercase">
-                    {{ drug.planTierAccess }} Tier
+
+                <!-- Dosage Form -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal text-slate-700 dark:text-gray-300">
+                  <span class="px-1.5 py-0.2 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-[11px]">
+                    {{ drug.dosageForm || drug.dosage_form || 'Tablet' }}
                   </span>
                 </td>
-                <td class="py-2 px-2.5 text-center border border-slate-300 dark:border-gray-800">
-                  <span v-if="drug.rxRequired"
-                    :class="selectedRow === drug.id ? 'bg-white text-rose-900 border-white' : 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800'"
-                    class="px-1.5 py-0.2 rounded text-[10px] font-black border uppercase">
-                    🩺 Rx Required
+
+                <!-- Manufacturer -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300">
+                  {{ drug.manufacturer || '—' }}
+                </td>
+
+                <!-- Plan Tier -->
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
+                  <span :class="[
+                    'text-[10px] font-mono px-1.5 py-0.2 border uppercase',
+                    (drug.planTier || drug.plan_tier) === 'enterprise'
+                      ? 'bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-800'
+                      : (drug.planTier || drug.plan_tier) === 'pro'
+                        ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800'
+                  ]">
+                    {{ drug.planTier || drug.plan_tier || 'starter' }}
+                  </span>
+                </td>
+
+                <!-- Rx Required -->
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
+                  <span v-if="drug.rxRequired || drug.rx_required"
+                    class="text-[10px] font-mono px-1.5 py-0.2 border uppercase bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-400">
+                    Rx Req
                   </span>
                   <span v-else
-                    :class="selectedRow === drug.id ? 'bg-white/20 text-white border-white/40' : 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border-slate-300 dark:border-gray-700'"
-                    class="px-1.5 py-0.2 rounded text-[10px] font-bold border uppercase">
+                    class="text-[10px] font-mono px-1.5 py-0.2 border uppercase bg-slate-50 text-slate-600 border-slate-200 dark:bg-gray-800 dark:text-gray-300">
                     OTC
                   </span>
                 </td>
-                <td class="py-2 px-2.5 text-right font-mono font-black border border-slate-300 dark:border-gray-800"
-                  :class="selectedRow === drug.id ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'">
-                  ${{ Number(drug.defaultRetailPrice || 0).toFixed(2) }}
-                </td>
-                <td class="py-2 px-1 text-center border border-slate-300 dark:border-gray-800">
-                  <div class="flex items-center justify-center gap-1.5">
-                    <button @click.stop="openEditDrugModal(drug)"
-                      class="px-1.5 py-0.5 bg-slate-200 dark:bg-gray-800 text-slate-800 dark:text-gray-200 rounded font-black text-[10px] hover:bg-sky-500 hover:text-white transition-colors"
+
+                <!-- Actions -->
+                <td class="py-1.5 px-3 text-center" @click.stop>
+                  <div class="flex items-center justify-center gap-1">
+                    <button @click="openEditDrugModal(drug)"
+                      class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 px-2 py-0.5 text-[11px] font-normal cursor-pointer"
                       title="Edit Master Drug">
-                      ✏️ Edit
+                      Edit
                     </button>
-                    <button @click.stop="handleDeleteMasterDrug(drug)"
-                      class="px-1.5 py-0.5 bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 rounded font-black text-[10px] hover:bg-rose-600 hover:text-white transition-colors"
+                    <button @click="handleDeleteMasterDrug(drug)"
+                      class="bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 dark:bg-gray-800 dark:text-rose-400 dark:border-gray-700 px-2 py-0.5 text-[11px] font-normal cursor-pointer"
                       title="Delete Master Drug">
-                      🗑️
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="filteredMasterDrugs.length === 0">
-                <td colspan="8" class="py-10 text-center bg-slate-50/50 dark:bg-gray-900/50">
-                  <div class="flex flex-col items-center justify-center space-y-2">
-                    <span class="text-3xl">💊</span>
-                    <p class="font-extrabold text-sm text-slate-700 dark:text-gray-300">
-                      No Master Catalog Items Found
-                    </p>
-                    <p class="text-xs text-slate-500 dark:text-gray-500 max-w-sm">
-                      There are currently 0 certified medicines matching your filter. Click below to add a new medicine
-                      to the dictionary.
-                    </p>
-                    <button @click="openAddModal()"
-                      class="mt-2 px-3.5 py-1.5 bg-gradient-to-b from-sky-500 to-blue-600 border border-sky-400 text-white rounded font-black text-xs hover:brightness-105 shadow-sm transition-all flex items-center gap-1">
-                      <span>➕</span> Add Certified Master Medicine
+                      Delete
                     </button>
                   </div>
                 </td>
@@ -194,188 +163,195 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Desktop Grid Footer Bar -->
+        <div
+          class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 font-normal">
+          <div>Total <strong>{{ displayedMasterDrugs.length }}</strong> master medicines in catalog</div>
+          <div class="text-[10px] text-slate-400 font-normal">
+            MySQL: <code>master_drugs</code>
+          </div>
+        </div>
       </div>
 
-      <!-- Add Master Drug Modal -->
-      <div v-if="showAddDrugModal"
-        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
+      <!-- ===================================================================== -->
+      <!-- MODAL: ADD MASTER DRUG -->
+      <!-- ===================================================================== -->
+      <div v-if="showAddModal"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none animate-fadeIn">
         <div
-          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg max-w-lg w-full overflow-hidden shadow-2xl">
+          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-md shadow-lg overflow-hidden">
+          <!-- Titlebar -->
           <div
-            class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
-            <h3 class="font-black text-xs uppercase text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
-              <span>💊</span> Add Certified Master Medicine to DB Dictionary
+            class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
+            <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100">
+              Add Certified Master Medicine
             </h3>
-            <button @click="showAddDrugModal = false" class="text-slate-500 font-bold hover:text-slate-800">✕</button>
+            <button @click="showAddModal = false"
+              class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white font-normal text-xs cursor-pointer">
+              ✕
+            </button>
           </div>
 
-          <form @submit.prevent="handleAddMasterDrug" class="p-3.5 space-y-3 text-xs font-sans">
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Brand Name *</label>
-                <input v-model="drugForm.brandName" type="text" required placeholder="e.g. Augmentin 625mg"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-bold outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Generic Chemical Name *</label>
-                <input v-model="drugForm.genericName" type="text" required placeholder="Amoxicillin + Clavulanate"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 outline-none" />
-              </div>
+          <!-- Form Body -->
+          <form @submit.prevent="submitAddDrug" class="p-4 space-y-2.5 text-xs font-sans">
+            <div>
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                Brand Name *
+              </label>
+              <input v-model="drugForm.brandName" type="text" required placeholder="e.g. Napa Extra / Amoclav"
+                class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
+            </div>
+
+            <div>
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                Generic Chemical Name *
+              </label>
+              <input v-model="drugForm.genericName" type="text" required placeholder="e.g. Paracetamol + Caffeine"
+                class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
             </div>
 
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
-                <input v-model="drugForm.dosageForm" type="text" placeholder="Tablet / Capsule / Injection"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Manufacturer</label>
-                <input v-model="drugForm.manufacturer" type="text" placeholder="GSK / Pfizer / Novartis"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 outline-none" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Assign Plan Access Tier *</label>
-                <select v-model="drugForm.planTierAccess"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-bold outline-none">
-                  <option value="starter">🟢 Starter Tier (Essential Generics)</option>
-                  <option value="pro">🟦 Pro Tier (National Catalog & Rx)</option>
-                  <option value="enterprise">🟧 Enterprise Tier (Biologics & Specialty)</option>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
+                <select v-model="drugForm.dosageForm"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs cursor-pointer">
+                  <option value="Tablet">Tablet</option>
+                  <option value="Capsule">Capsule</option>
+                  <option value="Syrup">Syrup</option>
+                  <option value="Injection">Injection</option>
+                  <option value="Suspension">Suspension</option>
+                  <option value="Ointment">Ointment</option>
+                  <option value="Drop">Drop</option>
                 </select>
               </div>
 
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Default Retail Price ($)</label>
-                <input v-model.number="drugForm.defaultRetailPrice" type="number" step="0.01" placeholder="15.00"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Plan Tier</label>
+                <select v-model="drugForm.planTier"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs cursor-pointer">
+                  <option value="starter">Starter Tier</option>
+                  <option value="pro">Pro Tier</option>
+                  <option value="enterprise">Enterprise Tier</option>
+                </select>
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Therapeutic Class</label>
-                <input v-model="drugForm.therapeuticClass" type="text" placeholder="Antibiotic / Analgesic"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Barcode / GTIN</label>
-                <input v-model="drugForm.barcode" type="text" placeholder="e.g. 8901234567890"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
-              </div>
+            <div>
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                Manufacturer / Lab
+              </label>
+              <input v-model="drugForm.manufacturer" type="text" placeholder="e.g. Square Pharmaceuticals Ltd."
+                class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
             </div>
 
-            <div class="flex items-center gap-2 pt-1">
-              <input v-model="drugForm.rxRequired" type="checkbox" id="addRxRequiredCheck"
-                class="rounded text-sky-600 focus:ring-sky-500" />
-              <label for="addRxRequiredCheck" class="font-bold text-slate-700 dark:text-gray-300">
-                Prescription Required (Doctor Rx Verification mandatory)
+            <div class="pt-1">
+              <label class="flex items-center gap-2 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <input type="checkbox" v-model="drugForm.rxRequired" class="text-emerald-600" />
+                <span>Doctor Prescription Required (Rx)</span>
               </label>
             </div>
 
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-300 dark:border-gray-800">
-              <button type="button" @click="showAddDrugModal = false"
-                class="px-3 py-1 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded font-bold">
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-gray-800">
+              <button type="button" @click="showAddModal = false"
+                class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-xs cursor-pointer">
                 Cancel
               </button>
-              <button type="submit"
-                class="px-3.5 py-1 bg-gradient-to-b from-sky-500 to-blue-600 border border-sky-400 text-white rounded font-black shadow-sm">
-                Save to DB Table
+              <button type="submit" :disabled="isSaving"
+                class="px-4 py-1 bg-[#107c41] hover:bg-[#0e6b37] disabled:opacity-50 text-white font-normal text-xs flex items-center gap-1 cursor-pointer">
+                <span>{{ isSaving ? 'Saving...' : 'Save Medicine' }}</span>
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      <!-- Edit Master Drug Modal -->
-      <div v-if="editingDrug"
-        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
+      <!-- ===================================================================== -->
+      <!-- MODAL: EDIT MASTER DRUG -->
+      <!-- ===================================================================== -->
+      <div v-if="showEditModal"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none animate-fadeIn">
         <div
-          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg max-w-lg w-full overflow-hidden shadow-2xl">
+          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-md shadow-lg overflow-hidden">
+          <!-- Titlebar -->
           <div
-            class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
-            <h3 class="font-black text-xs uppercase text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
-              <span>✏️</span> Edit Master Medicine: {{ editingDrug.id }} (DB Aligned)
+            class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
+            <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100">
+              Edit Master Medicine (#{{ editDrugId }})
             </h3>
-            <button @click="editingDrug = null" class="text-slate-500 font-bold hover:text-slate-800">✕</button>
+            <button @click="showEditModal = false"
+              class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white font-normal text-xs cursor-pointer">
+              ✕
+            </button>
           </div>
 
-          <form @submit.prevent="handleSaveEditMasterDrug" class="p-3.5 space-y-3 text-xs font-sans">
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Brand Name *</label>
-                <input v-model="drugForm.brandName" type="text" required
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-bold outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Generic Chemical Name *</label>
-                <input v-model="drugForm.genericName" type="text" required
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 outline-none" />
-              </div>
+          <!-- Form Body -->
+          <form @submit.prevent="submitEditDrug" class="p-4 space-y-2.5 text-xs font-sans">
+            <div>
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                Brand Name *
+              </label>
+              <input v-model="drugForm.brandName" type="text" required
+                class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
+            </div>
+
+            <div>
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                Generic Chemical Name *
+              </label>
+              <input v-model="drugForm.genericName" type="text" required
+                class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
             </div>
 
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
-                <input v-model="drugForm.dosageForm" type="text"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Manufacturer</label>
-                <input v-model="drugForm.manufacturer" type="text"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 outline-none" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Plan Access Tier *</label>
-                <select v-model="drugForm.planTierAccess"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-bold outline-none">
-                  <option value="starter">🟢 Starter Tier Access</option>
-                  <option value="pro">🟦 Pro Tier Access</option>
-                  <option value="enterprise">🟧 Enterprise Tier Access</option>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
+                <select v-model="drugForm.dosageForm"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs cursor-pointer">
+                  <option value="Tablet">Tablet</option>
+                  <option value="Capsule">Capsule</option>
+                  <option value="Syrup">Syrup</option>
+                  <option value="Injection">Injection</option>
+                  <option value="Suspension">Suspension</option>
+                  <option value="Ointment">Ointment</option>
+                  <option value="Drop">Drop</option>
                 </select>
               </div>
 
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Default Retail Price ($)</label>
-                <input v-model.number="drugForm.defaultRetailPrice" type="number" step="0.01"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Plan Tier</label>
+                <select v-model="drugForm.planTier"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs cursor-pointer">
+                  <option value="starter">Starter Tier</option>
+                  <option value="pro">Pro Tier</option>
+                  <option value="enterprise">Enterprise Tier</option>
+                </select>
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Therapeutic Class</label>
-                <input v-model="drugForm.therapeuticClass" type="text"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Barcode / GTIN</label>
-                <input v-model="drugForm.barcode" type="text"
-                  class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
-              </div>
+            <div>
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                Manufacturer / Lab
+              </label>
+              <input v-model="drugForm.manufacturer" type="text"
+                class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
             </div>
 
-            <div class="flex items-center gap-2 pt-1">
-              <input v-model="drugForm.rxRequired" type="checkbox" id="editRxRequiredCheck"
-                class="rounded text-sky-600 focus:ring-sky-500" />
-              <label for="editRxRequiredCheck" class="font-bold text-slate-700 dark:text-gray-300">
-                Prescription Required (Doctor Rx Verification mandatory)
+            <div class="pt-1">
+              <label class="flex items-center gap-2 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <input type="checkbox" v-model="drugForm.rxRequired" class="text-emerald-600" />
+                <span>Doctor Prescription Required (Rx)</span>
               </label>
             </div>
 
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-300 dark:border-gray-800">
-              <button type="button" @click="editingDrug = null"
-                class="px-3 py-1 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded font-bold">
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-gray-800">
+              <button type="button" @click="showEditModal = false"
+                class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-xs cursor-pointer">
                 Cancel
               </button>
-              <button type="submit"
-                class="px-3.5 py-1 bg-gradient-to-b from-sky-500 to-blue-600 border border-sky-400 text-white rounded font-black shadow-sm">
-                Update DB Specs
+              <button type="submit" :disabled="isSaving"
+                class="px-4 py-1 bg-[#107c41] hover:bg-[#0e6b37] disabled:opacity-50 text-white font-normal text-xs flex items-center gap-1 cursor-pointer">
+                <span>{{ isSaving ? 'Updating...' : 'Update Medicine' }}</span>
               </button>
             </div>
           </form>
@@ -386,42 +362,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
 import { useSuperAdmin } from '~/composables/useSuperAdmin';
-import type { MasterDrug } from '~/stores/superAdmin';
 
-const {
-  filteredMasterDrugs,
-  searchFilter,
-  masterDrugTierFilter,
-  starterDrugsCount,
-  proDrugsCount,
-  enterpriseDrugsCount,
-  fetchMasterDrugs,
-  createMasterDrug,
-  updateMasterDrug,
-  deleteMasterDrug,
-  syncMasterCatalogToStores
-} = useSuperAdmin();
+const { masterDrugs, fetchMasterDrugs, createMasterDrug, updateMasterDrug, deleteMasterDrug } = useSuperAdmin();
 
-const showAddDrugModal = ref(false);
-const editingDrug = ref<MasterDrug | null>(null);
-const selectedRow = ref<string | null>(null);
+const searchFilter = ref('');
+const tierFilter = ref('all');
+const showAddModal = ref(false);
+const showEditModal = ref(false);
+const editDrugId = ref<string | number | null>(null);
+const loading = ref(false);
+const isSaving = ref(false);
+const selectedRow = ref<string | number | null>(null);
 
 const drugForm = reactive({
   brandName: '',
   genericName: '',
   dosageForm: 'Tablet',
   manufacturer: '',
-  defaultRetailPrice: 15.00,
-  rxRequired: true,
-  planTierAccess: 'starter' as 'starter' | 'pro' | 'enterprise',
-  barcode: '',
-  therapeuticClass: 'General Pharmaceutical'
+  planTier: 'starter',
+  rxRequired: false
 });
 
-onMounted(() => {
-  fetchMasterDrugs();
+onMounted(async () => {
+  loading.value = true;
+  await fetchMasterDrugs();
+  loading.value = false;
+});
+
+const displayedMasterDrugs = computed(() => {
+  return masterDrugs.value.filter(drug => {
+    const brand = (drug.brandName || drug.brand_name || '').toLowerCase();
+    const generic = (drug.genericName || drug.generic_name || '').toLowerCase();
+    const mfg = (drug.manufacturer || '').toLowerCase();
+    const q = searchFilter.value.toLowerCase();
+    const matchesSearch = !q || brand.includes(q) || generic.includes(q) || mfg.includes(q);
+
+    const tier = (drug.planTier || drug.plan_tier || 'starter').toLowerCase();
+    const matchesTier = tierFilter.value === 'all' || tier === tierFilter.value.toLowerCase();
+
+    return matchesSearch && matchesTier;
+  });
 });
 
 const openAddModal = () => {
@@ -429,70 +411,72 @@ const openAddModal = () => {
   drugForm.genericName = '';
   drugForm.dosageForm = 'Tablet';
   drugForm.manufacturer = '';
-  drugForm.defaultRetailPrice = 15.00;
-  drugForm.rxRequired = true;
-  drugForm.planTierAccess = 'starter';
-  drugForm.barcode = `890${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-  drugForm.therapeuticClass = 'General Pharmaceutical';
-  showAddDrugModal.value = true;
+  drugForm.planTier = 'starter';
+  drugForm.rxRequired = false;
+  showAddModal.value = true;
 };
 
-const handleAddMasterDrug = async () => {
-  await createMasterDrug({
-    drugCode: `MDRUG_${Date.now().toString().slice(-6)}`,
-    brandName: drugForm.brandName,
-    genericName: drugForm.genericName,
-    dosageForm: drugForm.dosageForm,
-    manufacturer: drugForm.manufacturer,
-    defaultRetailPrice: drugForm.defaultRetailPrice,
-    rxRequired: drugForm.rxRequired,
-    planTierAccess: drugForm.planTierAccess,
-    barcode: drugForm.barcode,
-    therapeuticClass: drugForm.therapeuticClass
-  });
-  showAddDrugModal.value = false;
-  alert("New master drug added to central database dictionary successfully!");
-};
-
-const openEditDrugModal = (drug: MasterDrug) => {
-  editingDrug.value = drug;
-  drugForm.brandName = drug.brandName;
-  drugForm.genericName = drug.genericName;
-  drugForm.dosageForm = drug.dosageForm;
-  drugForm.manufacturer = drug.manufacturer;
-  drugForm.defaultRetailPrice = drug.defaultRetailPrice;
-  drugForm.rxRequired = drug.rxRequired;
-  drugForm.planTierAccess = drug.planTierAccess;
-  drugForm.barcode = drug.barcode;
-  drugForm.therapeuticClass = drug.therapeuticClass;
-};
-
-const handleSaveEditMasterDrug = async () => {
-  if (!editingDrug.value) return;
-  await updateMasterDrug(editingDrug.value.id, {
-    brandName: drugForm.brandName,
-    genericName: drugForm.genericName,
-    dosageForm: drugForm.dosageForm,
-    manufacturer: drugForm.manufacturer,
-    defaultRetailPrice: drugForm.defaultRetailPrice,
-    rxRequired: drugForm.rxRequired,
-    planTierAccess: drugForm.planTierAccess,
-    barcode: drugForm.barcode,
-    therapeuticClass: drugForm.therapeuticClass
-  });
-  editingDrug.value = null;
-  alert("Master drug updated in central database successfully!");
-};
-
-const handleDeleteMasterDrug = async (drug: MasterDrug) => {
-  if (confirm(`Are you sure you want to delete '${drug.brandName}' (${drug.genericName}) from central Master Drug Dictionary?`)) {
-    await deleteMasterDrug(drug.id);
-    alert(`Master drug '${drug.brandName}' deleted from central dictionary!`);
+const submitAddDrug = async () => {
+  if (!drugForm.brandName || !drugForm.genericName) return;
+  isSaving.value = true;
+  try {
+    await createMasterDrug({
+      brandName: drugForm.brandName,
+      genericName: drugForm.genericName,
+      dosageForm: drugForm.dosageForm,
+      manufacturer: drugForm.manufacturer,
+      planTier: drugForm.planTier,
+      rxRequired: drugForm.rxRequired
+    } as any);
+    showAddModal.value = false;
+    await fetchMasterDrugs();
+  } catch (e: any) {
+    alert("Error adding master drug: " + (e.message || "Failed to insert into database"));
+  } finally {
+    isSaving.value = false;
   }
 };
 
-const triggerSync = async () => {
-  await syncMasterCatalogToStores();
-  alert("Pushed plan-restricted Master Drug Catalog sync across all active subscriber stores!");
+const openEditDrugModal = (drug: any) => {
+  editDrugId.value = drug.id;
+  drugForm.brandName = drug.brandName || drug.brand_name || '';
+  drugForm.genericName = drug.genericName || drug.generic_name || '';
+  drugForm.dosageForm = drug.dosageForm || drug.dosage_form || 'Tablet';
+  drugForm.manufacturer = drug.manufacturer || '';
+  drugForm.planTier = drug.planTier || drug.plan_tier || 'starter';
+  drugForm.rxRequired = !!(drug.rxRequired || drug.rx_required);
+  showEditModal.value = true;
+};
+
+const submitEditDrug = async () => {
+  if (!editDrugId.value || !drugForm.brandName || !drugForm.genericName) return;
+  isSaving.value = true;
+  try {
+    await updateMasterDrug(editDrugId.value, {
+      brandName: drugForm.brandName,
+      genericName: drugForm.genericName,
+      dosageForm: drugForm.dosageForm,
+      manufacturer: drugForm.manufacturer,
+      planTier: drugForm.planTier,
+      rxRequired: drugForm.rxRequired
+    } as any);
+    showEditModal.value = false;
+    await fetchMasterDrugs();
+  } catch (e: any) {
+    alert("Error updating master drug: " + (e.message || "Failed to update"));
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const handleDeleteMasterDrug = async (drug: any) => {
+  const name = drug.brandName || drug.brand_name || 'Drug';
+  if (!confirm(`Are you sure you want to delete "${name}" from master drugs dictionary?`)) return;
+  try {
+    await deleteMasterDrug(drug.id);
+    await fetchMasterDrugs();
+  } catch (e: any) {
+    alert("Error deleting drug: " + (e.message || "Failed to delete"));
+  }
 };
 </script>

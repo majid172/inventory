@@ -7,8 +7,10 @@ const server = app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  server.close(() => process.exit(1));
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Promise Rejection:', err.message || err);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err.message || err);
 });

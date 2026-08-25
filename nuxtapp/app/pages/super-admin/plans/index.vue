@@ -1,358 +1,384 @@
 <template>
   <NuxtLayout name="super-admin">
-    <div class="space-y-4 select-none">
-      <!-- Header Bar (Matching Admin Ribbon Header) -->
-      <div class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg p-3 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
-            <span>💳</span> Subscription Tiers & Plan-Wise Feature Matrix (Database Schema Aligned)
-          </h1>
-          <p class="text-[11px] text-slate-600 dark:text-gray-400 mt-0.5 font-sans">Configure platform pricing tiers, POS terminal limits, catalog access levels, and feature flags directly mapped to the database.</p>
+    <div class="space-y-3 font-sans">
+      <!-- Desktop Application Header Toolbar Frame (Exact Match with Categories / Products / Users Design) -->
+      <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
+        <!-- Top Toolbar -->
+        <div
+          class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <!-- Left: Action Buttons -->
+          <div class="flex items-center gap-2">
+            <button @click="openCreateModal"
+              class="bg-[#107c41] hover:bg-[#0e6b37] text-white font-normal px-3 py-1 text-xs flex items-center gap-1 shadow-xs cursor-pointer active:scale-95 transition-all">
+              <span class="text-sm">+</span> New Subscription Plan
+            </button>
+            <button @click="refreshData" :disabled="isRefreshing"
+              class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-normal px-2.5 py-1 text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer">
+              <svg :class="['w-3.5 h-3.5 text-slate-500 dark:text-gray-400', { 'animate-spin': isRefreshing }]" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                </path>
+              </svg>
+              Refresh Table
+            </button>
+          </div>
+
+          <!-- Right: Search Filter -->
+          <div class="flex items-center gap-2">
+            <label class="font-normal text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">FILTER:</label>
+            <div class="relative">
+              <input type="text" v-model="filterText" placeholder="Search plan name, price..."
+                class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1 text-xs text-slate-800 dark:text-gray-200 placeholder-slate-400 font-normal focus:outline-none focus:border-[#107c41] w-56 sm:w-64" />
+              <button v-if="filterText" @click="filterText = ''"
+                class="absolute right-2 top-1 text-slate-400 hover:text-slate-600 text-xs cursor-pointer font-normal">
+                ✕
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2 font-mono text-xs">
-          <span class="bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded font-black flex items-center gap-1">
-            <span>🗄️</span> {{ plans.length }} Active DB Tiers
-          </span>
-          <button @click="openCreateModal()" class="bg-gradient-to-b from-sky-500 to-blue-600 border border-sky-400 text-white px-2.5 py-0.5 rounded font-black shadow-sm flex items-center gap-1 hover:brightness-105">
-            <span>➕</span> Create Plan Tier
-          </button>
-          <button @click="fetchPlans()" class="bg-slate-200 dark:bg-gray-800 text-slate-800 dark:text-gray-200 border border-slate-300 dark:border-gray-700 px-2 py-0.5 rounded font-bold hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors">
-            🔄 Refresh DB
-          </button>
+        <!-- Desktop Grid Table Viewport with Sharp 1px Borders and Regular Typography -->
+        <div class="overflow-x-auto">
+          <table
+            class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
+            <thead>
+              <tr
+                class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
+                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># ID</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Plan Tier Name</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-right font-normal w-24">Price ($)</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-28">Billing Cycle</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-28">Max Terminals</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-24">Max Users</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-28">Max Products</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Feature Matrix</th>
+                <th class="py-1.5 px-3 text-center w-24 font-normal">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-gray-800 bg-white dark:bg-gray-950">
+              <!-- Loading State -->
+              <tr v-if="isRefreshing">
+                <td colspan="9" class="py-8 text-center text-slate-400 dark:text-gray-500 font-normal">
+                  <span class="inline-block animate-spin mr-1">⏳</span> Loading subscription tiers from MySQL...
+                </td>
+              </tr>
+
+              <!-- Empty State -->
+              <tr v-else-if="filteredPlans.length === 0">
+                <td colspan="9" class="py-8 text-center text-slate-400 dark:text-gray-500 font-normal">
+                  No subscription tiers found matching your filter.
+                </td>
+              </tr>
+
+              <!-- Rows -->
+              <tr v-for="(row, idx) in filteredPlans" :key="row.id" @click="selectedRow = row.id" :class="[
+                'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
+                selectedRow === row.id
+                  ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
+                  : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
+              ]">
+                <!-- ID Column -->
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 font-normal text-slate-500 dark:text-gray-400">
+                  {{ idx + 1 }}
+                </td>
+
+                <!-- Plan Name -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-800 dark:text-gray-200">
+                  <div class="flex items-center gap-1.5">
+                    <span :class="[
+                      'text-[10px] font-mono px-1.5 py-0.2 border uppercase',
+                      row.name.toLowerCase().includes('enterprise')
+                        ? 'bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-800'
+                        : row.name.toLowerCase().includes('pro')
+                          ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800'
+                    ]">
+                      🏷️ {{ row.name }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Price -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-right font-normal text-slate-800 dark:text-gray-200">
+                  ${{ Number(row.price ?? (row as any).priceMonthly ?? (row as any).price_monthly ?? 0).toFixed(2) }}
+                </td>
+
+                <!-- Duration -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-mono font-normal text-slate-600 dark:text-gray-400">
+                  {{ (row as any).durationDays || (row as any).duration_days || 30 }} Days
+                </td>
+
+                <!-- Max Terminals -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-mono font-normal text-slate-700 dark:text-gray-300">
+                  {{ (row as any).maxTerminals || (row as any).max_terminals || (row as any).terminalsLimit || 1 }} Counter
+                </td>
+
+                <!-- Max Users -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-mono font-normal text-slate-700 dark:text-gray-300">
+                  {{ (row as any).maxUsers || (row as any).max_users || 5 }} Staff
+                </td>
+
+                <!-- Max Products -->
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-mono font-normal text-slate-700 dark:text-gray-300">
+                  {{ (row as any).maxProducts || (row as any).max_products || 500 }} Items
+                </td>
+
+                <!-- Features Matrix -->
+                <td
+                  class="py-1.5 px-3 font-normal text-slate-600 dark:text-gray-400 border-r border-slate-200 dark:border-gray-800 text-[11px]">
+                  <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-0.5 text-emerald-700 dark:text-emerald-400">
+                      <span>✓</span> POS
+                    </span>
+                    <span :class="row.features?.rxVerification ? 'text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5' : 'text-slate-400'">
+                      {{ row.features?.rxVerification ? '✓ Rx' : '✕ Rx' }}
+                    </span>
+                    <span :class="row.features?.poGenerator ? 'text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5' : 'text-slate-400'">
+                      {{ row.features?.poGenerator ? '✓ PO' : '✕ PO' }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Actions -->
+                <td class="py-1.5 px-3 text-center" @click.stop>
+                  <div class="flex items-center justify-center gap-1">
+                    <button @click="openEditModal(row)"
+                      class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 px-2 py-0.5 text-[11px] font-normal cursor-pointer"
+                      title="Edit Subscription Tier">
+                      Edit
+                    </button>
+                    <button @click="confirmDeletePlan(row)"
+                      class="bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 dark:bg-gray-800 dark:text-rose-400 dark:border-gray-700 px-2 py-0.5 text-[11px] font-normal cursor-pointer"
+                      title="Delete Subscription Tier">
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Desktop Grid Footer Bar -->
+        <div
+          class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 font-normal">
+          <div>Total <strong>{{ filteredPlans.length }}</strong> subscription packages</div>
+          <div class="text-[10px] text-slate-400 font-normal">
+            MySQL: <code>subscription_plans</code>
+          </div>
         </div>
       </div>
 
-      <!-- Plan Cards Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div 
-          v-for="plan in plans" 
-          :key="plan.id" 
-          :class="[
-            'bg-white dark:bg-gray-950 rounded-lg p-4 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all',
-            plan.id === 'pro' ? 'border-2 border-sky-500 shadow-md' : 'border border-slate-300 dark:border-gray-800'
-          ]"
-        >
-          <div 
-            :class="[
-              'absolute top-0 right-0 font-mono text-[9px] font-black px-2 py-0.5 rounded-bl uppercase text-white',
-              plan.id === 'starter' ? 'bg-emerald-600' : plan.id === 'pro' ? 'bg-sky-600' : 'bg-purple-700'
-            ]"
-          >
-            {{ plan.id === 'pro' ? 'Popular Choice' : plan.id === 'starter' ? 'Starter Tier' : 'Custom Tier' }}
-          </div>
-
-          <div>
-            <div 
-              :class="[
-                'flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider',
-                plan.id === 'starter' ? 'text-emerald-700 dark:text-emerald-400' : plan.id === 'pro' ? 'text-sky-700 dark:text-sky-400' : 'text-purple-700 dark:text-purple-400'
-              ]"
-            >
-              <span>{{ plan.id === 'starter' ? '🟢' : plan.id === 'pro' ? '🟦' : '🟧' }}</span> {{ plan.name }}
-            </div>
-            <div class="mt-2.5 flex items-baseline gap-1">
-              <span class="text-2xl font-black text-slate-900 dark:text-gray-100 font-mono">${{ plan.priceMonthly }}</span>
-              <span class="text-xs text-slate-500 font-medium">/ month</span>
-            </div>
-            <div class="text-[10px] text-slate-500 mt-0.5 font-mono">
-              Billed annually at ${{ plan.priceYearly }}/yr (Save 20%)
-            </div>
-
-            <div class="mt-3 p-2.5 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded text-xs font-sans">
-              <div class="font-black text-slate-800 dark:text-gray-200">💊 Master Drug Catalog Access:</div>
-              <div class="font-bold text-slate-600 dark:text-gray-400 mt-0.5">{{ plan.masterDrugLimit }}</div>
-            </div>
-
-            <!-- Features List -->
-            <ul class="mt-4 space-y-1.5 text-xs font-medium text-slate-700 dark:text-gray-300 font-sans">
-              <li class="flex items-center gap-2">
-                <span :class="plan.id === 'starter' ? 'text-emerald-600' : plan.id === 'pro' ? 'text-sky-600' : 'text-purple-600'" class="font-bold">✓</span> 
-                {{ formatTerminalsText(plan) }}
-              </li>
-              <li class="flex items-center gap-2">
-                <span :class="plan.id === 'starter' ? 'text-emerald-600' : plan.id === 'pro' ? 'text-sky-600' : 'text-purple-600'" class="font-bold">✓</span> 
-                {{ formatBranchesText(plan) }}
-              </li>
-              <li class="flex items-center gap-2">
-                <span :class="plan.id === 'starter' ? 'text-emerald-600' : plan.id === 'pro' ? 'text-sky-600' : 'text-purple-600'" class="font-bold">✓</span> 
-                {{ plan.features?.fefoExpiry || 'FEFO Batch & Expiry Alerts' }}
-              </li>
-              <li class="flex items-center gap-2" :class="plan.features?.rxVerification ? 'text-slate-700 dark:text-gray-300' : 'text-slate-400'">
-                <span :class="plan.features?.rxVerification ? (plan.id === 'starter' ? 'text-emerald-600' : plan.id === 'pro' ? 'text-sky-600' : 'text-purple-600') : ''" class="font-bold">
-                  {{ plan.features?.rxVerification ? '✓' : '✕' }}
-                </span> 
-                Doctor Rx Verification Module
-              </li>
-              <li class="flex items-center gap-2" :class="plan.features?.poGenerator ? 'text-slate-700 dark:text-gray-300' : 'text-slate-400'">
-                <span :class="plan.features?.poGenerator ? (plan.id === 'starter' ? 'text-emerald-600' : plan.id === 'pro' ? 'text-sky-600' : 'text-purple-600') : ''" class="font-bold">
-                  {{ plan.features?.poGenerator ? '✓' : '✕' }}
-                </span> 
-                Purchase Order Generator
-              </li>
-              <li class="flex items-center gap-2 text-slate-500 font-mono text-[11px]">
-                <span class="text-slate-400">📱</span> SMS: {{ plan.features?.smsReceipts || 'Not Included' }}
-              </li>
-            </ul>
-          </div>
-
-          <div class="mt-5 pt-2.5 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs font-mono font-bold">
-            <span :class="plan.id === 'starter' ? 'text-slate-500' : plan.id === 'pro' ? 'text-sky-600 font-black' : 'text-purple-600 font-black'">
-              {{ getTenantCountForTier(plan.id) }} Active Stores
-            </span>
-            <button @click="openEditModal(plan)" class="text-blue-700 dark:text-sky-400 hover:underline">Edit Tier Specs →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Create New Subscription Tier Modal (Matches Table Structure) -->
-      <div v-if="showCreateModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none overflow-y-auto">
-        <div class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg max-w-lg w-full overflow-hidden shadow-2xl my-8">
-          <div class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
-            <h3 class="font-extrabold text-xs uppercase text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
-              <span>💳</span> Create Subscription Plan (subscription_plans Table)
+      <!-- ===================================================================== -->
+      <!-- MODAL: CREATE SUBSCRIPTION PLAN -->
+      <!-- ===================================================================== -->
+      <div v-if="showCreateModal"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none animate-fadeIn">
+        <div
+          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-md shadow-lg overflow-hidden">
+          <!-- Window Titlebar -->
+          <div
+            class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
+            <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100">
+              Create Subscription Plan Package
             </h3>
-            <button @click="showCreateModal = false" class="font-bold text-slate-500 hover:text-slate-700">✕</button>
+            <button @click="showCreateModal = false"
+              class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white font-normal text-xs cursor-pointer">
+              ✕
+            </button>
           </div>
 
-          <form @submit.prevent="handleCreatePlan" class="p-4 space-y-3.5 text-xs font-sans max-h-[80vh] overflow-y-auto">
-            <!-- 1. Key & Name -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Plan Key (id) *</label>
-                <input v-model="createForm.id" type="text" required placeholder="e.g. growth-tier" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Display Name (name) *</label>
-                <input v-model="createForm.name" type="text" required placeholder="e.g. Growth Tier" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-bold outline-none" />
-              </div>
-            </div>
-
-            <!-- 2. Monthly & Yearly Prices -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Monthly Price (price_monthly) *</label>
-                <input v-model.number="createForm.priceMonthly" type="number" step="0.01" required min="0" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Yearly Billed Price (price_yearly)</label>
-                <input v-model.number="createForm.priceYearly" type="number" step="0.01" min="0" placeholder="Auto 10x" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
-              </div>
-            </div>
-
-            <!-- 3. Terminal & Branch Limits -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Terminals Limit (terminals_limit)</label>
-                <input v-model.number="createForm.terminalsLimit" type="number" min="1" required class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Branches Limit (branches_limit)</label>
-                <input v-model.number="createForm.branchesLimit" type="number" min="1" required class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
-              </div>
-            </div>
-
-            <!-- 4. Master Drug Limit Description -->
+          <!-- Form Body -->
+          <form @submit.prevent="createPlan" class="p-4 space-y-2.5 text-xs font-sans">
             <div>
-              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Master Drug Entitlement (master_drug_limit_description)</label>
-              <input v-model="createForm.masterDrugLimit" type="text" required placeholder="e.g. 25,000 Verified Generics & Specialty Catalog" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-sans outline-none" />
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                Plan Name *
+              </label>
+              <input v-model="form.name" type="text" required placeholder="e.g. Starter Plan / Pro Plan"
+                class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
             </div>
 
-            <!-- 5. Allowed Drug Tiers -->
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Allowed Drug Catalog Tiers (allowed_drug_tiers)</label>
-              <div class="flex items-center gap-3 bg-slate-50 dark:bg-gray-900 p-2 border border-slate-200 dark:border-gray-800 rounded">
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" value="starter" v-model="createForm.allowedDrugTiers" class="rounded text-sky-600" />
-                  <span>Starter Catalog</span>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Price ($) *
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" value="pro" v-model="createForm.allowedDrugTiers" class="rounded text-sky-600" />
-                  <span>Pro National Catalog</span>
+                <input v-model.number="form.price" type="number" step="0.01" required placeholder="49.00"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Duration (Days) *
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" value="enterprise" v-model="createForm.allowedDrugTiers" class="rounded text-sky-600" />
-                  <span>Enterprise Specialty</span>
-                </label>
+                <input v-model.number="form.durationDays" type="number" min="1" required placeholder="30"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
               </div>
             </div>
 
-            <!-- 6. Features JSON Matrix -->
-            <div class="space-y-2 pt-1 border-t border-slate-200 dark:border-gray-800">
-              <label class="block font-bold text-slate-700 dark:text-gray-300">Feature Matrix Configuration (features JSON)</label>
-              
-              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800 rounded">
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" v-model="createForm.features.posRegister" class="rounded text-sky-600" />
-                  <span>POS Cash Register Terminal</span>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Max Terminals
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" v-model="createForm.features.rxVerification" class="rounded text-sky-600" />
+                <input v-model.number="form.maxTerminals" type="number" min="1" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Max Users
+                </label>
+                <input v-model.number="form.maxUsers" type="number" min="1" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Max Products
+                </label>
+                <input v-model.number="form.maxProducts" type="number" min="1" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
+              </div>
+            </div>
+
+            <!-- Features -->
+            <div class="pt-1">
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features Included</label>
+              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.posRegister" class="text-emerald-600" />
+                  <span>POS Terminal Counter</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.rxVerification" class="text-emerald-600" />
                   <span>Doctor Rx Verification</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" v-model="createForm.features.poGenerator" class="rounded text-sky-600" />
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.poGenerator" class="text-emerald-600" />
                   <span>PO Supplier Generator</span>
                 </label>
               </div>
-
-              <div class="grid grid-cols-3 gap-2">
-                <div>
-                  <label class="block font-bold text-slate-600 dark:text-gray-400 text-[10px] mb-0.5">FEFO Expiry Mode</label>
-                  <select v-model="createForm.features.fefoExpiry" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-1.5 py-1 text-xs">
-                    <option value="Basic">Basic</option>
-                    <option value="Advanced FEFO Alerts">Advanced FEFO Alerts</option>
-                    <option value="Automated AI Reordering">Automated AI Reordering</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block font-bold text-slate-600 dark:text-gray-400 text-[10px] mb-0.5">SMS Receipts Policy</label>
-                  <select v-model="createForm.features.smsReceipts" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-1.5 py-1 text-xs">
-                    <option value="Not Included">Not Included</option>
-                    <option value="250 SMS / month">250 SMS / month</option>
-                    <option value="500 SMS / month">500 SMS / month</option>
-                    <option value="Unlimited SMS">Unlimited SMS</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block font-bold text-slate-600 dark:text-gray-400 text-[10px] mb-0.5">Support SLA Level</label>
-                  <select v-model="createForm.features.support" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-1.5 py-1 text-xs">
-                    <option value="Email Support">Email Support</option>
-                    <option value="Priority Chat Support">Priority Chat Support</option>
-                    <option value="24/7 Dedicated Account Manager">24/7 Dedicated Manager</option>
-                  </select>
-                </div>
-              </div>
             </div>
 
-            <!-- Modal Action Buttons -->
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-300 dark:border-gray-800">
-              <button type="button" @click="showCreateModal = false" class="px-3 py-1 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded font-bold">
+            <!-- Footer -->
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-gray-800">
+              <button type="button" @click="showCreateModal = false"
+                class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-xs cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" class="px-4 py-1 bg-gradient-to-b from-sky-500 to-blue-600 border border-sky-400 text-white rounded font-black shadow-sm">
-                Insert into DB Table
+              <button type="submit" :disabled="isSaving"
+                class="px-4 py-1 bg-[#107c41] hover:bg-[#0e6b37] disabled:opacity-50 text-white font-normal text-xs flex items-center gap-1 cursor-pointer">
+                <span>{{ isSaving ? 'Saving...' : 'Save Plan' }}</span>
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      <!-- Edit Subscription Tier Modal (Matches Table Structure) -->
-      <div v-if="editingPlan" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none overflow-y-auto">
-        <div class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-lg max-w-lg w-full overflow-hidden shadow-2xl my-8">
-          <div class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
-            <h3 class="font-extrabold text-xs uppercase text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
-              <span>💳</span> Edit Subscription Tier: {{ editingPlan.id.toUpperCase() }} (DB Connected)
+      <!-- ===================================================================== -->
+      <!-- MODAL: EDIT SUBSCRIPTION PLAN -->
+      <!-- ===================================================================== -->
+      <div v-if="editingPlan"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none animate-fadeIn">
+        <div
+          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-md shadow-lg overflow-hidden">
+          <!-- Window Titlebar -->
+          <div
+            class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
+            <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100">
+              Edit Subscription Plan (#{{ editingPlan.id }})
             </h3>
-            <button @click="editingPlan = null" class="font-bold text-slate-500 hover:text-slate-700">✕</button>
+            <button @click="editingPlan = null"
+              class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white font-normal text-xs cursor-pointer">
+              ✕
+            </button>
           </div>
 
-          <form @submit.prevent="savePlan" class="p-4 space-y-3.5 text-xs font-sans max-h-[80vh] overflow-y-auto">
+          <!-- Form Body -->
+          <form @submit.prevent="savePlan" class="p-4 space-y-2.5 text-xs font-sans">
             <div>
-              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Plan Display Name (name)</label>
-              <input v-model="editForm.name" type="text" required class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-bold outline-none" />
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                Plan Name *
+              </label>
+              <input v-model="form.name" type="text" required
+                class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Monthly Price ($)</label>
-                <input v-model.number="editForm.priceMonthly" type="number" step="0.01" required class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Yearly Price ($)</label>
-                <input v-model.number="editForm.priceYearly" type="number" step="0.01" required class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Terminals Limit</label>
-                <input v-model.number="editForm.terminalsLimit" type="number" min="1" required class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Price ($) *
+                </label>
+                <input v-model.number="form.price" type="number" step="0.01" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
               </div>
               <div>
-                <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Branches Limit</label>
-                <input v-model.number="editForm.branchesLimit" type="number" min="1" required class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none" />
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Duration (Days) *
+                </label>
+                <input v-model.number="form.durationDays" type="number" min="1" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
               </div>
             </div>
 
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Master Drug Catalog Entitlement Description</label>
-              <input v-model="editForm.masterDrugLimit" type="text" required class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-sans outline-none" />
-            </div>
-
-            <!-- Allowed Drug Catalog Tiers -->
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Allowed Drug Catalog Tiers (allowed_drug_tiers)</label>
-              <div class="flex items-center gap-3 bg-slate-50 dark:bg-gray-900 p-2 border border-slate-200 dark:border-gray-800 rounded">
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" value="starter" v-model="editForm.allowedDrugTiers" class="rounded text-sky-600" />
-                  <span>Starter Catalog</span>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Max Terminals
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" value="pro" v-model="editForm.allowedDrugTiers" class="rounded text-sky-600" />
-                  <span>Pro National Catalog</span>
+                <input v-model.number="form.maxTerminals" type="number" min="1" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Max Users
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" value="enterprise" v-model="editForm.allowedDrugTiers" class="rounded text-sky-600" />
-                  <span>Enterprise Specialty</span>
+                <input v-model.number="form.maxUsers" type="number" min="1" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Max Products
                 </label>
+                <input v-model.number="form.maxProducts" type="number" min="1" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
               </div>
             </div>
 
-            <!-- Feature Entitlements in Edit Modal -->
-            <div class="space-y-2 pt-1 border-t border-slate-200 dark:border-gray-800">
-              <label class="block font-bold text-slate-700 dark:text-gray-300">Feature Entitlements Matrix</label>
-              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800 rounded">
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" v-model="editForm.features.posRegister" class="rounded text-sky-600" />
-                  <span>POS Cash Register Terminal</span>
+            <!-- Features -->
+            <div class="pt-1">
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features Included</label>
+              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.posRegister" class="text-emerald-600" />
+                  <span>POS Terminal Counter</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" v-model="editForm.features.rxVerification" class="rounded text-sky-600" />
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.rxVerification" class="text-emerald-600" />
                   <span>Doctor Rx Verification</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-bold">
-                  <input type="checkbox" v-model="editForm.features.poGenerator" class="rounded text-sky-600" />
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.poGenerator" class="text-emerald-600" />
                   <span>PO Supplier Generator</span>
                 </label>
               </div>
-
-              <div class="grid grid-cols-3 gap-2">
-                <div>
-                  <label class="block font-bold text-slate-600 dark:text-gray-400 text-[10px] mb-0.5">FEFO Expiry Mode</label>
-                  <select v-model="editForm.features.fefoExpiry" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-1.5 py-1 text-xs">
-                    <option value="Basic">Basic</option>
-                    <option value="Advanced FEFO Alerts">Advanced FEFO Alerts</option>
-                    <option value="Automated AI Reordering">Automated AI Reordering</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block font-bold text-slate-600 dark:text-gray-400 text-[10px] mb-0.5">SMS Receipts Policy</label>
-                  <select v-model="editForm.features.smsReceipts" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-1.5 py-1 text-xs">
-                    <option value="Not Included">Not Included</option>
-                    <option value="250 SMS / month">250 SMS / month</option>
-                    <option value="500 SMS / month">500 SMS / month</option>
-                    <option value="Unlimited SMS">Unlimited SMS</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block font-bold text-slate-600 dark:text-gray-400 text-[10px] mb-0.5">Support SLA Level</label>
-                  <select v-model="editForm.features.support" class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-1.5 py-1 text-xs">
-                    <option value="Email Support">Email Support</option>
-                    <option value="Priority Chat Support">Priority Chat Support</option>
-                    <option value="24/7 Dedicated Account Manager">24/7 Dedicated Manager</option>
-                  </select>
-                </div>
-              </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-300 dark:border-gray-800">
-              <button type="button" @click="editingPlan = null" class="px-3 py-1 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded font-bold">
+            <!-- Footer -->
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-gray-800">
+              <button type="button" @click="editingPlan = null"
+                class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-xs cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" class="px-4 py-1 bg-gradient-to-b from-sky-500 to-blue-600 border border-sky-400 text-white rounded font-black shadow-sm">
-                Save DB Tier Specs
+              <button type="submit" :disabled="isSaving"
+                class="px-4 py-1 bg-[#107c41] hover:bg-[#0e6b37] disabled:opacity-50 text-white font-normal text-xs flex items-center gap-1 cursor-pointer">
+                <span>{{ isSaving ? 'Updating...' : 'Update Plan' }}</span>
               </button>
             </div>
           </form>
@@ -363,127 +389,133 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
 import { useSuperAdmin } from '~/composables/useSuperAdmin';
 import type { SubscriptionPlan } from '~/stores/superAdmin';
 
-const { plans, tenants, fetchPlans, createPlanTier, updatePlanTier } = useSuperAdmin();
+const { plans, fetchPlans, createPlanTier, updatePlanTier, deletePlanTier } = useSuperAdmin();
 
 const showCreateModal = ref(false);
-const createForm = ref({
-  id: '',
+const editingPlan = ref<SubscriptionPlan | null>(null);
+const isRefreshing = ref(false);
+const isSaving = ref(false);
+const filterText = ref('');
+const selectedRow = ref<number | null>(null);
+
+const form = reactive({
   name: '',
-  priceMonthly: 99,
-  priceYearly: 950,
-  terminalsLimit: 2,
-  branchesLimit: 1,
-  masterDrugLimit: '25,000 Essential Generics Catalog',
-  allowedDrugTiers: ['starter', 'pro'],
+  price: 49,
+  durationDays: 30,
+  maxTerminals: 1,
+  maxUsers: 5,
+  maxProducts: 500,
   features: {
     posRegister: true,
-    fefoExpiry: 'Advanced FEFO Alerts',
     rxVerification: true,
-    smsReceipts: '250 SMS / month',
-    poGenerator: true,
-    support: 'Priority Chat Support'
+    poGenerator: false
   }
 });
 
-const editingPlan = ref<SubscriptionPlan | null>(null);
-const editForm = ref({
-  name: '',
-  priceMonthly: 0,
-  priceYearly: 0,
-  terminalsLimit: 1,
-  branchesLimit: 1,
-  masterDrugLimit: '',
-  allowedDrugTiers: ['starter'] as string[],
-  features: {
-    posRegister: true,
-    fefoExpiry: 'Basic',
-    rxVerification: false,
-    smsReceipts: 'Not Included',
-    poGenerator: false,
-    support: 'Email Support'
-  }
-});
+const refreshData = async () => {
+  isRefreshing.value = true;
+  await fetchPlans();
+  isRefreshing.value = false;
+};
 
 onMounted(() => {
   fetchPlans();
 });
 
-const getTenantCountForTier = (planTierId: string) => {
-  return tenants.value.filter(t => t.planTier === planTierId).length;
-};
-
-const formatTerminalsText = (plan: SubscriptionPlan) => {
-  const limit = plan.terminalsLimit ?? (plan as any).terminals_limit ?? 1;
-  if (limit >= 999) return 'Unlimited POS Cash Register Terminals';
-  return `${limit} POS Cash Register Terminal${limit > 1 ? 's' : ''}`;
-};
-
-const formatBranchesText = (plan: SubscriptionPlan) => {
-  const count = plan.branchesLimit ?? (plan as any).branches_limit ?? 1;
-  if (count >= 99) return 'Multi-Branch Sync';
-  if (count === 1) return '1 Single Pharmacy Store Outlet';
-  return `${count} Outlets`;
-};
+const filteredPlans = computed(() => {
+  const q = filterText.value.toLowerCase();
+  if (!q) return plans.value;
+  return plans.value.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    String(p.price).includes(q)
+  );
+});
 
 const openCreateModal = () => {
-  createForm.value = {
-    id: `tier-${Date.now().toString().slice(-4)}`,
-    name: '',
-    priceMonthly: 99,
-    priceYearly: 950,
-    terminalsLimit: 2,
-    branchesLimit: 1,
-    masterDrugLimit: '25,000 Essential Generics Catalog',
-    allowedDrugTiers: ['starter', 'pro'],
-    features: {
-      posRegister: true,
-      fefoExpiry: 'Advanced FEFO Alerts',
-      rxVerification: true,
-      smsReceipts: '250 SMS / month',
-      poGenerator: true,
-      support: 'Priority Chat Support'
-    }
+  form.name = '';
+  form.price = 49;
+  form.durationDays = 30;
+  form.maxTerminals = 1;
+  form.maxUsers = 5;
+  form.maxProducts = 500;
+  form.features = {
+    posRegister: true,
+    rxVerification: true,
+    poGenerator: false
   };
   showCreateModal.value = true;
 };
 
-const handleCreatePlan = async () => {
-  if (!createForm.value.name) return;
-  if (!createForm.value.priceYearly) {
-    createForm.value.priceYearly = createForm.value.priceMonthly * 10;
+const createPlan = async () => {
+  if (!form.name) return;
+  isSaving.value = true;
+  try {
+    await createPlanTier({
+      name: form.name,
+      price: form.price,
+      durationDays: form.durationDays,
+      maxTerminals: form.maxTerminals,
+      maxUsers: form.maxUsers,
+      maxProducts: form.maxProducts,
+      features: form.features
+    } as any);
+    showCreateModal.value = false;
+    await fetchPlans();
+  } catch (e: any) {
+    alert("Error creating plan: " + (e.message || "Failed to insert into database"));
+  } finally {
+    isSaving.value = false;
   }
-  await createPlanTier(createForm.value);
-  showCreateModal.value = false;
 };
 
 const openEditModal = (plan: SubscriptionPlan) => {
   editingPlan.value = plan;
-  editForm.value = {
-    name: plan.name,
-    priceMonthly: plan.priceMonthly,
-    priceYearly: plan.priceYearly,
-    terminalsLimit: plan.terminalsLimit,
-    branchesLimit: plan.branchesLimit,
-    masterDrugLimit: plan.masterDrugLimit,
-    allowedDrugTiers: Array.isArray(plan.allowedDrugTiers) ? [...plan.allowedDrugTiers] : [plan.id],
-    features: plan.features ? { ...plan.features } : {
-      posRegister: true,
-      fefoExpiry: 'Basic',
-      rxVerification: false,
-      smsReceipts: 'Not Included',
-      poGenerator: false,
-      support: 'Email Support'
-    }
+  form.name = plan.name;
+  form.price = plan.price ?? (plan as any).priceMonthly ?? (plan as any).price_monthly ?? 49;
+  form.durationDays = (plan as any).durationDays || (plan as any).duration_days || 30;
+  form.maxTerminals = (plan as any).maxTerminals || (plan as any).max_terminals || (plan as any).terminalsLimit || 1;
+  form.maxUsers = (plan as any).maxUsers || (plan as any).max_users || 5;
+  form.maxProducts = (plan as any).maxProducts || (plan as any).max_products || 500;
+  form.features = {
+    posRegister: plan.features?.posRegister ?? true,
+    rxVerification: plan.features?.rxVerification ?? false,
+    poGenerator: plan.features?.poGenerator ?? false
   };
 };
 
 const savePlan = async () => {
   if (!editingPlan.value) return;
-  await updatePlanTier(editingPlan.value.id, editForm.value);
-  editingPlan.value = null;
+  isSaving.value = true;
+  try {
+    await updatePlanTier(editingPlan.value.id, {
+      name: form.name,
+      price: form.price,
+      durationDays: form.durationDays,
+      maxTerminals: form.maxTerminals,
+      maxUsers: form.maxUsers,
+      maxProducts: form.maxProducts,
+      features: form.features
+    } as any);
+    editingPlan.value = null;
+    await fetchPlans();
+  } catch (e: any) {
+    alert("Error updating plan: " + (e.message || "Failed to update"));
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const confirmDeletePlan = async (plan: SubscriptionPlan) => {
+  if (!confirm(`Are you sure you want to delete subscription plan "${plan.name}" (#${plan.id})?`)) return;
+  try {
+    await deletePlanTier(plan.id);
+    await fetchPlans();
+  } catch (e: any) {
+    alert("Error deleting plan: " + (e.message || "Failed to delete"));
+  }
 };
 </script>

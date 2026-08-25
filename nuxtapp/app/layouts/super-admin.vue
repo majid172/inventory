@@ -44,9 +44,14 @@ const handleKeyDown = (e: KeyboardEvent) => {
 onMounted(() => {
   // Security Guard: Restrict Super Admin layout strictly to authenticated Platform Owners
   if (process.client) {
+    const isLoggedIn = !!(localStorage.getItem('auth_token') || localStorage.getItem('is_logged_in'));
     const isSA = localStorage.getItem('is_super_admin') === 'true';
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
     if (!isSA) {
-      alert("Access Denied: Free / Premium subscribers cannot access Super Admin Console.");
+      alert("Access Denied: Super Admin privileges required.");
       router.push('/pos');
       return;
     }

@@ -38,16 +38,13 @@ export interface SubscriptionPlan {
 
 export interface MasterDrug {
   id: string;
-  drugCode?: string;
   brandName: string;
   genericName: string;
   dosageForm: string;
   manufacturer: string;
-  defaultRetailPrice: number;
   rxRequired: boolean;
-  planTierAccess: 'starter' | 'pro' | 'enterprise';
-  barcode: string;
-  therapeuticClass: string;
+  planTier?: 'starter' | 'pro' | 'enterprise' | string;
+  plan_tier?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -129,14 +126,13 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
 
   const filteredMasterDrugs = computed(() => {
     return masterDrugs.value.filter(d => {
-      const matchesSearch = !searchFilter.value ||
-        d.brandName.toLowerCase().includes(searchFilter.value.toLowerCase()) ||
-        d.genericName.toLowerCase().includes(searchFilter.value.toLowerCase()) ||
-        d.manufacturer.toLowerCase().includes(searchFilter.value.toLowerCase());
-      
-      const matchesTier = masterDrugTierFilter.value === 'all' || d.planTierAccess === masterDrugTierFilter.value;
-
-      return matchesSearch && matchesTier;
+      const search = searchFilter.value.toLowerCase();
+      const matchesSearch = !search || 
+        (d.brandName && d.brandName.toLowerCase().includes(search)) ||
+        (d.genericName && d.genericName.toLowerCase().includes(search)) ||
+        (d.manufacturer && d.manufacturer.toLowerCase().includes(search)) ||
+        (d.dosageForm && d.dosageForm.toLowerCase().includes(search));
+      return matchesSearch;
     });
   });
 
@@ -159,78 +155,36 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
     }
   };
 
+  const getAuthHeaders = () => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (process.client) {
+      const token = localStorage.getItem('auth_token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
   const fetchPlans = async () => {
     isLoading.value = true;
     try {
-      const res = await fetch('http://localhost:5000/api/super-admin/plans');
+      let res = await fetch('http://localhost:5000/api/super-admin/plans', {
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        res = await fetch('http://localhost:5000/api/plans');
+      }
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          plans.value = json.data;
+        const incomingPlans = Array.isArray(json.data) ? json.data : (Array.isArray(json.plans) ? json.plans : []);
+        if (incomingPlans) {
+          plans.value = incomingPlans;
+          isLoading.value = false;
           return;
         }
       }
     } catch (e) {
-      console.warn("Backend plans API offline, using fallback subscription plans.");
+      console.warn("Backend plans API offline:", e);
     } finally {
-      if (plans.value.length === 0) {
-        plans.value = [
-          {
-            id: "starter",
-            name: "Starter Plan",
-            priceMonthly: 49,
-            priceYearly: 470,
-            terminalsLimit: 1,
-            branchesLimit: 1,
-            masterDrugLimit: "10,000 Essential Generics",
-            allowedDrugTiers: ["starter"],
-            features: {
-              posRegister: true,
-              fefoExpiry: "Basic",
-              rxVerification: false,
-              smsReceipts: "Not Included",
-              poGenerator: false,
-              support: "Email Support"
-            }
-          },
-          {
-            id: "pro",
-            name: "Pro Plan (Popular)",
-            priceMonthly: 149,
-            priceYearly: 1430,
-            terminalsLimit: 3,
-            branchesLimit: 1,
-            masterDrugLimit: "50,000+ Full National Catalog",
-            allowedDrugTiers: ["starter", "pro"],
-            features: {
-              posRegister: true,
-              fefoExpiry: "Advanced FEFO Alerts",
-              rxVerification: true,
-              smsReceipts: "500 SMS / month",
-              poGenerator: true,
-              support: "Priority Chat Support"
-            }
-          },
-          {
-            id: "enterprise",
-            name: "Enterprise Chain Plan",
-            priceMonthly: 399,
-            priceYearly: 3830,
-            terminalsLimit: 999,
-            branchesLimit: 99,
-            masterDrugLimit: "Unlimited + Biologics & Custom Catalog",
-            allowedDrugTiers: ["starter", "pro", "enterprise"],
-            features: {
-              posRegister: true,
-              fefoExpiry: "Automated AI Reordering",
-              rxVerification: true,
-              smsReceipts: "Unlimited SMS",
-              poGenerator: true,
-              support: "24/7 Dedicated Account Manager"
-            }
-          }
-        ];
-      }
       isLoading.value = false;
     }
   };
@@ -242,14 +196,14 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
     try {
       const res = await fetch('http://localhost:5000/api/super-admin/plans', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       });
       if (res.ok) {
         const json = await res.json();
         console.log("Create Plan Tier Response:", json);
-        if (json.success && json.data) {
-          createdPlan = json.data;
+        if (json.success && (json.data || json.plan)) {
+          createdPlan = json.data || json.plan;
         }
       }
     } catch (e) {
@@ -305,13 +259,13 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
     try {
       const res = await fetch(`http://localhost:5000/api/super-admin/plans/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       });
       if (res.ok) {
         const json = await res.json();
-        if (json.success && json.data) {
-          updatedData = json.data;
+        if (json.success && (json.data || json.plan)) {
+          updatedData = json.data || json.plan;
         }
       }
     } catch (e) {
@@ -334,6 +288,32 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
 
     isLoading.value = false;
     return plans.value[idx];
+  };
+
+  const deletePlanTier = async (id: string) => {
+    isLoading.value = true;
+    try {
+      await fetch(`http://localhost:5000/api/super-admin/plans/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+    } catch (e) {
+      console.warn("Backend API offline for plan delete.");
+    }
+
+    plans.value = plans.value.filter(p => p.id !== id);
+
+    auditLogs.value.unshift({
+      id: `LOG_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      event: "Subscription Tier Deleted",
+      details: `Deleted subscription plan tier '${id.toUpperCase()}'`,
+      tenantId: "SYSTEM",
+      severity: "warning"
+    });
+
+    isLoading.value = false;
+    return true;
   };
 
   const fetchTenants = async () => {
@@ -447,11 +427,14 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
 
   const fetchMasterDrugs = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/super-admin/master-drugs');
+      const res = await fetch('http://localhost:5000/api/super-admin/master-drugs', {
+        headers: getAuthHeaders()
+      });
       if (res.ok) {
         const json = await res.json();
-        if (json.success) {
+        if (json.success && Array.isArray(json.data)) {
           masterDrugs.value = json.data;
+          return;
         }
       }
     } catch (e) {
@@ -466,41 +449,39 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
     try {
       const res = await fetch('http://localhost:5000/api/super-admin/master-drugs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          createdDrug = json.data;
-        }
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || `Failed to save master drug (HTTP ${res.status})`);
       }
-    } catch (e) {
-      console.warn("Backend API offline for master drug creation.");
+      if (json.data) {
+        createdDrug = json.data;
+      }
+    } catch (e: any) {
+      isLoading.value = false;
+      console.error("createMasterDrug error:", e.message);
+      throw e;
     }
 
-    if (!createdDrug) {
-      createdDrug = {
-        id: payload.id || `MDRUG_${1000 + masterDrugs.value.length + 1}`,
-        ...payload
-      };
-    }
+    if (createdDrug) {
+      const idx = masterDrugs.value.findIndex(d => d.id === createdDrug!.id);
+      if (idx === -1) {
+        masterDrugs.value.unshift(createdDrug);
+      } else {
+        masterDrugs.value[idx] = createdDrug;
+      }
 
-    const idx = masterDrugs.value.findIndex(d => d.id === createdDrug!.id);
-    if (idx === -1) {
-      masterDrugs.value.unshift(createdDrug);
-    } else {
-      masterDrugs.value[idx] = createdDrug;
+      auditLogs.value.unshift({
+        id: `LOG_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        event: "Master Drug Added",
+        details: `Added master drug '${createdDrug.brandName}' (${createdDrug.genericName}) to MySQL master_drugs table`,
+        tenantId: "SYSTEM",
+        severity: "success"
+      });
     }
-
-    auditLogs.value.unshift({
-      id: `LOG_${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      event: "Master Drug Added",
-      details: `Added generic '${createdDrug.genericName}' (${createdDrug.brandName}) for ${createdDrug.planTierAccess.toUpperCase()} Plan tier access`,
-      tenantId: "SYSTEM",
-      severity: "success"
-    });
 
     isLoading.value = false;
     return createdDrug;
@@ -513,17 +494,20 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
     try {
       const res = await fetch(`http://localhost:5000/api/super-admin/master-drugs/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          updatedDrugData = json.data;
-        }
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || `Failed to update master drug (HTTP ${res.status})`);
       }
-    } catch (e) {
-      console.warn("Backend API offline for master drug update.");
+      if (json.data) {
+        updatedDrugData = json.data;
+      }
+    } catch (e: any) {
+      isLoading.value = false;
+      console.error("updateMasterDrug error:", e.message);
+      throw e;
     }
 
     const idx = masterDrugs.value.findIndex(d => d.id === id);
@@ -535,7 +519,7 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
       id: `LOG_${Date.now()}`,
       timestamp: new Date().toISOString(),
       event: "Master Drug Updated",
-      details: `Updated master drug specs for '${payload.brandName || id}'`,
+      details: `Updated master drug specs for '${payload.brandName || id}' in MySQL`,
       tenantId: "SYSTEM",
       severity: "info"
     });
@@ -547,11 +531,18 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
   const deleteMasterDrug = async (id: string) => {
     isLoading.value = true;
     try {
-      await fetch(`http://localhost:5000/api/super-admin/master-drugs/${id}`, {
-        method: 'DELETE'
+      const res = await fetch(`http://localhost:5000/api/super-admin/master-drugs/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
-    } catch (e) {
-      console.warn("Backend API offline for master drug delete.");
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || `Failed to delete master drug (HTTP ${res.status})`);
+      }
+    } catch (e: any) {
+      isLoading.value = false;
+      console.error("deleteMasterDrug error:", e.message);
+      throw e;
     }
 
     const idx = masterDrugs.value.findIndex(d => d.id === id);
@@ -590,6 +581,21 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
     });
   };
 
+  const deleteTenant = async (id: string) => {
+    isLoading.value = true;
+    try {
+      await fetch(`http://localhost:5000/api/super-admin/tenants/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      await fetchTenants();
+    } catch (e) {
+      console.warn("Backend API offline for delete tenant.");
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   const fetchLogs = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/super-admin/logs');
@@ -624,9 +630,11 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
     fetchPlans,
     createPlanTier,
     updatePlanTier,
+    deletePlanTier,
     fetchTenants,
     createTenant,
     updateTenant,
+    deleteTenant,
     fetchMasterDrugs,
     createMasterDrug,
     updateMasterDrug,

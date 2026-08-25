@@ -14,7 +14,7 @@
               <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold uppercase tracking-wider border border-emerald-500/30">
                 SaaS Multi-Tenant Cloud Architecture
               </span>
-              <span class="text-xs text-slate-400 font-mono">• 38 Active Subscriber Stores</span>
+              <span class="text-xs text-slate-400 font-mono">• {{ displayPlans.length }} Active Subscriber Tiers</span>
             </div>
             <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight">
               Pharmacy Chain Subscription & Store Onboarding Center
@@ -29,14 +29,14 @@
             <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
               <button 
                 @click="isYearly = false"
-                class="px-3 py-1.5 rounded-lg font-bold transition-all text-xs"
+                class="px-3 py-1.5 rounded-lg font-bold transition-all text-xs cursor-pointer"
                 :class="!isYearly ? 'bg-emerald-600 text-white font-black shadow-sm' : 'text-slate-400 hover:text-white'"
               >
                 Monthly
               </button>
               <button 
                 @click="isYearly = true"
-                class="px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 text-xs"
+                class="px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 text-xs cursor-pointer"
                 :class="isYearly ? 'bg-emerald-600 text-white font-black shadow-sm' : 'text-slate-400 hover:text-white'"
               >
                 <span>Annual</span>
@@ -45,8 +45,8 @@
             </div>
 
             <button 
-              @click="openRegisterModal('pro')"
-              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white rounded-lg font-black text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-1.5"
+              @click="openRegisterModal(displayPlans[0] || null)"
+              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white rounded-lg font-black text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>🚀</span> Start 14-Day Free Trial
             </button>
@@ -56,11 +56,11 @@
         <!-- Subscription Plan Tier Windows Grid (Loaded Dynamically) -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div 
-            v-for="plan in displayPlans" 
+            v-for="(plan, idx) in displayPlans" 
             :key="plan.id"
             :class="[
               'border rounded-xl shadow-xl overflow-hidden bg-white dark:bg-gray-950 flex flex-col justify-between transition-all duration-200',
-              plan.id === 'pro'
+              idx === 1
                 ? 'border-emerald-500 dark:border-emerald-500 ring-2 ring-emerald-500/20 shadow-emerald-500/10'
                 : 'border-slate-300 dark:border-gray-800 hover:border-emerald-500'
             ]"
@@ -70,7 +70,7 @@
               <div 
                 class="px-3.5 py-2 border-b flex items-center justify-between text-xs font-black uppercase tracking-wider"
                 :class="[
-                  plan.id === 'pro'
+                  idx === 1
                     ? 'bg-emerald-700 text-white border-emerald-600'
                     : 'bg-emerald-600 text-white border-emerald-500'
                 ]"
@@ -79,30 +79,30 @@
                   <span>🟢</span>
                   <span>{{ plan.name }}</span>
                 </div>
-                <span v-if="plan.id === 'pro'" class="text-[9px] px-2 py-0.5 rounded bg-white text-emerald-900 font-extrabold uppercase">
+                <span v-if="idx === 1" class="text-[9px] px-2 py-0.5 rounded bg-white text-emerald-900 font-extrabold uppercase">
                   POPULAR
                 </span>
                 <span v-else class="text-[9px] px-2 py-0.5 rounded bg-white/20 text-white font-bold">
-                  {{ plan.id.toUpperCase() }}
+                  #{{ plan.id }}
                 </span>
               </div>
 
               <!-- Plan Window Body Content -->
               <div class="p-4 space-y-4">
                 <p class="text-xs text-slate-600 dark:text-gray-400 font-medium min-h-[36px]">
-                  {{ plan.masterDrugLimit }}
+                  {{ (plan as any).maxProducts || (plan as any).max_products || 500 }} Medicines limit with {{ (plan as any).durationDays || (plan as any).duration_days || 30 }} days active billing cycle.
                 </p>
 
                 <!-- Pricing Display Panel -->
                 <div class="p-3 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg flex items-baseline justify-between">
                   <div>
                     <span class="text-3xl font-black font-mono text-slate-900 dark:text-white">
-                      ${{ isYearly ? Math.round(plan.priceYearly / 12) : plan.priceMonthly }}
+                      ${{ getPrice(plan) }}
                     </span>
-                    <span class="text-slate-500 text-xs font-bold"> / month</span>
+                    <span class="text-slate-500 text-xs font-bold"> / {{ (plan as any).durationDays || (plan as any).duration_days || 30 }} days</span>
                   </div>
                   <span v-if="isYearly" class="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    ${{ plan.priceYearly }}/yr
+                    ${{ Math.round(getPrice(plan) * 10) }}/yr
                   </span>
                 </div>
 
@@ -111,28 +111,28 @@
                   <div class="flex items-center justify-between text-slate-700 dark:text-gray-300">
                     <span class="font-bold">Terminals Limit:</span>
                     <span class="font-mono font-bold text-slate-900 dark:text-white">
-                      {{ plan.terminalsLimit >= 99 ? 'Unlimited Terminals' : plan.terminalsLimit + ' Terminal' }}
+                      {{ (plan as any).maxTerminals || (plan as any).max_terminals || 1 }} Terminal(s)
                     </span>
                   </div>
 
                   <div class="flex items-center justify-between text-slate-700 dark:text-gray-300">
-                    <span class="font-bold">Outlets / Branch Limit:</span>
+                    <span class="font-bold">Staff Users Limit:</span>
                     <span class="font-mono font-bold text-slate-900 dark:text-white">
-                      {{ plan.branchesLimit >= 99 ? 'Multi-Branch Sync' : plan.branchesLimit === 1 ? '1 Outlet' : plan.branchesLimit + ' Outlets' }}
+                      {{ (plan as any).maxUsers || (plan as any).max_users || 5 }} Users
                     </span>
                   </div>
 
                   <div class="flex items-center justify-between text-slate-700 dark:text-gray-300">
-                    <span class="font-bold">Catalog Tiers:</span>
-                    <span class="font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
-                      {{ plan.allowedDrugTiers.join(', ') }}
+                    <span class="font-bold">Max Inventory Products:</span>
+                    <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {{ (plan as any).maxProducts || (plan as any).max_products || 500 }} Drugs
                     </span>
                   </div>
 
                   <div class="flex items-center justify-between text-slate-700 dark:text-gray-300">
-                    <span class="font-bold">FEFO Expiry Mode:</span>
-                    <span class="text-[11px] font-medium text-slate-800 dark:text-gray-200">
-                      {{ plan.features?.fefoExpiry || 'Basic' }}
+                    <span class="font-bold">POS Cash Register Counter:</span>
+                    <span class="text-emerald-600 dark:text-emerald-400 font-bold">
+                      ✓ Enabled
                     </span>
                   </div>
 
@@ -149,13 +149,6 @@
                       {{ plan.features?.poGenerator ? '✓ Enabled' : '✕ Not Included' }}
                     </span>
                   </div>
-
-                  <div class="flex items-center justify-between text-slate-700 dark:text-gray-300">
-                    <span class="font-bold">Support SLA:</span>
-                    <span class="text-[11px] font-medium text-slate-800 dark:text-gray-200">
-                      {{ plan.features?.support || 'Email Support' }}
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -163,8 +156,8 @@
             <!-- Card Action Footer -->
             <div class="p-3 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800">
               <button 
-                @click="openRegisterModal(plan.id)"
-                class="w-full py-2 px-3 rounded-lg font-black text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white"
+                @click="openRegisterModal(plan)"
+                class="w-full py-2 px-3 rounded-lg font-black text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white cursor-pointer"
               >
                 <span>Select {{ plan.name }}</span>
                 <span>🚀</span>
@@ -187,59 +180,51 @@
               <thead>
                 <tr class="bg-slate-200 dark:bg-slate-900 text-slate-800 dark:text-gray-200 font-extrabold text-[11px] uppercase tracking-wider">
                   <th class="py-2.5 px-4 border border-slate-300 dark:border-gray-700">DESKTOP ERP FEATURE CAPABILITY</th>
-                  <th class="py-2.5 px-4 border border-slate-300 dark:border-gray-700 text-center text-emerald-700 dark:text-emerald-400">STARTER TIER</th>
-                  <th class="py-2.5 px-4 border border-slate-300 dark:border-gray-700 text-center text-emerald-700 dark:text-emerald-400">PRO TIER (POPULAR)</th>
-                  <th class="py-2.5 px-4 border border-slate-300 dark:border-gray-700 text-center text-emerald-700 dark:text-emerald-400">ENTERPRISE CHAIN TIER</th>
+                  <th 
+                    v-for="plan in displayPlans" 
+                    :key="plan.id"
+                    class="py-2.5 px-4 border border-slate-300 dark:border-gray-700 text-center text-emerald-700 dark:text-emerald-400 font-extrabold"
+                  >
+                    {{ plan.name.toUpperCase() }}
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-300 dark:divide-gray-800 font-medium">
                 <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
+                  <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">Subscription Price</td>
+                  <td v-for="plan in displayPlans" :key="plan.id" class="py-2.5 px-4 text-center font-mono font-black text-emerald-600 border border-slate-300 dark:border-gray-800">
+                    ${{ getPrice(plan) }} / {{ (plan as any).durationDays || (plan as any).duration_days || 30 }}d
+                  </td>
+                </tr>
+                <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
                   <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">POS Cash Register Terminals Limit</td>
-                  <td class="py-2.5 px-4 text-center font-mono border border-slate-300 dark:border-gray-800">1 Terminal</td>
-                  <td class="py-2.5 px-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400 border border-slate-300 dark:border-gray-800">3 Terminals</td>
-                  <td class="py-2.5 px-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400 border border-slate-300 dark:border-gray-800">Unlimited Terminals</td>
+                  <td v-for="plan in displayPlans" :key="plan.id" class="py-2.5 px-4 text-center font-mono font-bold text-slate-900 dark:text-gray-100 border border-slate-300 dark:border-gray-800">
+                    {{ (plan as any).maxTerminals || (plan as any).max_terminals || 1 }} Terminal(s)
+                  </td>
                 </tr>
                 <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
-                  <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">Store Outlets / Multi-Branch Sync</td>
-                  <td class="py-2.5 px-4 text-center font-mono border border-slate-300 dark:border-gray-800">1 Outlet</td>
-                  <td class="py-2.5 px-4 text-center font-mono border border-slate-300 dark:border-gray-800">1 Outlet</td>
-                  <td class="py-2.5 px-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400 border border-slate-300 dark:border-gray-800">Multi-Branch Sync</td>
+                  <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">Max Staff Users Limit</td>
+                  <td v-for="plan in displayPlans" :key="plan.id" class="py-2.5 px-4 text-center font-mono font-bold text-slate-900 dark:text-gray-100 border border-slate-300 dark:border-gray-800">
+                    {{ (plan as any).maxUsers || (plan as any).max_users || 5 }} Users
+                  </td>
                 </tr>
                 <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
-                  <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">Master Drug Catalog Access Tiers</td>
-                  <td class="py-2.5 px-4 text-center border border-slate-300 dark:border-gray-800 font-mono font-bold text-emerald-600">['starter']</td>
-                  <td class="py-2.5 px-4 text-center border border-slate-300 dark:border-gray-800 font-mono font-bold text-emerald-600">['starter', 'pro']</td>
-                  <td class="py-2.5 px-4 text-center border border-slate-300 dark:border-gray-800 font-mono font-bold text-emerald-600">['starter', 'pro', 'enterprise']</td>
-                </tr>
-                <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
-                  <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">FEFO Expiry Batch Management</td>
-                  <td class="py-2.5 px-4 text-center border border-slate-300 dark:border-gray-800">Basic Expiry Tracking</td>
-                  <td class="py-2.5 px-4 text-center border border-slate-300 dark:border-gray-800 font-bold text-emerald-600">Advanced FEFO Alerts</td>
-                  <td class="py-2.5 px-4 text-center border border-slate-300 dark:border-gray-800 font-bold text-emerald-600">Automated AI Reordering</td>
+                  <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">Max Drug Catalog Limit</td>
+                  <td v-for="plan in displayPlans" :key="plan.id" class="py-2.5 px-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400 border border-slate-300 dark:border-gray-800">
+                    {{ (plan as any).maxProducts || (plan as any).max_products || 500 }} Drugs
+                  </td>
                 </tr>
                 <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
                   <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">Doctor Rx Verification Protocol</td>
-                  <td class="py-2.5 px-4 text-center text-slate-400 border border-slate-300 dark:border-gray-800">✕ Not Included</td>
-                  <td class="py-2.5 px-4 text-center text-emerald-600 dark:text-emerald-400 font-bold border border-slate-300 dark:border-gray-800">✓ Included</td>
-                  <td class="py-2.5 px-4 text-center text-emerald-600 dark:text-emerald-400 font-bold border border-slate-300 dark:border-gray-800">✓ Included</td>
+                  <td v-for="plan in displayPlans" :key="plan.id" class="py-2.5 px-4 text-center border border-slate-300 dark:border-gray-800 font-bold" :class="plan.features?.rxVerification ? 'text-emerald-600' : 'text-slate-400'">
+                    {{ plan.features?.rxVerification ? '✓ Included' : '✕ Not Included' }}
+                  </td>
                 </tr>
                 <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
                   <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">Supplier PO Generator</td>
-                  <td class="py-2.5 px-4 text-center text-slate-400 border border-slate-300 dark:border-gray-800">✕ Not Included</td>
-                  <td class="py-2.5 px-4 text-center text-emerald-600 dark:text-emerald-400 font-bold border border-slate-300 dark:border-gray-800">✓ Included</td>
-                  <td class="py-2.5 px-4 text-center text-emerald-600 dark:text-emerald-400 font-bold border border-slate-300 dark:border-gray-800">✓ Included</td>
-                </tr>
-                <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
-                  <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">SMS Customer Receipts Policy</td>
-                  <td class="py-2.5 px-4 text-center text-slate-400 border border-slate-300 dark:border-gray-800">Not Included</td>
-                  <td class="py-2.5 px-4 text-center font-mono border border-slate-300 dark:border-gray-800">500 SMS / month</td>
-                  <td class="py-2.5 px-4 text-center font-mono font-bold text-emerald-600 border border-slate-300 dark:border-gray-800">Unlimited SMS</td>
-                </tr>
-                <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
-                  <td class="py-2.5 px-4 font-bold border border-slate-300 dark:border-gray-800 text-slate-900 dark:text-gray-100">Support Level Agreement</td>
-                  <td class="py-2.5 px-4 text-center border border-slate-300 dark:border-gray-800">Email Support</td>
-                  <td class="py-2.5 px-4 text-center font-bold text-emerald-600 border border-slate-300 dark:border-gray-800">Priority Chat Support</td>
-                  <td class="py-2.5 px-4 text-center font-bold text-emerald-600 border border-slate-300 dark:border-gray-800">24/7 Dedicated Account Manager</td>
+                  <td v-for="plan in displayPlans" :key="plan.id" class="py-2.5 px-4 text-center border border-slate-300 dark:border-gray-800 font-bold" :class="plan.features?.poGenerator ? 'text-emerald-600' : 'text-slate-400'">
+                    {{ plan.features?.poGenerator ? '✓ Included' : '✕ Not Included' }}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -248,13 +233,14 @@
       </div>
 
       <!-- Desktop Windows Style Status Bar Footer -->
-      <footer class="bg-slate-200/90 dark:bg-gray-950 border-t border-slate-300 dark:border-gray-800 px-3 py-1 text-[10px] font-mono text-slate-600 dark:text-gray-400 flex items-center justify-between shrink-0 select-none">
+      <footer class="h-6 bg-slate-200 dark:bg-gray-900 border-t border-slate-300 dark:border-gray-800 px-3 flex items-center justify-between text-[11px] font-mono text-slate-600 dark:text-gray-400 select-none">
         <div class="flex items-center gap-3">
-          <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> DB Connected (MySQL Isolation)
+          <span class="flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+            System Status: Connected
           </span>
-          <span>• Status: Ready</span>
-          <span class="hidden sm:inline">• Latency: 3ms</span>
+          <span>|</span>
+          <span>Database: MySQL (subscription_plans)</span>
         </div>
         <div class="flex items-center gap-3">
           <span>Keyboard Navigation: [F10: POS] [F11: ERP Admin] [F12: Super Admin]</span>
@@ -270,7 +256,7 @@
           <h3 class="font-black text-xs uppercase text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
             <span>🏥</span> Onboard New Pharmacy Store (MySQL Provisioning)
           </h3>
-          <button @click="showModal = false" class="font-bold text-slate-500 hover:text-slate-800">✕</button>
+          <button @click="showModal = false" class="font-bold text-slate-500 hover:text-slate-800 cursor-pointer">✕</button>
         </div>
 
         <!-- Onboarding Form -->
@@ -278,11 +264,11 @@
           <!-- Selected Plan Banner -->
           <div class="p-2.5 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-lg flex items-center justify-between">
             <div>
-              <span class="text-slate-500 dark:text-gray-400 block text-[10px] font-bold uppercase">Selected Plan Tier:</span>
-              <span class="font-extrabold text-slate-900 dark:text-white capitalize">{{ signupForm.planTier }} Tier</span>
+              <span class="text-slate-500 dark:text-gray-400 block text-[10px] font-bold uppercase">Selected Plan:</span>
+              <span class="font-extrabold text-slate-900 dark:text-white capitalize">{{ selectedPlan?.name || 'Selected Plan' }}</span>
             </div>
             <span class="font-mono font-black text-emerald-600 dark:text-emerald-400">
-              ${{ signupForm.planTier === 'enterprise' ? '399' : signupForm.planTier === 'pro' ? '149' : '49' }} / mo
+              ${{ selectedPlan ? getPrice(selectedPlan) : '49' }}
             </span>
           </div>
 
@@ -326,34 +312,52 @@
             </div>
           </div>
 
-          <div>
-            <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Contact Phone Number</label>
-            <input 
-              v-model="signupForm.phone"
-              type="text" 
-              placeholder="+1 (555) 234-5678"
-              class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none text-xs focus:border-emerald-500"
-            />
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Password *</label>
+              <input 
+                v-model="signupForm.password"
+                type="password" 
+                required 
+                placeholder="••••••••"
+                class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 outline-none text-xs focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Contact Phone Number</label>
+              <input 
+                v-model="signupForm.phone"
+                type="text" 
+                placeholder="+1 (555) 234-5678"
+                class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-mono outline-none text-xs focus:border-emerald-500"
+              />
+            </div>
           </div>
 
-          <!-- Checkout Mode Options -->
-          <div>
-            <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Checkout / Billing Option</label>
-            <div class="grid grid-cols-2 gap-2">
+          <!-- Payment Method Option -->
+          <div class="pt-1">
+            <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">Payment Method</label>
+            <div class="grid grid-cols-3 gap-2">
               <label 
-                @click="signupForm.billingType = 'trial'"
-                class="p-2 rounded border cursor-pointer transition-all flex items-center gap-2"
-                :class="signupForm.billingType === 'trial' ? 'bg-emerald-500/10 border-emerald-500 font-bold text-emerald-700 dark:text-emerald-300' : 'bg-slate-50 dark:bg-gray-900 border-slate-300 dark:border-gray-700 text-slate-600'"
+                @click="signupForm.paymentMethod = 'card'"
+                class="p-2 rounded border cursor-pointer text-center font-bold text-[11px] transition-all"
+                :class="signupForm.paymentMethod === 'card' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-slate-50 dark:bg-gray-900 border-slate-300 dark:border-gray-700 text-slate-600 dark:text-gray-400'"
               >
-                <span>🎁 14-Day Free Trial</span>
+                💳 Credit Card
               </label>
-
               <label 
-                @click="signupForm.billingType = 'card'"
-                class="p-2 rounded border cursor-pointer transition-all flex items-center gap-2"
-                :class="signupForm.billingType === 'card' ? 'bg-emerald-500/10 border-emerald-500 font-bold text-emerald-700 dark:text-emerald-300' : 'bg-slate-50 dark:bg-gray-900 border-slate-300 dark:border-gray-700 text-slate-600'"
+                @click="signupForm.paymentMethod = 'mobile_banking'"
+                class="p-2 rounded border cursor-pointer text-center font-bold text-[11px] transition-all"
+                :class="signupForm.paymentMethod === 'mobile_banking' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-slate-50 dark:bg-gray-900 border-slate-300 dark:border-gray-700 text-slate-600 dark:text-gray-400'"
               >
-                <span>💳 Credit Card</span>
+                📱 bKash / Nagad
+              </label>
+              <label 
+                @click="signupForm.paymentMethod = 'cash'"
+                class="p-2 rounded border cursor-pointer text-center font-bold text-[11px] transition-all"
+                :class="signupForm.paymentMethod === 'cash' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-slate-50 dark:bg-gray-900 border-slate-300 dark:border-gray-700 text-slate-600 dark:text-gray-400'"
+              >
+                💵 Instant Pay
               </label>
             </div>
           </div>
@@ -363,17 +367,17 @@
             <button 
               type="button" 
               @click="showModal = false"
-              class="px-3 py-1 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded font-bold"
+              class="px-3 py-1 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 rounded font-bold cursor-pointer"
             >
               Cancel
             </button>
             <button 
               type="submit" 
               :disabled="isSubmitting"
-              class="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white rounded font-black shadow-sm flex items-center gap-1.5"
+              class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white rounded font-black shadow-sm flex items-center gap-1.5 cursor-pointer text-xs"
             >
               <span v-if="isSubmitting" class="animate-spin">⏳</span>
-              <span>{{ isSubmitting ? 'Provisioning...' : 'Provision Store in DB' }}</span>
+              <span>{{ isSubmitting ? 'Processing Payment...' : 'Subscribe & Go to Dashboard 🚀' }}</span>
             </button>
           </div>
         </form>
@@ -382,51 +386,37 @@
 
     <!-- Onboarding Success Modal -->
     <div v-if="createdTenant" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 select-none">
-      <div class="bg-white dark:bg-gray-950 border border-emerald-500 rounded-lg max-w-lg w-full overflow-hidden shadow-2xl p-6 text-center space-y-4">
+      <div class="bg-white dark:bg-gray-950 border border-emerald-500 rounded-lg max-w-lg w-full overflow-hidden shadow-2xl p-6 text-center space-y-4 animate-fadeIn">
         <div class="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 flex items-center justify-center text-3xl mx-auto">
           🎉
         </div>
 
         <div>
-          <h3 class="text-xl font-black text-slate-900 dark:text-white">Pharmacy Store Provisioned!</h3>
+          <h3 class="text-xl font-black text-slate-900 dark:text-white">Payment & Subscription Activated!</h3>
           <p class="text-xs text-slate-600 dark:text-gray-400 mt-1">
-            Store <b>{{ createdTenant.storeName }}</b> is registered in MySQL. Master Drug Catalog synced for {{ createdTenant.planTier.toUpperCase() }} tier.
+            Store <b>{{ createdTenant.name || createdTenant.storeName }}</b> is live with active subscription.
           </p>
         </div>
 
         <div class="p-3 bg-slate-50 dark:bg-gray-900 rounded border border-slate-200 dark:border-gray-800 text-left font-mono text-xs space-y-1">
           <div class="flex justify-between">
-            <span class="text-slate-500">Tenant ID:</span>
-            <span class="font-bold text-slate-900 dark:text-white">{{ createdTenant.id }}</span>
+            <span class="text-slate-500">Tenant Store:</span>
+            <span class="font-bold text-slate-900 dark:text-white">{{ createdTenant.name || createdTenant.storeName }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-slate-500">Store Subdomain:</span>
-            <span class="font-bold text-emerald-600 dark:text-emerald-400">https://{{ createdTenant.slug }}.pharmasaas.com</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-slate-500">Assigned Plan:</span>
-            <span class="font-bold text-emerald-600 dark:text-emerald-400 uppercase">{{ createdTenant.planTier }} Tier</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-slate-500">Next Billing Date:</span>
-            <span class="font-bold text-slate-900 dark:text-white">{{ createdTenant.nextBillingDate }}</span>
+            <span class="text-slate-500">Payment Status:</span>
+            <span class="font-bold text-emerald-600">CONFIRMED (SUCCESS)</span>
           </div>
         </div>
 
-        <div class="flex items-center justify-center gap-2 pt-2">
-          <NuxtLink 
-            to="/super-admin/tenants"
-            class="px-3.5 py-1.5 bg-slate-200 dark:bg-gray-800 text-slate-800 dark:text-gray-200 rounded font-bold text-xs"
+        <div class="flex items-center justify-center gap-3 pt-2">
+          <button 
+            @click="goToTenantDashboard"
+            class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black text-xs shadow-md cursor-pointer flex items-center gap-2"
           >
-            View in Super Admin
-          </NuxtLink>
-
-          <NuxtLink 
-            to="/pos"
-            class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white rounded font-black text-xs shadow-sm flex items-center gap-1.5"
-          >
-            <span>🚀</span> Launch Store POS & Backoffice
-          </NuxtLink>
+            <span>Enter Tenant Dashboard</span>
+            <span>➡️</span>
+          </button>
         </div>
       </div>
     </div>
@@ -435,18 +425,21 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
-import { useSuperAdmin, type TenantStore, type SubscriptionPlan } from '~/composables/useSuperAdmin';
-import DesktopAppHeader from '~/components/DesktopAppHeader.vue';
+import { useSuperAdmin } from '~/composables/useSuperAdmin';
+import { useAuth } from '~/composables/useAuth';
+import type { SubscriptionPlan } from '~/stores/superAdmin';
 
-const { plans, fetchPlans, createTenant } = useSuperAdmin();
+const { plans, fetchPlans } = useSuperAdmin();
+const { setAuthSession } = useAuth();
 
 const isYearly = ref(false);
 const showModal = ref(false);
 const isSubmitting = ref(false);
-const createdTenant = ref<TenantStore | null>(null);
+const selectedPlan = ref<SubscriptionPlan | null>(null);
+const createdTenant = ref<any>(null);
 
-onMounted(() => {
-  fetchPlans();
+onMounted(async () => {
+  await fetchPlans();
 });
 
 const displayPlans = computed(() => {
@@ -455,70 +448,32 @@ const displayPlans = computed(() => {
   }
   return [
     {
-      id: 'starter',
+      id: '1',
       name: 'Starter Plan',
+      price: 49,
       priceMonthly: 49,
-      priceYearly: 470,
-      terminalsLimit: 1,
-      branchesLimit: 1,
-      masterDrugLimit: 'Essential POS cash register & generics inventory for independent retail pharmacies.',
-      allowedDrugTiers: ['starter'],
-      features: {
-        posRegister: true,
-        fefoExpiry: 'Basic',
-        rxVerification: false,
-        smsReceipts: 'Not Included',
-        poGenerator: false,
-        support: 'Email Support'
-      }
-    },
-    {
-      id: 'pro',
-      name: 'Pro Plan',
-      priceMonthly: 149,
-      priceYearly: 1430,
-      terminalsLimit: 3,
-      branchesLimit: 1,
-      masterDrugLimit: 'Full national brand catalog, Rx verification, supplier PO generator & multi-terminal sales.',
-      allowedDrugTiers: ['starter', 'pro'],
-      features: {
-        posRegister: true,
-        fefoExpiry: 'Advanced FEFO Alerts',
-        rxVerification: true,
-        smsReceipts: '500 SMS / month',
-        poGenerator: true,
-        support: 'Priority Chat Support'
-      }
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise Chain',
-      priceMonthly: 399,
-      priceYearly: 3830,
-      terminalsLimit: 99,
-      branchesLimit: 99,
-      masterDrugLimit: 'Multi-branch pharmacy chains, biologics catalog & AI reordering automation.',
-      allowedDrugTiers: ['starter', 'pro', 'enterprise'],
-      features: {
-        posRegister: true,
-        fefoExpiry: 'Automated AI Reordering',
-        rxVerification: true,
-        smsReceipts: 'Unlimited SMS',
-        poGenerator: true,
-        support: '24/7 Dedicated Manager'
-      }
+      durationDays: 30,
+      maxTerminals: 1,
+      maxUsers: 5,
+      maxProducts: 500,
+      features: { posRegister: true, rxVerification: false, poGenerator: false }
     }
   ] as SubscriptionPlan[];
 });
+
+const getPrice = (plan: SubscriptionPlan) => {
+  const p = plan.price ?? (plan as any).priceMonthly ?? (plan as any).price_monthly ?? 49;
+  return isYearly.value ? Math.round(p * 10) : p;
+};
 
 const signupForm = reactive({
   storeName: '',
   slug: '',
   ownerName: '',
   email: '',
+  password: '',
   phone: '',
-  planTier: 'pro' as 'starter' | 'pro' | 'enterprise',
-  billingType: 'trial' as 'trial' | 'card'
+  paymentMethod: 'card'
 });
 
 const generateSlug = () => {
@@ -528,30 +483,60 @@ const generateSlug = () => {
     .replace(/(^-|-$)/g, '');
 };
 
-const openRegisterModal = (tier: string) => {
-  signupForm.planTier = (tier === 'enterprise' ? 'enterprise' : tier === 'starter' ? 'starter' : 'pro') as 'starter' | 'pro' | 'enterprise';
+const openRegisterModal = (plan: SubscriptionPlan | null) => {
+  selectedPlan.value = plan || (displayPlans.value.length > 0 ? displayPlans.value[0] : null);
+  signupForm.storeName = '';
+  signupForm.slug = '';
+  signupForm.ownerName = '';
+  signupForm.email = '';
+  signupForm.password = '';
+  signupForm.phone = '';
+  signupForm.paymentMethod = 'card';
   showModal.value = true;
 };
 
 const handleRegisterStore = async () => {
   isSubmitting.value = true;
   try {
-    const tenant = await createTenant({
-      storeName: signupForm.storeName,
-      ownerName: signupForm.ownerName,
-      email: signupForm.email,
-      phone: signupForm.phone,
-      planTier: signupForm.planTier
+    const res = await fetch('http://localhost:5000/api/auth/register-tenant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storeName: signupForm.storeName,
+        ownerName: signupForm.ownerName,
+        email: signupForm.email,
+        password: signupForm.password,
+        phone: signupForm.phone,
+        domain: signupForm.slug,
+        planId: selectedPlan.value?.id || 1,
+        paymentMethod: signupForm.paymentMethod
+      })
     });
 
-    if (tenant) {
-      createdTenant.value = tenant;
-      showModal.value = false;
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Registration failed');
     }
-  } catch (e) {
-    alert("Error onboarding pharmacy store. Please try again.");
+
+    if (json.token && json.user) {
+      setAuthSession(json.token, json.user, json.tenant);
+    }
+
+    createdTenant.value = json.tenant || { name: signupForm.storeName };
+    showModal.value = false;
+
+    // Direct redirect to Tenant Dashboard
+    setTimeout(() => {
+      navigateTo('/admin');
+    }, 1200);
+  } catch (e: any) {
+    alert("Error onboarding pharmacy store: " + (e.message || "Please check connection"));
   } finally {
     isSubmitting.value = false;
   }
+};
+
+const goToTenantDashboard = () => {
+  navigateTo('/admin');
 };
 </script>

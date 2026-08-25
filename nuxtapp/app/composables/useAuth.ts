@@ -90,7 +90,7 @@ export function useAuth() {
       const fallbackSA: AuthUser = {
         id: 'USR_SA_01',
         tenantId: 'SYSTEM',
-        name: 'Platform Super Admin',
+        name: ' Super Admin',
         email: credentials.email || 'admin@pharmasaas.com',
         role: 'SUPER_ADMIN'
       };
@@ -210,6 +210,7 @@ export function useAuth() {
     isLoggedIn,
     isSuperAdmin,
     initAuthFromStorage,
+    setAuthSession,
     loginStoreUser,
     loginSuperAdmin,
     registerUser,

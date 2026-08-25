@@ -1,14 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import axios from 'axios';
 
 export interface CategoryItem {
   id: number;
-  category_id: string;
+  category_id?: string;
   categoryId?: string;
   name: string;
-  slug: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  description?: string;
+  slug?: string;
+  status: number | 'ACTIVE' | 'INACTIVE';
+  statusLabel?: string;
   product_count?: number;
   created_at?: string;
   updated_at?: string;
@@ -19,108 +20,147 @@ export const useCategoryStore = defineStore('categories', () => {
   const loading = ref<boolean>(false);
   const error = ref<string | null>(null);
 
+  const getHeaders = () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (process.client) {
+      const token = localStorage.getItem('auth_token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const savedUser = localStorage.getItem('auth_user');
+      if (savedUser) {
+        try {
+          const user = JSON.parse(savedUser);
+          if (user && user.tenantId && user.tenantId !== 'SYSTEM') {
+            headers['x-tenant-id'] = String(user.tenantId);
+          }
+        } catch (e) {}
+      }
+
+      const savedStore = localStorage.getItem('active_tenant_store');
+      if (savedStore && !headers['x-tenant-id']) {
+        try {
+          const store = JSON.parse(savedStore);
+          if (store && store.id) headers['x-tenant-id'] = String(store.id);
+        } catch (e) {}
+      }
+    }
+    return headers;
+  };
+
   const fetchCategories = async () => {
     loading.value = true;
     error.value = null;
 
     try {
-      const { data } = await axios.get('/categories');
+      const res = await fetch('http://localhost:5000/api/categories', {
+        headers: getHeaders()
+      });
+      const data = await res.json();
       
-      if (Array.isArray(data.data)) {
-        categories.value = data.data.map((item: any) => ({
-          ...item,
+      const list = Array.isArray(data.data) ? data.data : (Array.isArray(data.categories) ? data.categories : []);
+      categories.value = list.map((item: any) => {
+        const isAct = item.status === 1 || item.status === '1' || item.status === 'ACTIVE' || item.status === true;
+        return {
           id: item.id,
-          category_id: item.category_id || item.categoryId || `CAT_${String(item.id).padStart(3, '0')}`,
+          category_id: `CAT_${item.id}`,
+          categoryId: `CAT_${item.id}`,
           name: item.name,
-          slug: item.slug || (item.name ? item.name.toLowerCase().replace(/\s+/g, '-') : ''),
-          status: item.status || 'ACTIVE',
-          product_count: parseInt(item.product_count ?? item.productCount ?? 0) || 0,
+          description: item.description || '',
+          slug: item.slug || (item.name ? item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : ''),
+          status: isAct ? 1 : 0,
+          statusLabel: isAct ? 'ACTIVE' : 'INACTIVE',
+          product_count: parseInt(item.product_count ?? item.productCount ?? 0, 10) || 0,
           created_at: item.created_at || item.createdAt
-        }));
-      }
+        };
+      });
     } catch (err: any) {
-      console.error('Failed to fetch categories from API:', err);
+      console.error('Failed to fetch categories:', err);
       error.value = err.message || 'Failed to fetch categories';
     } finally {
       loading.value = false;
     }
   };
 
-  const addCategory = async (payload: { name: string; slug?: string; status?: 'ACTIVE' | 'INACTIVE' }) => {
+  const addCategory = async (payload: { name: string; description?: string; status?: number | string }) => {
     loading.value = true;
-    const catId = `CAT_${String(categories.value.length + 1).padStart(3, '0')}`;
-    const slug = payload.slug || payload.name.toLowerCase().replace(/\s+/g, '-');
-    const status = payload.status || 'ACTIVE';
-
+    console.log(payload);
+    
     try {
-      const response = await axios.post('/categories', {
-        categoryId: catId,
-        name: payload.name,
-        slug,
-        status
+      const statusInt = (payload.status === 0 || payload.status === '0' || payload.status === 'INACTIVE') ? 0 : 1;
+      const res = await fetch('http://localhost:5000/api/categories', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          name: payload.name,
+          description: payload.description || '',
+          status: statusInt
+        })
       });
 
-      if (response.data && response.data.data) {
-        await fetchCategories();
-        return;
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to save category in MySQL');
       }
-    } catch (err) {
-      console.warn('Backend offline, adding category to local Pinia store.');
-    }
 
-    categories.value.push({
-      id: categories.value.length + 1,
-      category_id: catId,
-      name: payload.name,
-      slug,
-      status,
-      product_count: 0,
-      created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
-    });
-    loading.value = false;
+      await fetchCategories();
+      return data.data;
+    } catch (err: any) {
+      console.error('Error adding category:', err.message);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
   };
 
-  const updateCategory = async (id: number, payload: { name: string; slug?: string; status?: 'ACTIVE' | 'INACTIVE' }) => {
+  const updateCategory = async (id: number, payload: { name: string; description?: string; status?: number | string }) => {
     loading.value = true;
-    const slug = payload.slug || payload.name.toLowerCase().replace(/\s+/g, '-');
-    const status = payload.status || 'ACTIVE';
-
     try {
-      await axios.put(`/categories/${id}`, {
-        name: payload.name,
-        slug,
-        status
+      const statusInt = (payload.status === 0 || payload.status === '0' || payload.status === 'INACTIVE') ? 0 : 1;
+      const res = await fetch(`http://localhost:5000/api/categories/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          name: payload.name,
+          description: payload.description || '',
+          status: statusInt
+        })
       });
-      await fetchCategories();
-      return;
-    } catch (err) {
-      console.warn('Backend API offline, updating local category state.');
-    }
 
-    const index = categories.value.findIndex(c => c.id === id);
-    if (index !== -1) {
-      categories.value[index] = {
-        ...categories.value[index],
-        name: payload.name,
-        slug,
-        status
-      };
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update category in MySQL');
+      }
+
+      await fetchCategories();
+      return data.data;
+    } catch (err: any) {
+      console.error('Error updating category:', err.message);
+      throw err;
+    } finally {
+      loading.value = false;
     }
-    loading.value = false;
   };
 
   const deleteCategory = async (id: number) => {
     loading.value = true;
     try {
-      await axios.delete(`/categories/${id}`);
+      const res = await fetch(`http://localhost:5000/api/categories/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete category in MySQL');
+      }
       await fetchCategories();
-      return;
-    } catch (err) {
-      console.warn('Backend API offline, deleting from local category state.');
+    } catch (err: any) {
+      console.error('Error deleting category:', err.message);
+      throw err;
+    } finally {
+      loading.value = false;
     }
-
-    categories.value = categories.value.filter(c => c.id !== id);
-    loading.value = false;
   };
 
   return {
