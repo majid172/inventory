@@ -71,17 +71,29 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useSettingsStore } from '~/stores/settings';
+
+const settingsStore = useSettingsStore();
 
 const formattedTime = ref('');
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const updateClock = () => {
   const now = new Date();
-  formattedTime.value = now.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+  try {
+    formattedTime.value = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: settingsStore.timezone || undefined
+    });
+  } catch (e) {
+    formattedTime.value = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
 };
 
 onMounted(() => {

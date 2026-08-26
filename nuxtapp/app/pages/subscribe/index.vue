@@ -138,12 +138,12 @@
           >
             <div class="flex items-baseline gap-1">
               <span class="text-4xl font-black text-white">
-                ${{ isYearly ? Math.round(plan.priceYearly / 12) : plan.priceMonthly }}
+                {{ settingsStore.currencySymbol }}{{ isYearly ? Math.round(plan.priceYearly / 12) : plan.priceMonthly }}
               </span>
               <span class="text-slate-400 text-xs font-bold">/ month</span>
             </div>
             <span v-if="isYearly" class="text-[10px] font-mono font-bold mt-1 block" :class="plan.id === 'enterprise' ? 'text-purple-400' : plan.id === 'pro' ? 'text-sky-400' : 'text-emerald-400'">
-              ${{ plan.priceYearly }} billed annually
+              {{ settingsStore.currencySymbol }}{{ plan.priceYearly }} billed annually
             </span>
           </div>
 
@@ -316,7 +316,7 @@
               class="px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border"
               :class="signupForm.planTier === 'enterprise' ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : signupForm.planTier === 'pro' ? 'bg-sky-500/20 text-sky-300 border-sky-500/40' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'"
             >
-              ${{ signupForm.planTier === 'enterprise' ? '399' : signupForm.planTier === 'pro' ? '149' : '49' }} / mo
+              {{ settingsStore.currencySymbol }}{{ signupForm.planTier === 'enterprise' ? '399' : signupForm.planTier === 'pro' ? '149' : '49' }} / mo
             </span>
           </div>
 
@@ -432,58 +432,155 @@
           </div>
         </form>
 
-        <!-- Step 2: Simulated Secure Payment Checkout -->
+        <!-- Step 2: Secure MFS / Card Payment Checkout -->
         <div v-else-if="currentStep === 2 && !accountExistsEmail" class="p-6">
-          <div class="text-center mb-6">
-            <div class="w-14 h-14 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center text-2xl mx-auto mb-3 border border-emerald-500/30">
-              🔒
+          <div class="text-center mb-5">
+            <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center text-xl mx-auto mb-2 border border-emerald-500/30">
+              💳
             </div>
-            <h4 class="text-lg font-black text-white">Secure Checkout</h4>
-            <p class="text-xs text-slate-400 mt-1">Complete your payment to activate the {{ signupForm.planTier }} tier.</p>
+            <h4 class="text-base font-black text-white">Payment Checkout & Activation</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">Pay via bKash / Nagad or Card and enter your Transaction ID (Trx ID)</p>
           </div>
 
-          <div class="bg-slate-950 rounded-2xl p-4 border border-slate-800 mb-6 font-mono text-xs text-slate-300 space-y-2">
+          <div class="bg-slate-950 rounded-2xl p-3.5 border border-slate-800 mb-5 font-mono text-xs text-slate-300 space-y-1.5">
             <div class="flex justify-between">
-              <span>Plan:</span><span class="text-white font-bold uppercase">{{ signupForm.planTier }} Plan</span>
+              <span>Plan:</span><span class="text-white font-bold uppercase">{{ signupForm.planTier }} Tier</span>
             </div>
             <div class="flex justify-between">
               <span>Billing Cycle:</span><span class="text-white">Monthly</span>
             </div>
-            <div class="flex justify-between border-t border-slate-800/80 pt-2 mt-2">
-              <span>Total Due:</span><span class="text-emerald-400 font-black text-sm">${{ signupForm.planTier === 'enterprise' ? '399.00' : signupForm.planTier === 'pro' ? '149.00' : '49.00' }}</span>
+            <div class="flex justify-between border-t border-slate-800/80 pt-1.5 mt-1.5">
+              <span>Total Amount:</span><span class="text-emerald-400 font-black text-sm">{{ settingsStore.currencySymbol }}{{ signupForm.planTier === 'enterprise' ? '399.00' : signupForm.planTier === 'pro' ? '149.00' : '49.00' }}</span>
             </div>
           </div>
 
           <form @submit.prevent="processPaymentAndRegister" class="space-y-4 text-xs">
+            <!-- Payment Gateway Selector -->
             <div>
-              <label class="block font-bold text-slate-200 mb-1">Card Number</label>
-              <div class="relative">
-                <input type="text" placeholder="0000 0000 0000 0000" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-white font-mono outline-none focus:border-sky-500 transition-all text-xs tracking-widest pl-10" />
-                <span class="absolute left-3.5 top-3 text-slate-500 text-sm">💳</span>
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block font-bold text-slate-200 mb-1">Expiry (MM/YY)</label>
-                <input type="text" placeholder="12/26" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono outline-none focus:border-sky-500 transition-all text-xs" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-200 mb-1">CVC</label>
-                <input type="text" placeholder="123" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono outline-none focus:border-sky-500 transition-all text-xs" />
+              <label class="block font-bold text-slate-200 mb-1.5">Select Payment Method</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  v-if="settingsStore.systemSettings.bkashEnabled !== false"
+                  type="button"
+                  @click="signupForm.gateway = 'bkash'"
+                  class="p-2.5 rounded-xl border text-center font-bold transition-all cursor-pointer text-xs"
+                  :class="signupForm.gateway === 'bkash' ? 'bg-pink-500/20 text-pink-300 border-pink-500 shadow-md' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'"
+                >
+                  bKash
+                </button>
+
+                <button
+                  v-if="settingsStore.systemSettings.nagadEnabled !== false"
+                  type="button"
+                  @click="signupForm.gateway = 'nagad'"
+                  class="p-2.5 rounded-xl border text-center font-bold transition-all cursor-pointer text-xs"
+                  :class="signupForm.gateway === 'nagad' ? 'bg-orange-500/20 text-orange-300 border-orange-500 shadow-md' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'"
+                >
+                  Nagad
+                </button>
+
+                <button
+                  v-if="settingsStore.systemSettings.upayEnabled !== false"
+                  type="button"
+                  @click="signupForm.gateway = 'upay'"
+                  class="p-2.5 rounded-xl border text-center font-bold transition-all cursor-pointer text-xs"
+                  :class="signupForm.gateway === 'upay' ? 'bg-blue-500/20 text-blue-300 border-blue-500 shadow-md' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'"
+                >
+                  Upay
+                </button>
+
+                <button
+                  v-if="settingsStore.systemSettings.rocketEnabled !== false"
+                  type="button"
+                  @click="signupForm.gateway = 'rocket'"
+                  class="p-2.5 rounded-xl border text-center font-bold transition-all cursor-pointer text-xs"
+                  :class="signupForm.gateway === 'rocket' ? 'bg-purple-500/20 text-purple-300 border-purple-500 shadow-md' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'"
+                >
+                  Rocket
+                </button>
+
+                <button
+                  v-if="settingsStore.systemSettings.cardEnabled === true"
+                  type="button"
+                  @click="signupForm.gateway = 'card'"
+                  class="p-2.5 rounded-xl border text-center font-bold transition-all cursor-pointer text-xs"
+                  :class="signupForm.gateway === 'card' ? 'bg-sky-500/20 text-sky-300 border-sky-500 shadow-md' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'"
+                >
+                  Card / SSL
+                </button>
               </div>
             </div>
 
-            <div class="pt-4 flex items-center justify-between gap-3">
-              <button type="button" @click="currentStep = 1" :disabled="isProcessingPayment" class="text-slate-400 hover:text-white font-bold px-3">
+            <!-- bKash / Nagad / Upay / Rocket Payment Instructions -->
+            <div v-if="signupForm.gateway === 'bkash'" class="p-3 bg-pink-950/30 border border-pink-500/30 rounded-xl text-[11px] text-pink-200 space-y-1">
+              <div class="font-bold flex items-center gap-1.5 text-pink-300">
+                <span>📲 bKash Payment Instructions:</span>
+              </div>
+              <p>1. Go to your bKash Mobile App or dial *247#</p>
+              <p>2. Select <b>"Make Payment"</b> to Merchant: <strong class="text-white font-mono text-xs">{{ settingsStore.systemSettings.bkashNumber || '01700-000000' }}</strong></p>
+              <p>3. Enter Reference: <strong class="text-white font-mono">{{ signupForm.slug || 'PHARMA' }}</strong></p>
+              <p>4. Copy and paste the <b>Transaction ID (Trx ID)</b> below.</p>
+            </div>
+
+            <div v-else-if="signupForm.gateway === 'nagad'" class="p-3 bg-orange-950/30 border border-orange-500/30 rounded-xl text-[11px] text-orange-200 space-y-1">
+              <div class="font-bold flex items-center gap-1.5 text-orange-300">
+                <span>📲 Nagad Payment Instructions:</span>
+              </div>
+              <p>1. Go to your Nagad Mobile App or dial *167#</p>
+              <p>2. Select <b>"Merchant Pay"</b> to: <strong class="text-white font-mono text-xs">{{ settingsStore.systemSettings.nagadNumber || '01800-000000' }}</strong></p>
+              <p>3. Enter Reference: <strong class="text-white font-mono">{{ signupForm.slug || 'PHARMA' }}</strong></p>
+              <p>4. Copy and paste the <b>Transaction ID (Trx ID)</b> below.</p>
+            </div>
+
+            <div v-else-if="signupForm.gateway === 'upay'" class="p-3 bg-blue-950/30 border border-blue-500/30 rounded-xl text-[11px] text-blue-200 space-y-1">
+              <div class="font-bold flex items-center gap-1.5 text-blue-300">
+                <span>📲 Upay Payment Instructions:</span>
+              </div>
+              <p>1. Open Upay App or dial *268#</p>
+              <p>2. Select <b>"Merchant Payment"</b> to: <strong class="text-white font-mono text-xs">{{ settingsStore.systemSettings.upayNumber || '01900-000000' }}</strong></p>
+              <p>3. Enter Reference: <strong class="text-white font-mono">{{ signupForm.slug || 'PHARMA' }}</strong></p>
+              <p>4. Copy and paste the <b>Transaction ID (Trx ID)</b> below.</p>
+            </div>
+
+            <div v-else-if="signupForm.gateway === 'rocket'" class="p-3 bg-purple-950/30 border border-purple-500/30 rounded-xl text-[11px] text-purple-200 space-y-1">
+              <div class="font-bold flex items-center gap-1.5 text-purple-300">
+                <span>📲 Rocket Payment Instructions:</span>
+              </div>
+              <p>1. Open Rocket App or dial *322#</p>
+              <p>2. Select <b>"Merchant Payment"</b> to: <strong class="text-white font-mono text-xs">{{ settingsStore.systemSettings.rocketNumber || '01600-000000' }}</strong></p>
+              <p>3. Enter Reference: <strong class="text-white font-mono">{{ signupForm.slug || 'PHARMA' }}</strong></p>
+              <p>4. Copy and paste the <b>Transaction ID (Trx ID)</b> below.</p>
+            </div>
+
+            <!-- Transaction ID Input (trx_no) -->
+            <div>
+              <label class="block font-bold text-slate-200 mb-1">
+                Transaction ID (Trx ID) <span class="text-rose-400">*</span>
+              </label>
+              <div class="relative">
+                <input 
+                  type="text" 
+                  v-model="signupForm.trx_no" 
+                  required 
+                  placeholder="e.g. TRX9B82K19A or bKash Trx ID" 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono outline-none focus:border-emerald-500 transition-all text-xs tracking-wider uppercase" 
+                />
+                <span class="absolute right-3.5 top-2.5 text-slate-500 text-xs font-mono">Trx ID</span>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">This Transaction ID will be verified & saved directly to the database `billings` table.</p>
+            </div>
+
+            <div class="pt-3 flex items-center justify-between gap-3">
+              <button type="button" @click="currentStep = 1" :disabled="isProcessingPayment" class="text-slate-400 hover:text-white font-bold px-3 text-xs">
                 ← Back
               </button>
               <button 
                 type="submit" 
-                :disabled="isProcessingPayment"
-                class="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 text-xs transition-all w-full flex-1"
+                :disabled="isProcessingPayment || !signupForm.trx_no"
+                class="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 text-white font-black shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 text-xs transition-all w-full flex-1 cursor-pointer"
               >
                 <span v-if="isProcessingPayment" class="animate-spin">⌛</span>
-                <span>{{ isProcessingPayment ? 'Processing Payment...' : 'Pay & Provision Store' }}</span>
+                <span>{{ isProcessingPayment ? 'Storing Billing Record...' : 'Submit Trx & Activate Store' }}</span>
               </button>
             </div>
           </form>
@@ -522,9 +619,9 @@
         </div>
 
         <div>
-          <h3 class="text-2xl font-black text-white">Pharmacy Store Onboarded!</h3>
+          <h3 class="text-2xl font-black text-white">{{ createdTenant.isRenewal ? '🎉 Subscription Renewed!' : '🎉 Pharmacy Store Onboarded!' }}</h3>
           <p class="text-xs text-slate-300 max-w-sm mx-auto mt-1">
-            Store <b>{{ createdTenant.storeName }}</b> has been provisioned on MySQL database. Master Drug Catalog synced for {{ createdTenant.planTier.toUpperCase() }} tier.
+            {{ createdTenant.isRenewal ? `Store ${createdTenant.storeName} subscription has been renewed and access reactivated on MySQL.` : `Store ${createdTenant.storeName} has been provisioned on MySQL database.` }} Master Drug Catalog synced for {{ createdTenant.planTier.toUpperCase() }} tier.
           </p>
         </div>
 
@@ -570,10 +667,12 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useSettingsStore } from '~/stores/settings';
 import { useSuperAdmin, type TenantStore, type SubscriptionPlan } from '~/composables/useSuperAdmin';
 import { useAuth } from '~/composables/useAuth';
 
 const router = useRouter();
+const settingsStore = useSettingsStore();
 const { plans, fetchPlans } = useSuperAdmin();
 const { onboardNewTenant } = useAuth();
 
@@ -590,65 +689,73 @@ onMounted(() => {
 });
 
 const displayPlans = computed(() => {
+  let list: SubscriptionPlan[] = [];
   if (plans.value && plans.value.length > 0) {
-    return plans.value;
+    list = [...plans.value];
+  } else {
+    list = [
+      {
+        id: 'starter',
+        name: 'Starter Plan',
+        priceMonthly: 49,
+        priceYearly: 470,
+        terminalsLimit: 1,
+        branchesLimit: 1,
+        masterDrugLimit: 'Essential POS cash register & generics inventory for independent retail pharmacies.',
+        allowedDrugTiers: ['starter'],
+        features: {
+          posRegister: true,
+          fefoExpiry: 'Basic',
+          rxVerification: false,
+          smsReceipts: '100 SMS/mo',
+          poGenerator: false,
+          support: 'Standard Email'
+        }
+      },
+      {
+        id: 'pro',
+        name: 'Professional Store',
+        priceMonthly: 149,
+        priceYearly: 1430,
+        terminalsLimit: 5,
+        branchesLimit: 2,
+        masterDrugLimit: 'Complete pharmacy ERP, FEFO batch tracking & automated purchase orders.',
+        allowedDrugTiers: ['starter', 'pro'],
+        features: {
+          posRegister: true,
+          fefoExpiry: 'Advanced FEFO',
+          rxVerification: true,
+          smsReceipts: '1,000 SMS/mo',
+          poGenerator: true,
+          support: 'Priority Phone & Chat'
+        }
+      },
+      {
+        id: 'enterprise',
+        name: 'Enterprise Chain',
+        priceMonthly: 399,
+        priceYearly: 3830,
+        terminalsLimit: 99,
+        branchesLimit: 99,
+        masterDrugLimit: 'Multi-branch pharmacy chains, biologics catalog & AI reordering automation.',
+        allowedDrugTiers: ['starter', 'pro', 'enterprise'],
+        features: {
+          posRegister: true,
+          fefoExpiry: 'Automated AI Reordering',
+          rxVerification: true,
+          smsReceipts: 'Unlimited SMS',
+          poGenerator: true,
+          support: '24/7 Dedicated Manager'
+        }
+      }
+    ] as SubscriptionPlan[];
   }
-  return [
-    {
-      id: 'starter',
-      name: 'Starter Plan',
-      priceMonthly: 49,
-      priceYearly: 470,
-      terminalsLimit: 1,
-      branchesLimit: 1,
-      masterDrugLimit: 'Essential POS cash register & generics inventory for independent retail pharmacies.',
-      allowedDrugTiers: ['starter'],
-      features: {
-        posRegister: true,
-        fefoExpiry: 'Basic',
-        rxVerification: false,
-        smsReceipts: 'Not Included',
-        poGenerator: false,
-        support: 'Email Support'
-      }
-    },
-    {
-      id: 'pro',
-      name: 'Pro Plan',
-      priceMonthly: 149,
-      priceYearly: 1430,
-      terminalsLimit: 3,
-      branchesLimit: 1,
-      masterDrugLimit: 'Full national brand catalog, Rx verification, supplier PO generator & multi-terminal sales.',
-      allowedDrugTiers: ['starter', 'pro'],
-      features: {
-        posRegister: true,
-        fefoExpiry: 'Advanced FEFO Alerts',
-        rxVerification: true,
-        smsReceipts: '500 SMS / month',
-        poGenerator: true,
-        support: 'Priority Chat Support'
-      }
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise Chain',
-      priceMonthly: 399,
-      priceYearly: 3830,
-      terminalsLimit: 99,
-      branchesLimit: 99,
-      masterDrugLimit: 'Multi-branch pharmacy chains, biologics catalog & AI reordering automation.',
-      allowedDrugTiers: ['starter', 'pro', 'enterprise'],
-      features: {
-        posRegister: true,
-        fefoExpiry: 'Automated AI Reordering',
-        rxVerification: true,
-        smsReceipts: 'Unlimited SMS',
-        poGenerator: true,
-        support: '24/7 Dedicated Manager'
-      }
-    }
-  ] as SubscriptionPlan[];
+
+  return list.sort((a: any, b: any) => {
+    const pA = Number(a.priceMonthly ?? a.price ?? a.price_monthly ?? 0);
+    const pB = Number(b.priceMonthly ?? b.price ?? b.price_monthly ?? 0);
+    return pA - pB;
+  });
 });
 
 const signupForm = reactive({
@@ -659,7 +766,9 @@ const signupForm = reactive({
   phone: '',
   password: '',
   planTier: 'pro' as 'starter' | 'pro' | 'enterprise',
-  billingType: 'trial' as 'trial' | 'card'
+  billingType: 'trial' as 'trial' | 'card',
+  gateway: 'bkash' as 'bkash' | 'nagad' | 'card' | 'sslcommerz',
+  trx_no: ''
 });
 
 const generateSlug = () => {
@@ -681,6 +790,7 @@ const openRegisterModal = (tier: string) => {
   signupForm.planTier = (tier === 'enterprise' ? 'enterprise' : tier === 'starter' ? 'starter' : 'pro') as 'starter' | 'pro' | 'enterprise';
   currentStep.value = 1;
   accountExistsEmail.value = '';
+  signupForm.trx_no = '';
   showModal.value = true;
 };
 
@@ -693,20 +803,23 @@ const executeBackendOnboarding = async () => {
       email: signupForm.email,
       phone: signupForm.phone,
       password: signupForm.password,
-      planTier: signupForm.planTier
+      planTier: signupForm.planTier,
+      gateway: signupForm.billingType === 'trial' ? 'free_trial' : signupForm.gateway,
+      trx_no: signupForm.trx_no || `TRX_${Date.now()}`
     });
 
     if (res.success && res.user) {
       createdTenant.value = {
         id: res.user.tenantId,
         storeName: res.user.storeName || signupForm.storeName,
-        slug: signupForm.slug,
+        slug: signupForm.slug || 'store',
         ownerName: res.user.name,
         email: res.user.email,
         phone: res.user.phone,
         planTier: res.user.planTier || signupForm.planTier,
-        status: signupForm.billingType === 'card' ? 'active' : 'trial',
-        nextBillingDate: new Date(Date.now() + (signupForm.billingType === 'card' ? 30 : 14) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        isRenewal: res.isRenewal || false,
+        status: 'active',
+        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       } as any;
       showModal.value = false;
       return true;

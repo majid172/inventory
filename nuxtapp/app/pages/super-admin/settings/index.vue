@@ -169,11 +169,11 @@
                   <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">System Timezone</label>
                   <select v-model="settings.timezone"
                     class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs cursor-pointer">
-                    <option value="UTC+6 (Dhaka / Central Asia)">UTC+6 (Dhaka / Central Asia)</option>
-                    <option value="UTC+0 (GMT / London)">UTC+0 (GMT / London)</option>
-                    <option value="UTC-5 (EST / New York)">UTC-5 (EST / New York)</option>
-                    <option value="UTC+8 (Singapore / Beijing)">UTC+8 (Singapore / Beijing)</option>
-                    <option value="UTC+5:30 (IST / New Delhi)">UTC+5:30 (IST / New Delhi)</option>
+                    <option value="Asia/Dhaka">UTC+6 (Dhaka / Central Asia)</option>
+                    <option value="Europe/London">UTC+0 (GMT / London)</option>
+                    <option value="America/New_York">UTC-5 (EST / New York)</option>
+                    <option value="Asia/Singapore">UTC+8 (Singapore / Beijing)</option>
+                    <option value="Asia/Kolkata">UTC+5:30 (IST / New Delhi)</option>
                   </select>
                 </div>
 
@@ -373,36 +373,104 @@
             <div v-show="activeTab === 'payments'" class="space-y-4 max-w-2xl">
               <div class="border-b border-slate-200 dark:border-gray-800 pb-2">
                 <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>💳</span> Payment Gateways for SaaS Subscriptions
+                  <span>💳</span> Payment Gateway Activation & Official Numbers
                 </h3>
                 <p class="text-slate-500 text-[11px] mt-0.5">
-                  Enable or disable automated payment processors for tenant monthly subscription billings.
+                  Select which payment gateways subscribers can use during 2-step onboarding and enter official merchant numbers.
                 </p>
               </div>
 
-              <div class="space-y-2.5">
-                <div class="p-3 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 flex items-center justify-between">
-                  <div>
-                    <span class="font-normal text-slate-800 dark:text-gray-200 block">💳 Stripe Global Card Processor</span>
-                    <span class="text-[11px] text-slate-500">Supports Visa, MasterCard, Amex, Apple Pay, Google Pay.</span>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- bKash Config Card -->
+                <div class="p-3 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800 dark:text-gray-100">
+                      <input type="checkbox" v-model="settings.bkashEnabled" class="text-emerald-600 rounded" />
+                      <span>Enable bKash Mobile Banking</span>
+                    </label>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded border uppercase" :class="settings.bkashEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-100 text-slate-400 border-slate-300 dark:bg-gray-800'">
+                      {{ settings.bkashEnabled ? 'Active for Subscribers' : 'Disabled' }}
+                    </span>
                   </div>
-                  <input type="checkbox" v-model="settings.stripeEnabled" class="text-emerald-600" />
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-gray-400 mb-1">bKash Merchant / Personal Number</label>
+                    <input 
+                      v-model="settings.bkashNumber" 
+                      type="text" 
+                      :disabled="!settings.bkashEnabled"
+                      placeholder="e.g. 01700-000000"
+                      class="w-full bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-mono font-bold focus:outline-none focus:border-[#107c41] text-xs disabled:opacity-50" 
+                    />
+                  </div>
                 </div>
 
-                <div class="p-3 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 flex items-center justify-between">
-                  <div>
-                    <span class="font-normal text-slate-800 dark:text-gray-200 block">📱 bKash / Nagad Direct Mobile Banking</span>
-                    <span class="text-[11px] text-slate-500">Direct instant merchant gateway for Bangladesh subscribers.</span>
+                <!-- Nagad Config Card -->
+                <div class="p-3 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800 dark:text-gray-100">
+                      <input type="checkbox" v-model="settings.nagadEnabled" class="text-emerald-600 rounded" />
+                      <span>Enable Nagad Mobile Banking</span>
+                    </label>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded border uppercase" :class="settings.nagadEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-100 text-slate-400 border-slate-300 dark:bg-gray-800'">
+                      {{ settings.nagadEnabled ? 'Active for Subscribers' : 'Disabled' }}
+                    </span>
                   </div>
-                  <input type="checkbox" v-model="settings.bkashEnabled" class="text-emerald-600" />
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-gray-400 mb-1">Nagad Merchant / Personal Number</label>
+                    <input 
+                      v-model="settings.nagadNumber" 
+                      type="text" 
+                      :disabled="!settings.nagadEnabled"
+                      placeholder="e.g. 01800-000000"
+                      class="w-full bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-mono font-bold focus:outline-none focus:border-[#107c41] text-xs disabled:opacity-50" 
+                    />
+                  </div>
                 </div>
 
-                <div class="p-3 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 flex items-center justify-between">
-                  <div>
-                    <span class="font-normal text-slate-800 dark:text-gray-200 block">🏦 SSLCommerz Multi-Bank Gateway</span>
-                    <span class="text-[11px] text-slate-500">Supports Internet Banking, DBBL Nexus, and all local cards.</span>
+                <!-- Upay Config Card -->
+                <div class="p-3 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800 dark:text-gray-100">
+                      <input type="checkbox" v-model="settings.upayEnabled" class="text-emerald-600 rounded" />
+                      <span>Enable Upay Mobile Banking</span>
+                    </label>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded border uppercase" :class="settings.upayEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-100 text-slate-400 border-slate-300 dark:bg-gray-800'">
+                      {{ settings.upayEnabled ? 'Active for Subscribers' : 'Disabled' }}
+                    </span>
                   </div>
-                  <input type="checkbox" v-model="settings.sslCommerzEnabled" class="text-emerald-600" />
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-gray-400 mb-1">Upay Merchant / Personal Number</label>
+                    <input 
+                      v-model="settings.upayNumber" 
+                      type="text" 
+                      :disabled="!settings.upayEnabled"
+                      placeholder="e.g. 01900-000000"
+                      class="w-full bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-mono font-bold focus:outline-none focus:border-[#107c41] text-xs disabled:opacity-50" 
+                    />
+                  </div>
+                </div>
+
+                <!-- Rocket Config Card -->
+                <div class="p-3 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800 dark:text-gray-100">
+                      <input type="checkbox" v-model="settings.rocketEnabled" class="text-emerald-600 rounded" />
+                      <span>Enable Rocket Mobile Banking</span>
+                    </label>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded border uppercase" :class="settings.rocketEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-100 text-slate-400 border-slate-300 dark:bg-gray-800'">
+                      {{ settings.rocketEnabled ? 'Active for Subscribers' : 'Disabled' }}
+                    </span>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-medium text-slate-600 dark:text-gray-400 mb-1">Rocket Merchant / Personal Number</label>
+                    <input 
+                      v-model="settings.rocketNumber" 
+                      type="text" 
+                      :disabled="!settings.rocketEnabled"
+                      placeholder="e.g. 01600-000000"
+                      class="w-full bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-mono font-bold focus:outline-none focus:border-[#107c41] text-xs disabled:opacity-50" 
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -439,7 +507,7 @@ const settings = reactive({
   supportPhone: '+1 (800) 555-PHARMA',
   currencySymbol: '$',
   currencyCode: 'USD',
-  timezone: 'UTC+6 (Dhaka / Central Asia)',
+  timezone: 'Asia/Dhaka',
   dateFormat: 'YYYY-MM-DD',
   selfRegistrationEnabled: true,
   defaultTrialDays: 14,
@@ -456,9 +524,17 @@ const settings = reactive({
   sessionTimeoutMinutes: 120,
   backupSchedule: 'Daily at 02:00 AM UTC',
   lastBackupAt: '2026-08-25 02:00:00',
-  stripeEnabled: true,
+  stripeEnabled: false,
   sslCommerzEnabled: false,
-  bkashEnabled: true
+  bkashEnabled: true,
+  nagadEnabled: true,
+  upayEnabled: true,
+  rocketEnabled: true,
+  cardEnabled: false,
+  bkashNumber: '01700-000000',
+  nagadNumber: '01800-000000',
+  upayNumber: '01900-000000',
+  rocketNumber: '01600-000000'
 });
 
 const getAuthHeaders = () => {

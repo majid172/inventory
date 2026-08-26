@@ -102,7 +102,7 @@
               <path :d="linePath" fill="none" stroke="#107c41" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
               <g v-for="(point, i) in areaPoints" :key="`pt-${i}`" class="group cursor-pointer">
                 <circle :cx="point.x" :cy="point.y" r="4" class="fill-white dark:fill-gray-900 stroke-[#107c41] stroke-[2px]" />
-                <text :x="point.x" :y="point.y - 10" class="opacity-0 group-hover:opacity-100 fill-slate-700 dark:fill-gray-200 text-[11px] font-mono text-anchor-middle transition-opacity">${{ salesData[i].value }}</text>
+                <text :x="point.x" :y="point.y - 10" class="opacity-0 group-hover:opacity-100 fill-slate-700 dark:fill-gray-200 text-[11px] font-mono text-anchor-middle transition-opacity">{{ settingsStore.currencySymbol }}{{ salesData[i].value }}</text>
               </g>
             </svg>
             
@@ -221,7 +221,7 @@
                     </span>
                   </td>
                   <td class="py-1.5 px-3 text-right font-mono font-normal text-slate-800 dark:text-gray-200">
-                    ${{ order.total }}
+                    {{ settingsStore.currencySymbol }}{{ order.total }}
                   </td>
                 </tr>
               </tbody>
@@ -278,13 +278,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useSettingsStore } from '~/stores/settings';
 import { useProductStore } from '~/stores/products';
 
+const loading = ref(false);
+const settingsStore = useSettingsStore();
 const productStore = useProductStore();
 const { products, rxProductsCount, expiringSoonCount } = storeToRefs(productStore);
 
 const selectedRow = ref<string | null>(null);
-const loading = ref(false);
 
 const refreshData = async () => {
   loading.value = true;

@@ -48,7 +48,7 @@
                   </div>
                 </td>
                 <td class="py-1 text-center font-mono">{{ item.quantity }}</td>
-                <td class="py-1 text-right font-mono text-gray-900">${{ item.itemTotal.toFixed(2) }}</td>
+                <td class="py-1 text-right font-mono text-gray-900">{{ settingsStore.currencySymbol }}{{ item.itemTotal.toFixed(2) }}</td>
               </tr>
             </tbody>
           </table>
@@ -57,15 +57,15 @@
           <div class="border-t border-dashed border-gray-300 pt-2 space-y-1 text-xs">
             <div class="flex justify-between text-gray-600">
               <span>SUBTOTAL:</span>
-              <span class="font-mono">${{ completedReceipt.subtotal.toFixed(2) }}</span>
+              <span class="font-mono">{{ settingsStore.currencySymbol }}{{ completedReceipt.subtotal.toFixed(2) }}</span>
             </div>
             <div class="flex justify-between text-emerald-700" v-if="completedReceipt.discount > 0">
               <span>DISCOUNT:</span>
-              <span class="font-mono">-${{ completedReceipt.discount.toFixed(2) }}</span>
+              <span class="font-mono">-{{ settingsStore.currencySymbol }}{{ completedReceipt.discount.toFixed(2) }}</span>
             </div>
             <div class="flex justify-between text-xs border-t border-gray-900 pt-1 mt-1 text-gray-900 font-normal">
               <span>TOTAL DUE:</span>
-              <span class="font-mono">${{ completedReceipt.total.toFixed(2) }}</span>
+              <span class="font-mono">{{ settingsStore.currencySymbol }}{{ completedReceipt.total.toFixed(2) }}</span>
             </div>
             <div class="flex justify-between text-[11px] text-gray-600 pt-0.5">
               <span>METHOD:</span>
@@ -73,7 +73,7 @@
             </div>
             <div class="flex justify-between text-[11px] text-gray-600" v-if="completedReceipt.paymentMethod === 'CASH'">
               <span>CHANGE RETURNED:</span>
-              <span class="font-mono font-normal">${{ completedReceipt.changeGiven.toFixed(2) }}</span>
+              <span class="font-mono font-normal">{{ settingsStore.currencySymbol }}{{ completedReceipt.changeGiven.toFixed(2) }}</span>
             </div>
           </div>
         </div>
@@ -99,10 +99,15 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useCartStore } from '~/stores/cart';
+import { useSettingsStore } from '~/stores/settings';
 
+const emit = defineEmits(['close']);
 const cartStore = useCartStore();
+const settingsStore = useSettingsStore();
+
 const { showReceiptModal, completedReceipt } = storeToRefs(cartStore);
 
 const windowPrint = () => {

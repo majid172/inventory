@@ -46,7 +46,7 @@
             Total Dispense Amount Due:
           </span>
           <span class="text-xl font-normal font-mono text-slate-900 dark:text-gray-100">
-            ${{ total.toFixed(2) }}
+            {{ settingsStore.currencySymbol }}{{ total.toFixed(2) }}
           </span>
         </div>
 
@@ -58,7 +58,7 @@
               <label class="font-normal text-slate-700 dark:text-gray-300 text-xs">Cash Tendered ($) *</label>
               <button @click="amountPaid = total"
                 class="text-[10px] text-[#107c41] dark:text-emerald-400 font-normal hover:underline font-mono cursor-pointer">
-                [ Exact Change: ${{ total.toFixed(2) }} ]
+                [ Exact Change: {{ settingsStore.currencySymbol }}{{ total.toFixed(2) }} ]
               </button>
             </div>
             <input type="number" v-model.number="amountPaid" step="0.01"
@@ -73,11 +73,11 @@
             <div class="grid grid-cols-5 gap-1.5">
               <button v-for="preset in cashPresets" :key="preset" @click="amountPaid = preset"
                 class="bg-white dark:bg-gray-950 hover:bg-slate-100 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-800 dark:text-gray-200 font-mono font-normal text-xs py-1 cursor-pointer transition-colors">
-                ${{ preset }}
+                {{ settingsStore.currencySymbol }}{{ preset }}
               </button>
               <button @click="amountPaid = Math.ceil(total)"
                 class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-mono font-normal text-xs py-1 cursor-pointer transition-colors">
-                ${{ Math.ceil(total) }}
+                {{ settingsStore.currencySymbol }}{{ Math.ceil(total) }}
               </button>
             </div>
           </div>
@@ -87,7 +87,7 @@
             class="flex justify-between items-center bg-white dark:bg-gray-950 px-2.5 py-1.5 border border-slate-300 dark:border-gray-800 text-xs">
             <span class="text-slate-600 dark:text-gray-400 font-normal">Change Due to Patient:</span>
             <span class="font-mono font-normal text-[#107c41] dark:text-emerald-400 text-base">
-              ${{ (amountPaid - total > 0 ? amountPaid - total : 0).toFixed(2) }}
+              {{ settingsStore.currencySymbol }}{{ (amountPaid - total > 0 ? amountPaid - total : 0).toFixed(2) }}
             </span>
           </div>
         </div>
@@ -124,8 +124,10 @@
 import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useCartStore } from '~/stores/cart';
+import { useSettingsStore } from '~/stores/settings';
 
 const cartStore = useCartStore();
+const settingsStore = useSettingsStore();
 const { showPaymentModal, total } = storeToRefs(cartStore);
 const { completePayment } = cartStore;
 

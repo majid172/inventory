@@ -44,7 +44,7 @@
             <thead>
               <tr
                 class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
-                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># ID
+                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal">#Sl.
                 </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Category Name</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Description</th>
@@ -166,8 +166,25 @@
                 </label>
                 <span class="text-[10px] text-slate-400 font-normal">varchar(100)</span>
               </div>
-              <input type="text" v-model="newCatName" required placeholder="e.g. Ophthalmology & Eye Care"
+              <input type="text" v-model="newCatName" required placeholder="e.g. Ophthalmology & Eye Care" list="defaultCategoriesList"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal placeholder-slate-400 focus:outline-none focus:border-emerald-500 text-xs" />
+              <datalist id="defaultCategoriesList">
+                <option value="Antibiotics"></option>
+                <option value="Pain Relief (Analgesics)"></option>
+                <option value="Vitamins & Supplements"></option>
+                <option value="Cough & Cold"></option>
+                <option value="First Aid"></option>
+                <option value="Diabetes Care"></option>
+                <option value="Cardiovascular"></option>
+                <option value="Skin Care"></option>
+                <option value="Digestive Health"></option>
+                <option value="Allergy Medications"></option>
+                <option value="Eye & Ear Care"></option>
+                <option value="Oral Care"></option>
+                <option value="Baby & Maternity"></option>
+                <option value="Medical Devices"></option>
+                <option value="Herbal & Ayurvedic"></option>
+              </datalist>
             </div>
 
             <!-- Description Field -->
@@ -244,7 +261,7 @@
                 </label>
                 <span class="text-[10px] text-slate-400 font-normal">varchar(100)</span>
               </div>
-              <input type="text" v-model="editCatName" required
+              <input type="text" v-model="editCatName" required list="defaultCategoriesList"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal placeholder-slate-400 focus:outline-none focus:border-emerald-500 text-xs" />
             </div>
 
@@ -326,10 +343,15 @@ onMounted(() => {
 
 const filteredCategories = computed(() => {
   const query = filterText.value.toLowerCase();
-  return categories.value.filter(c => {
+  const filtered = categories.value.filter(c => {
     const name = (c.name || '').toLowerCase();
     const desc = (c.description || '').toLowerCase();
     return name.includes(query) || desc.includes(query);
+  });
+  return filtered.sort((a, b) => {
+    const nameA = a.name || '';
+    const nameB = b.name || '';
+    return nameA.localeCompare(nameB);
   });
 });
 

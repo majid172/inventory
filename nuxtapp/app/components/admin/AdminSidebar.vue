@@ -10,7 +10,7 @@
     <!-- 100% Authentic Desktop Application Tree Sidebar (Sharp rectangular, Solid Green selected, No gradients) -->
     <aside 
       :class="[
-        'w-56 bg-[#f7f9fa] dark:bg-gray-950 border-r border-slate-300 dark:border-gray-800 flex flex-col justify-between select-none h-full z-50 transition-all duration-200 shadow-xs',
+        'w-56 bg-[#f4f6f8] dark:bg-gray-950 border-r border-slate-300 dark:border-gray-800 flex flex-col justify-between select-none h-full z-50 transition-all duration-200 shadow-xs',
         'fixed lg:static top-0 left-0',
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       ]"
@@ -24,18 +24,18 @@
           <span class="font-mono text-[9px] bg-slate-300 dark:bg-gray-800 px-1 py-0.2 text-slate-700 dark:text-gray-300 font-normal">TREE</span>
         </div>
 
-        <!-- Desktop Navigation Items (Compact 28px height, 0px radius, Solid Green highlight) -->
-        <nav class="p-1 space-y-0.5 overflow-y-auto flex-1 font-sans text-xs">
+        <!-- Desktop Navigation Items (Boxed Card Layout in Light & Dark mode) -->
+        <nav class="p-2 space-y-1.5 overflow-y-auto flex-1 font-sans text-xs">
           <NuxtLink 
             v-for="link in navLinks" 
             :key="link.path"
             :to="link.path"
             @click="closeSidebar"
-            class="flex items-center gap-2 px-2.5 py-1 text-xs font-normal transition-colors border cursor-pointer select-none"
+            class="flex items-center gap-2 px-2.5 py-1.5 text-xs font-normal transition-colors border cursor-pointer select-none rounded-xs shadow-2xs"
             :class="[
               route.path === link.path 
-                ? 'bg-[#107c41] text-white border-[#0e6b37] shadow-xs' 
-                : 'bg-transparent border-transparent text-slate-800 dark:text-gray-200 hover:bg-[#e2e8ee] dark:hover:bg-gray-800/80 hover:border-slate-300 dark:hover:border-gray-700'
+                ? 'bg-[#107c41] text-white border-[#0e6b37] shadow-xs font-medium' 
+                : 'bg-white dark:bg-gray-900 border-slate-200/90 dark:border-gray-800 text-slate-800 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800/80 hover:border-slate-300 dark:hover:border-gray-700'
             ]"
           >
             <span :class="route.path === link.path ? 'text-white' : 'text-slate-500 dark:text-gray-400'" v-html="link.icon"></span>
@@ -72,6 +72,8 @@ const navLinks = [
   { label: 'Active Compounds', path: '/admin/ingredients', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>' },
   { label: 'Suppliers', path: '/admin/suppliers', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>' },
   { label: 'Inventory & Batches', path: '/admin/inventory', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>' },
-  { label: 'Sales & Invoices', path: '/admin/orders', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>' }
+  { label: 'Sales & Invoices', path: '/admin/orders', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>' },
+  { label: 'Billing & Plan', path: '/admin/billing', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>' },
+  { label: 'Store Settings', path: '/admin/settings', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>' }
 ];
 </script>

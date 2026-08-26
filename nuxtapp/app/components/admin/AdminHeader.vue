@@ -15,7 +15,7 @@
         <span class="text-blue-600 dark:text-blue-400 font-bold text-sm">📁</span>
         <span class="text-slate-400 dark:text-gray-500 font-bold">Computer</span>
         <span class="text-slate-400 dark:text-gray-500">▶</span>
-        <span class="text-slate-400 dark:text-gray-500 font-bold">PharmaCare ERP</span>
+        <span class="text-slate-400 dark:text-gray-500 font-bold">{{ settingsStore.systemSettings.platformName }} ERP</span>
         <span class="text-slate-400 dark:text-gray-500">▶</span>
         <h2 class="font-extrabold text-blue-700 dark:text-sky-400 truncate">{{ currentTitle }}</h2>
       </div>
@@ -45,15 +45,27 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAdminNav } from '~/composables/useAdminNav';
+import { useSettingsStore } from '~/stores/settings';
 
 const route = useRoute();
 const { toggleSidebar } = useAdminNav();
+const settingsStore = useSettingsStore();
 
 const formattedTime = ref('');
 let timer: any = null;
 
 const updateClock = () => {
-  formattedTime.value = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const now = new Date();
+  try {
+    formattedTime.value = now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit',
+      timeZone: settingsStore.timezone || undefined
+    });
+  } catch (e) {
+    formattedTime.value = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
 };
 
 onMounted(() => {

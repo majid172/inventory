@@ -1,22 +1,22 @@
 <template>
   <NuxtLayout name="admin">
     <div class="space-y-4 select-none">
-      <!-- Desktop Application Database Data Grid Frame with 1px Gridlines -->
-      <div class="border border-slate-300 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden bg-white dark:bg-gray-950">
+      <!-- Desktop Application Database Data Grid Frame -->
+      <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
         <!-- Top Desktop Data Grid Toolbar Bar -->
-        <div class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 py-2 flex flex-wrap items-center justify-between gap-3">
+        <div class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <button @click="showAddModal = true"
-              class="bg-gradient-to-b from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white dark:text-gray-950 font-bold px-3 py-1.5 rounded border border-emerald-600 text-xs flex items-center gap-1 shadow-sm cursor-pointer active:scale-95">
-              <span class="text-sm font-black mr-1">+</span> Restock / Add API Chemical
+              class="bg-emerald-600 hover:bg-emerald-700 text-white font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all">
+              <span class="text-sm">+</span> Restock / Add API Chemical
             </button>
-            <span class="font-mono text-xs font-bold text-slate-600 dark:text-gray-400 bg-slate-200 dark:bg-gray-800 px-2 py-1 rounded border border-slate-300 dark:border-gray-700">
+            <span class="font-normal text-xs text-slate-500 dark:text-gray-400">
               Total Compounds: {{ ingredients.length }}
             </span>
           </div>
 
           <div class="flex items-center gap-2">
-            <label class="font-extrabold text-[11px] text-slate-600 dark:text-gray-400 uppercase tracking-wider">FILTER SEARCH:</label>
+            <label class="font-normal text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">FILTER SEARCH:</label>
             <div class="relative">
               <input 
                 type="text" 
@@ -29,24 +29,24 @@
           </div>
         </div>
 
-        <!-- Desktop Grid Table Viewport with Visible 1px Gridlines -->
+        <!-- Desktop Grid Table Viewport -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-300 dark:border-gray-800">
+          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
             <thead>
-              <tr class="bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 text-slate-800 dark:text-gray-200 font-extrabold text-[11px] uppercase tracking-wider">
-                <th class="py-2.5 px-3 w-10 text-center border border-slate-300 dark:border-gray-700 bg-slate-300/80 dark:bg-gray-800">#</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">API CODE / SKU</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">CHEMICAL COMPOUND NAME</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">CATEGORY</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-right">RAW STOCK QTY</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-right">REORDER MIN</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-center">STATUS</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">MANUFACTURER / SUPPLIER</th>
+              <tr class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
+                <th class="py-1.5 px-3 w-10 text-center border-r border-slate-200 dark:border-gray-800 font-normal">#</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">API CODE / SKU</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">CHEMICAL COMPOUND NAME</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">CATEGORY</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-right font-normal">RAW STOCK QTY</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-right font-normal">REORDER MIN</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">STATUS</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">MANUFACTURER / SUPPLIER</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredIngredients.length === 0">
-                <td colSpan="8" class="py-8 text-center text-slate-400 dark:text-gray-500 font-mono text-xs border border-slate-300 dark:border-gray-800">
+                <td colSpan="8" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No chemical compounds found in database grid.
                 </td>
               </tr>
@@ -55,54 +55,53 @@
                 :key="ing.id" 
                 @click="selectedRow = ing.id"
                 :class="[
-                  'transition-colors cursor-pointer border-b border-slate-300 dark:border-gray-800',
+                  'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
                   selectedRow === ing.id 
-                    ? 'bg-sky-500 text-white font-bold' 
-                    : 'even:bg-slate-50/80 dark:even:bg-gray-900/50 hover:bg-sky-100 dark:hover:bg-gray-800/80'
+                    ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white' 
+                    : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
                 ]"
               >
                 <!-- Index Column -->
                 <td 
-                  class="py-2 px-3 text-center font-mono font-bold border border-slate-300 dark:border-gray-800 w-10"
-                  :class="selectedRow === ing.id ? 'bg-sky-600 text-white' : 'bg-slate-100/90 dark:bg-gray-900 text-slate-600 dark:text-gray-400'"
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-10 font-normal text-slate-500 dark:text-gray-400"
                 >
                   {{ idx + 1 }}
                 </td>
 
                 <!-- API Code -->
-                <td class="py-2 px-3 font-mono font-bold border border-slate-300 dark:border-gray-800" :class="selectedRow === ing.id ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === ing.id ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-gray-200'">
                   {{ ing.ingredient_id }}
-                  <div class="text-[10px]" :class="selectedRow === ing.id ? 'text-sky-100' : 'text-slate-400 dark:text-gray-500'">SKU: {{ ing.sku }}</div>
+                  <div class="text-[10px]" :class="selectedRow === ing.id ? 'text-slate-600 dark:text-gray-400' : 'text-slate-500 dark:text-gray-400'">SKU: {{ ing.sku }}</div>
                 </td>
 
                 <!-- Compound Name -->
-                <td class="py-2 px-3 font-extrabold border border-slate-300 dark:border-gray-800">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">
                   <div class="flex items-center gap-1.5">
-                    <span>🧪</span>
-                    <span :class="selectedRow === ing.id ? 'text-white' : 'text-blue-700 dark:text-sky-400 hover:underline'">{{ ing.name }}</span>
+                    <span></span>
+                    <span :class="selectedRow === ing.id ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-gray-200'">{{ ing.name }}</span>
                   </div>
                 </td>
 
                 <!-- Category -->
-                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800 font-medium" :class="selectedRow === ing.id ? 'text-white' : 'text-slate-600 dark:text-gray-400'">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === ing.id ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-gray-400'">
                   {{ ing.category }}
                 </td>
 
                 <!-- Raw Stock Qty -->
-                <td class="py-2 px-3 text-right font-mono font-black border border-slate-300 dark:border-gray-800">
-                  {{ ing.stock }} <span class="text-xs font-normal" :class="selectedRow === ing.id ? 'text-sky-100' : 'text-slate-500 dark:text-gray-400'">{{ ing.unit }}</span>
+                <td class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === ing.id ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-gray-200'">
+                  {{ ing.stock }} <span class="text-[11px]" :class="selectedRow === ing.id ? 'text-slate-600 dark:text-gray-400' : 'text-slate-500 dark:text-gray-400'">{{ ing.unit }}</span>
                 </td>
 
                 <!-- Reorder Min -->
-                <td class="py-2 px-3 text-right font-mono border border-slate-300 dark:border-gray-800" :class="selectedRow === ing.id ? 'text-sky-100' : 'text-slate-500 dark:text-gray-400'">
+                <td class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === ing.id ? 'text-slate-600 dark:text-gray-400' : 'text-slate-500 dark:text-gray-400'">
                   {{ ing.min_level }} {{ ing.unit }}
                 </td>
 
                 <!-- Status -->
-                <td class="py-2 px-3 text-center border border-slate-300 dark:border-gray-800">
+                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800">
                   <span 
                     :class="[
-                      'px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider',
+                      'px-2 py-0.5 rounded text-[10px] font-normal border uppercase tracking-wider',
                       ing.status === 'IN STOCK' ? selectedRow === ing.id ? 'bg-white text-emerald-900 border-white' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800' :
                       ing.status === 'LOW STOCK' ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 animate-pulse' :
                       'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800'
@@ -113,7 +112,7 @@
                 </td>
 
                 <!-- Supplier -->
-                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800 font-semibold" :class="selectedRow === ing.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === ing.id ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-gray-400'">
                   {{ ing.supplier }}
                 </td>
               </tr>
@@ -122,9 +121,9 @@
         </div>
 
         <!-- Desktop Grid Footer Bar -->
-        <div class="px-3 py-2 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-t border-slate-300 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400">
-          <div>Displaying <strong>{{ filteredIngredients.length }}</strong> active compounds (Page 1 of 1)</div>
-          <div class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">API Chemical Inventory • Grid Connected</div>
+        <div class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 font-normal">
+          <div>Displaying {{ filteredIngredients.length }} active compounds (Page 1 of 1)</div>
+          <div class="font-normal text-[10px] text-emerald-600 dark:text-emerald-500">API Chemical Inventory • Grid Connected</div>
         </div>
       </div>
 

@@ -54,6 +54,13 @@ export function useAuth() {
       const data = res.data;
       if (data.success && data.token && data.user) {
         setAuthSession(data.token, data.user, storeObj);
+        
+        // Fetch tenant settings immediately after login
+        import('~/stores/settings').then(({ useSettingsStore }) => {
+          const settingsStore = useSettingsStore();
+          settingsStore.fetchTenantSettings();
+        });
+
         return { success: true, user: data.user, message: data.message };
       }
       return { success: false, message: data.message || 'Login failed' };
@@ -177,7 +184,7 @@ export function useAuth() {
     return userState.value?.role === 'SUPER_ADMIN';
   });
 
-  const onboardNewTenant = async (payload: { storeName: string; slug: string; ownerName: string; email: string; phone?: string; password?: string; planTier: string }) => {
+  const onboardNewTenant = async (payload: { storeName: string; slug: string; ownerName: string; email: string; phone?: string; password?: string; planTier: string; gateway?: string; trx_no?: string }) => {
     isLoadingState.value = true;
     try {
       const res = await axios.post('/auth/onboard', payload);

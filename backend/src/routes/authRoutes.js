@@ -9,6 +9,7 @@ const { verifyTokenMiddleware, requireRole, enforcePlanLimit } = require('../mid
 
 // Public
 router.post('/register-tenant', registerTenant);
+router.post('/onboard', registerTenant);
 router.post('/login', login);
 router.post('/super-admin/login', superAdminLogin);
 router.post('/super-admin-login', superAdminLogin);

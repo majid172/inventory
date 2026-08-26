@@ -27,20 +27,25 @@ export default defineNuxtPlugin(() => {
     return reqConfig;
   });
 
-  // Response interceptor to handle token expiry
+  // Response interceptor to handle token & subscription expiry
   axios.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (process.client && error.response && error.response.status === 401) {
+      if (process.client && error.response && (error.response.status === 401 || error.response.status === 403)) {
+        const data = error.response.data || {};
+        const isExpired = data.code === 'SUBSCRIPTION_EXPIRED' || 
+                          (data.message && data.message.toLowerCase().includes('subscription expired'));
         const isAuthRoute = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/super-admin-login');
-        if (!isAuthRoute) {
+
+        if (!isAuthRoute && (error.response.status === 401 || isExpired)) {
           localStorage.removeItem('auth_token');
           localStorage.removeItem('auth_user');
           localStorage.removeItem('is_logged_in');
           localStorage.removeItem('is_super_admin');
+          localStorage.removeItem('active_tenant_store');
           const currentPath = window.location.pathname;
           if (currentPath !== '/login' && currentPath !== '/') {
-            window.location.href = '/login';
+            window.location.href = '/login?reason=subscription_expired';
           }
         }
       }

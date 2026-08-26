@@ -3,43 +3,43 @@
     <div class="space-y-4 select-none">
       <!-- Toolbar & Expiry Summary Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 p-4 rounded-xl shadow-sm flex items-center justify-between transition-colors">
+        <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 p-4 rounded shadow-xs flex items-center justify-between transition-colors">
           <div>
-            <div class="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase">Total Tracked Batches</div>
-            <div class="text-2xl font-black text-slate-900 dark:text-gray-100 font-mono mt-1">{{ products.length }}</div>
+            <div class="text-xs font-normal text-slate-500 dark:text-gray-400 uppercase">Total Tracked Batches</div>
+            <div class="text-2xl font-normal text-slate-900 dark:text-gray-100 font-mono mt-1">{{ products.length }}</div>
           </div>
           <span class="text-2xl">📦</span>
         </div>
 
-        <div class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 p-4 rounded-xl shadow-sm flex items-center justify-between transition-colors">
+        <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 p-4 rounded shadow-xs flex items-center justify-between transition-colors">
           <div>
-            <div class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase">Near Expiry (&lt;90 Days)</div>
-            <div class="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono mt-1">{{ expiringSoonCount }}</div>
+            <div class="text-xs font-normal text-amber-600 dark:text-amber-400 uppercase">Near Expiry (&lt;90 Days)</div>
+            <div class="text-2xl font-normal text-amber-600 dark:text-amber-400 font-mono mt-1">{{ expiringSoonCount }}</div>
           </div>
           <span class="text-2xl">⚠️</span>
         </div>
 
-        <div class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-800 p-4 rounded-xl shadow-sm flex items-center justify-between transition-colors">
+        <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 p-4 rounded shadow-xs flex items-center justify-between transition-colors">
           <div>
-            <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">FEFO Status</div>
-            <div class="text-xs text-emerald-700 dark:text-emerald-300 font-bold mt-1">First-Expired First-Out Enforced</div>
+            <div class="text-xs font-normal text-emerald-600 dark:text-emerald-400 uppercase">FEFO Status</div>
+            <div class="text-xs text-emerald-700 dark:text-emerald-300 font-normal mt-1">First-Expired First-Out Enforced</div>
           </div>
           <span class="text-2xl">🛡️</span>
         </div>
       </div>
 
-      <!-- Desktop Application Database Data Grid Frame with 1px Gridlines -->
-      <div class="border border-slate-300 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden bg-white dark:bg-gray-950">
+      <!-- Desktop Application Database Data Grid Frame -->
+      <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
         <!-- Top Desktop Data Grid Toolbar Bar -->
-        <div class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 py-2 flex flex-wrap items-center justify-between gap-3">
+        <div class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
-            <h2 class="text-xs font-extrabold text-slate-800 dark:text-gray-100 flex items-center gap-1.5 uppercase tracking-wide">
+            <h2 class="text-xs font-normal text-slate-800 dark:text-gray-100 flex items-center gap-1.5 uppercase tracking-wide">
               <span>📦</span> Batch & Expiry Inventory Balance (FEFO)
             </h2>
           </div>
 
           <div class="flex items-center gap-2">
-            <label class="font-extrabold text-[11px] text-slate-600 dark:text-gray-400 uppercase tracking-wider">FILTER SEARCH:</label>
+            <label class="font-normal text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">FILTER SEARCH:</label>
             <div class="relative">
               <input 
                 type="text" 
@@ -52,23 +52,23 @@
           </div>
         </div>
 
-        <!-- Desktop Grid Table Viewport with Visible 1px Gridlines -->
+        <!-- Desktop Grid Table Viewport -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-300 dark:border-gray-800">
+          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
             <thead>
-              <tr class="bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 text-slate-800 dark:text-gray-200 font-extrabold text-[11px] uppercase tracking-wider">
-                <th class="py-2.5 px-3 w-10 text-center border border-slate-300 dark:border-gray-700 bg-slate-300/80 dark:bg-gray-800">#</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">BATCH LOT #</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">MEDICINE BRAND & GENERIC</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">RACK / SHELF</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-right">UNITS IN STOCK</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">EXPIRY DATE</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-center">FEFO EXPIRY STATUS</th>
+              <tr class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
+                <th class="py-1.5 px-3 w-10 text-center border-r border-slate-200 dark:border-gray-800 font-normal">#</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">BATCH LOT #</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">MEDICINE BRAND & GENERIC</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">RACK / SHELF</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-right font-normal">UNITS IN STOCK</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">EXPIRY DATE</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">FEFO EXPIRY STATUS</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="batchList.length === 0">
-                <td colSpan="7" class="py-8 text-center text-slate-400 dark:text-gray-500 font-mono text-xs border border-slate-300 dark:border-gray-800">
+                <td colSpan="7" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No batch inventory items found in database grid.
                 </td>
               </tr>
@@ -77,54 +77,53 @@
                 :key="item.id" 
                 @click="selectedRow = item.id"
                 :class="[
-                  'transition-colors cursor-pointer border-b border-slate-300 dark:border-gray-800',
+                  'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
                   selectedRow === item.id 
-                    ? 'bg-sky-500 text-white font-bold' 
-                    : 'even:bg-slate-50/80 dark:even:bg-gray-900/50 hover:bg-sky-100 dark:hover:bg-gray-800/80'
+                    ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white' 
+                    : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
                 ]"
               >
                 <!-- Index Column -->
                 <td 
-                  class="py-2 px-3 text-center font-mono font-bold border border-slate-300 dark:border-gray-800 w-10"
-                  :class="selectedRow === item.id ? 'bg-sky-600 text-white' : 'bg-slate-100/90 dark:bg-gray-900 text-slate-600 dark:text-gray-400'"
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-10 font-normal text-slate-500 dark:text-gray-400"
                 >
                   {{ idx + 1 }}
                 </td>
 
                 <!-- Batch Lot -->
-                <td class="py-2 px-3 font-mono font-bold border border-slate-300 dark:border-gray-800" :class="selectedRow === item.id ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === item.id ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-gray-200'">
                   {{ item.batchNumber }}
                 </td>
 
                 <!-- Brand & Generic -->
-                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800">
-                  <div class="font-extrabold flex items-center gap-1.5">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">
+                  <div class="flex items-center gap-1.5">
                     <span>{{ item.icon }}</span>
-                    <span :class="selectedRow === item.id ? 'text-white' : 'text-blue-700 dark:text-sky-400 hover:underline'">{{ item.name }}</span>
+                    <span :class="selectedRow === item.id ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-gray-200'">{{ item.name }}</span>
                   </div>
-                  <div class="text-[10px] font-semibold" :class="selectedRow === item.id ? 'text-sky-100' : 'text-emerald-700 dark:text-emerald-400'">🧪 {{ item.genericName }} ({{ item.strength }})</div>
+                  <div class="text-[10px] font-normal" :class="selectedRow === item.id ? 'text-slate-600 dark:text-gray-400' : 'text-slate-500 dark:text-gray-400'">{{ item.genericName }} ({{ item.strength }})</div>
                 </td>
 
                 <!-- Rack Location -->
-                <td class="py-2 px-3 font-mono font-medium border border-slate-300 dark:border-gray-800" :class="selectedRow === item.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'">
-                  📍 {{ item.rackLocation }}
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === item.id ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-gray-400'">
+                  {{ item.rackLocation }}
                 </td>
 
                 <!-- Stock Qty -->
-                <td class="py-2 px-3 text-right font-mono font-black border border-slate-300 dark:border-gray-800" :class="selectedRow === item.id ? 'text-white' : 'text-slate-900 dark:text-gray-100'">
+                <td class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === item.id ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-gray-200'">
                   {{ item.stockQuantity }} units
                 </td>
 
                 <!-- Expiry Date -->
-                <td class="py-2 px-3 font-mono font-bold border border-slate-300 dark:border-gray-800" :class="selectedRow === item.id ? 'text-white' : 'text-slate-700 dark:text-gray-200'">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === item.id ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-gray-400'">
                   {{ item.expiryDate }}
                 </td>
 
                 <!-- FEFO Status -->
-                <td class="py-2 px-3 text-center border border-slate-300 dark:border-gray-800">
+                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800">
                   <span 
                     :class="[
-                      'px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider',
+                      'px-2 py-0.5 rounded text-[10px] font-normal border uppercase tracking-wider',
                       selectedRow === item.id ? 'bg-white text-slate-900 border-white' : item.expiryStatus.color
                     ]"
                   >
@@ -137,9 +136,9 @@
         </div>
 
         <!-- Desktop Grid Footer Bar -->
-        <div class="px-3 py-2 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-t border-slate-300 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400">
-          <div>Displaying <strong>{{ batchList.length }}</strong> batch items (Page 1 of 1)</div>
-          <div class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">PostgreSQL Batch Inventory • Grid Connected</div>
+        <div class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 font-normal">
+          <div>Displaying {{ batchList.length }} batch items (Page 1 of 1)</div>
+          <div class="font-normal text-[10px] text-emerald-600 dark:text-emerald-500">PostgreSQL Batch Inventory • Grid Connected</div>
         </div>
       </div>
     </div>
@@ -191,7 +190,7 @@ const batchList = computed(() => {
       expiryDate: p.expiryDate || '2027-12-31',
       rackLocation: p.rackLocation || 'Shelf A-01',
       stockQuantity: p.stockQuantity || 50,
-      icon: p.icon || '💊',
+      icon: p.icon || '',
       expiryStatus: getExpiryStatus(p.expiryDate)
     }));
 });

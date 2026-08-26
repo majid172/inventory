@@ -41,7 +41,11 @@ export interface MasterDrug {
   brandName: string;
   genericName: string;
   dosageForm: string;
+  strength?: string;
   manufacturer: string;
+  defaultPrice?: number;
+  therapeuticClass?: string;
+  barcode?: string;
   rxRequired: boolean;
   planTier?: 'starter' | 'pro' | 'enterprise' | string;
   plan_tier?: string;

@@ -80,7 +80,7 @@
 
                 <!-- Total Paid -->
                 <td class="py-2 px-3 text-right font-mono font-black border border-slate-300 dark:border-gray-800" :class="selectedRow === order.id ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'">
-                  ${{ order.total }}
+                  {{ settingsStore.currencySymbol }}{{ order.total }}
                 </td>
 
                 <!-- Status -->
@@ -109,6 +109,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useAdminOrders } from '~/composables/useAdminOrders';
+import { useSettingsStore } from '~/stores/settings';
+
+const { orders, loading, fetchOrders, markOrderComplete } = useAdminOrders();
+const settingsStore = useSettingsStore();
 
 const selectedRow = ref<string | null>(null);
 

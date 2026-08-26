@@ -29,10 +29,9 @@ const formatUser = (u, tenant = null, subscription = null) => ({
   subscriptionEnd: subscription ? subscription.end_date : null
 });
 
-// Helper for comparing bcrypt hashes (handles PHP $2y$ format & demo credentials)
+// Helper for comparing bcrypt hashes (handles PHP $2y$ format)
 const verifyPasswordHash = async (plainPassword, hashFromDb) => {
   if (!plainPassword) return false;
-  if (plainPassword === 'admin123' || plainPassword === 'password' || plainPassword === '123456') return true;
   if (!hashFromDb) return false;
   let normalizedHash = hashFromDb;
   if (hashFromDb.startsWith('$2y$')) {
@@ -46,61 +45,124 @@ const verifyPasswordHash = async (plainPassword, hashFromDb) => {
   }
 };
 
+const { getSettings } = require('../utils/settingsService');
+
 // ---------------------------------------------------------------------------
 // POST /api/auth/register-tenant
 // Onboards new pharmacy: inserts tenants, users (tenant_owner), tenant_subscriptions
 // ---------------------------------------------------------------------------
 const registerTenant = async (req, res) => {
   try {
-    const { storeName, name, ownerName, email, phone, password, planId, address, domain } = req.body;
+    const settings = getSettings();
+    if (settings && settings.selfRegistrationEnabled === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'New pharmacy registrations are currently disabled by the administrator.'
+      });
+    }
+
+    const { storeName, name, ownerName, email, phone, password, planId, planTier, address, domain } = req.body;
 
     const bStoreName = storeName || name;
     const bOwnerName = ownerName || name;
     const bEmail = (email || '').trim().toLowerCase();
-    const bPlanId = parseInt(planId, 10) || 1;
+    const bPlanId = parseInt(planId, 10) || (planTier === 'enterprise' ? 3 : planTier === 'starter' ? 1 : 2);
 
-    if (!bStoreName || !bEmail || !password) {
+    if (!bStoreName || !bEmail) {
       return res.status(400).json({
         success: false,
-        message: 'Store name, email, and password are required.'
+        message: 'Store name and email address are required.'
       });
-    }
-
-    // Check if email already exists
-    const [existingUsers] = await db.query('SELECT id FROM users WHERE email = ?', [bEmail]);
-    if (existingUsers && existingUsers.length > 0) {
-      return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
     }
 
     const bDomain = domain || bStoreName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-    // 1. Insert Tenant
-    const [tenantResult] = await db.query(
-      `INSERT INTO tenants (name, domain, address, phone, status)
-       VALUES (?, ?, ?, ?, 'active')`,
-      [bStoreName, bDomain, address || '', phone || null]
+    // Check if user or tenant already exists in MySQL
+    const [existingUsers] = await db.query('SELECT * FROM users WHERE LOWER(email) = ?', [bEmail]);
+    const [existingTenants] = await db.query('SELECT * FROM tenants WHERE LOWER(domain) = ? OR LOWER(name) = ?', [bDomain, bStoreName.toLowerCase()]);
+
+    let tenantId;
+    let userId;
+    let isRenewal = false;
+
+    if ((existingUsers && existingUsers.length > 0) || (existingTenants && existingTenants.length > 0)) {
+      // =========================================================================
+      // RENEWAL MODE: Existing Tenant / Existing User found -> Renew Subscription!
+      // =========================================================================
+      isRenewal = true;
+      const existingUser = existingUsers[0];
+      const existingTenant = existingTenants[0];
+
+      tenantId = existingTenant ? existingTenant.id : (existingUser ? existingUser.tenant_id : null);
+      
+      // Update tenant & user status to 'active'
+      if (tenantId) {
+        await db.query(`UPDATE tenants SET status = 'active' WHERE id = ?`, [tenantId]);
+        await db.query(`UPDATE users SET status = 'active' WHERE tenant_id = ?`, [tenantId]);
+      }
+
+      // If user exists, update password if provided
+      if (existingUser) {
+        userId = existingUser.id;
+        if (password && password.trim().length > 0) {
+          const salt = await bcrypt.genSalt(10);
+          const passwordHash = await bcrypt.hash(password.trim(), salt);
+          await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, userId]);
+        }
+      } else if (tenantId) {
+        // Create user if tenant existed without owner
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password || '123456', salt);
+        const [uRes] = await db.query(
+          `INSERT INTO users (tenant_id, name, email, password_hash, role, status)
+           VALUES (?, ?, ?, ?, 'tenant_owner', 'active')`,
+          [tenantId, bOwnerName, bEmail, passwordHash]
+        );
+        userId = uRes.insertId;
+      }
+    } else {
+      // =========================================================================
+      // REGISTRATION MODE: New Tenant Store -> Insert Tenant & User
+      // =========================================================================
+      if (!password) {
+        return res.status(400).json({ success: false, message: 'Password is required for new pharmacy store registration.' });
+      }
+
+      // 1. Insert Tenant
+      const [tenantResult] = await db.query(
+        `INSERT INTO tenants (name, domain, address, phone, status)
+         VALUES (?, ?, ?, ?, 'active')`,
+        [bStoreName, bDomain, address || '', phone || null]
+      );
+      tenantId = tenantResult.insertId;
+
+      // 2. Hash Password & Insert User (Role: tenant_owner)
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      const [userResult] = await db.query(
+        `INSERT INTO users (tenant_id, name, email, password_hash, role, status)
+         VALUES (?, ?, ?, ?, 'tenant_owner', 'active')`,
+        [tenantId, bOwnerName, bEmail, passwordHash]
+      );
+      userId = userResult.insertId;
+    }
+
+    // 3. Get Plan Details & Extend / Insert Subscription
+    const [[planRow]] = await db.query(
+      'SELECT * FROM subscription_plans WHERE id = ? OR LOWER(name) LIKE ? LIMIT 1',
+      [bPlanId, `%${planTier || 'pro'}%`]
     );
-    const tenantId = tenantResult.insertId;
+    const durationDays = planRow?.duration_days || (req.body.billingCycle === 'yearly' ? 365 : 30);
+    const planPrice = planRow?.price || (planTier === 'enterprise' ? 399.00 : planTier === 'starter' ? 49.00 : 149.00);
 
-    // 2. Hash Password & Insert User (Role: tenant_owner)
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-
-    const [userResult] = await db.query(
-      `INSERT INTO users (tenant_id, name, email, password_hash, role, status)
-       VALUES (?, ?, ?, ?, 'tenant_owner', 'active')`,
-      [tenantId, bOwnerName, bEmail, passwordHash]
-    );
-    const userId = userResult.insertId;
-
-    // 3. Get Plan Details
-    const [[planRow]] = await db.query('SELECT * FROM subscription_plans WHERE id = ?', [bPlanId]);
-    const durationDays = planRow?.duration_days || 30;
-    const planPrice = planRow?.price || 49.00;
-
-    // 4. Insert Tenant Subscription
     const startDate = new Date().toISOString().split('T')[0];
     const endDate = new Date(Date.now() + durationDays * 86400000).toISOString().split('T')[0];
+
+    // Set older active subscriptions for this tenant to expired
+    try {
+      await db.query(`UPDATE tenant_subscriptions SET status = 'expired' WHERE tenant_id = ?`, [tenantId]);
+    } catch (e) {}
 
     const [subResult] = await db.query(
       `INSERT INTO tenant_subscriptions (tenant_id, plan_id, start_date, end_date, status)
@@ -109,15 +171,33 @@ const registerTenant = async (req, res) => {
     );
     const subscriptionId = subResult.insertId;
 
-    // 5. Insert Payment Record (Simulated Instant Payment Confirmation)
-    const paymentMethod = req.body.paymentMethod || 'card';
-    const txnId = `TXN_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    // 4. Insert Payment & Billing Records into `billings` table
+    const bGateway = req.body.gateway || req.body.paymentMethod || 'bkash';
+    const bTrxNo = req.body.trx_no || req.body.trxNo || req.body.transactionId || req.body.transaction_no || `TRX_${Date.now()}`;
+    const bInvoiceNo = req.body.invoice_no || `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const bPlanName = planRow?.name || (planTier ? `${planTier.toUpperCase()} Tier` : 'Pro Tier');
+    const bBillingCycle = req.body.billingCycle || req.body.billing_cycle || 'monthly';
+    const bPaidAt = new Date();
 
-    await db.query(
-      `INSERT INTO payments (tenant_id, subscription_id, amount, payment_method, transaction_id, status)
-       VALUES (?, ?, ?, ?, ?, 'success')`,
-      [tenantId, subscriptionId, planPrice, paymentMethod, txnId]
-    );
+    try {
+      await db.query(
+        `INSERT INTO billings (tenant_id, invoice_no, trx_no, amount, currency, gateway, gateway_ref, plan_name, billing_cycle, status, paid_at)
+         VALUES (?, ?, ?, ?, 'BDT', ?, ?, ?, ?, 'success', ?)`,
+        [tenantId, bInvoiceNo, bTrxNo, planPrice, bGateway, bTrxNo, bPlanName, bBillingCycle, bPaidAt]
+      );
+    } catch (bErr) {
+      console.warn('Warning inserting into billings table:', bErr.message);
+    }
+
+    try {
+      await db.query(
+        `INSERT INTO payments (tenant_id, subscription_id, amount, payment_method, transaction_id, status)
+         VALUES (?, ?, ?, ?, ?, 'success')`,
+        [tenantId, subscriptionId, planPrice, bGateway, bTrxNo]
+      );
+    } catch (pErr) {
+      console.warn('Warning inserting into payments table:', pErr.message);
+    }
 
     const [[tenant]] = await db.query('SELECT * FROM tenants WHERE id = ?', [tenantId]);
     const [[user]] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
@@ -129,9 +209,12 @@ const registerTenant = async (req, res) => {
       tenantId: tenantId
     });
 
-    return res.status(201).json({
+    return res.status(isRenewal ? 200 : 201).json({
       success: true,
-      message: 'Pharmacy store registered successfully.',
+      isRenewal,
+      message: isRenewal 
+        ? 'Subscription plan renewed successfully! Store access reactivated.' 
+        : 'Pharmacy store registered & provisioned successfully.',
       token,
       user: formatUser(user, tenant, { plan_id: bPlanId, status: 'active', end_date: endDate }),
       tenant
@@ -192,6 +275,54 @@ const login = async (req, res) => {
     }
 
     const normRole = normalizeRole(user.role);
+    const isSuperAdminUser = normRole === 'superadmin';
+
+    // Status & Subscription Expiry Verification (Non-SuperAdmin Users)
+    if (!isSuperAdminUser) {
+      const uStatus = (user.status || 'active').toLowerCase();
+      if (uStatus === 'inactive' || uStatus === 'suspended' || uStatus === 'expired' || uStatus === 'disabled') {
+        return res.status(403).json({
+          success: false,
+          code: 'SUBSCRIPTION_EXPIRED',
+          message: '⚠️ Subscription Expired / Account Inactive! Your account is currently inactive or suspended. Please renew your subscription to access your panel.'
+        });
+      }
+
+      if (tenant) {
+        const tStatus = (tenant.status || 'active').toLowerCase();
+        if (tStatus === 'inactive' || tStatus === 'suspended' || tStatus === 'expired') {
+          return res.status(403).json({
+            success: false,
+            code: 'SUBSCRIPTION_EXPIRED',
+            message: '⚠️ Subscription Expired / Store Suspended! Your pharmacy store account is currently inactive. Please renew your plan to access your panel.'
+          });
+        }
+      }
+
+      if (subscription) {
+        const sStatus = (subscription.status || 'active').toLowerCase();
+        const todayStr = new Date().toISOString().split('T')[0];
+        const endStr = subscription.end_date ? new Date(subscription.end_date).toISOString().split('T')[0] : null;
+        const isExpired = sStatus === 'expired' || sStatus === 'suspended' || (endStr && endStr < todayStr);
+
+        if (isExpired) {
+          // Auto sync status = 'expired' in MySQL
+          if (user.tenant_id) {
+            try {
+              await db.query(`UPDATE tenants SET status = 'expired' WHERE id = ?`, [user.tenant_id]);
+              await db.query(`UPDATE users SET status = 'expired' WHERE tenant_id = ?`, [user.tenant_id]);
+              await db.query(`UPDATE tenant_subscriptions SET status = 'expired' WHERE tenant_id = ?`, [user.tenant_id]);
+            } catch (e) {}
+          }
+
+          return res.status(403).json({
+            success: false,
+            code: 'SUBSCRIPTION_EXPIRED',
+            message: `⚠️ Subscription Expired! Your subscription plan expired on ${endStr || 'recently'}. Please renew your plan to reactivate access.`
+          });
+        }
+      }
+    }
     const rolePayload = normRole === 'superadmin' ? 'SUPER_ADMIN' : (normRole === 'tenant_owner' ? 'STORE_ADMIN' : (user.role || 'STORE_ADMIN'));
 
     const token = signToken({

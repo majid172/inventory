@@ -104,7 +104,7 @@
                 <!-- Price -->
                 <td
                   class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-right font-normal text-slate-800 dark:text-gray-200">
-                  ${{ Number(row.price ?? (row as any).priceMonthly ?? (row as any).price_monthly ?? 0).toFixed(2) }}
+                  {{ settingsStore.currencySymbol }}{{ Number(row.price ?? (row as any).priceMonthly ?? (row as any).price_monthly ?? 0).toFixed(2) }}
                 </td>
 
                 <!-- Duration -->
@@ -391,6 +391,9 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue';
 import { useSuperAdmin } from '~/composables/useSuperAdmin';
+import { useSettingsStore } from '~/stores/settings';
+
+const settingsStore = useSettingsStore();
 import type { SubscriptionPlan } from '~/stores/superAdmin';
 
 const { plans, fetchPlans, createPlanTier, updatePlanTier, deletePlanTier } = useSuperAdmin();

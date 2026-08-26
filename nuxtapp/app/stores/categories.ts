@@ -74,7 +74,7 @@ export const useCategoryStore = defineStore('categories', () => {
           product_count: parseInt(item.product_count ?? item.productCount ?? 0, 10) || 0,
           created_at: item.created_at || item.createdAt
         };
-      });
+      }).sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
     } catch (err: any) {
       console.error('Failed to fetch categories:', err);
       error.value = err.message || 'Failed to fetch categories';

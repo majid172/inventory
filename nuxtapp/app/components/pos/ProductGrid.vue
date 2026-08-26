@@ -73,7 +73,7 @@
           <div>
             <span class="text-[10px] text-slate-400 font-normal">Price:</span>
             <span class="text-xs font-normal text-slate-900 dark:text-gray-100 ml-1">
-              ${{ Number(product.price || 0).toFixed(2) }}
+              {{ settingsStore.currencySymbol }}{{ Number(product.price || 0).toFixed(2) }}
             </span>
           </div>
 
@@ -99,9 +99,11 @@ import { computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useProductStore, type ProductItem } from '~/stores/products';
 import { useCartStore } from '~/stores/cart';
+import { useSettingsStore } from '~/stores/settings';
 
 const productStore = useProductStore();
 const cartStore = useCartStore();
+const settingsStore = useSettingsStore();
 
 const { filteredProducts } = storeToRefs(productStore);
 const { addToCart } = cartStore;
@@ -114,11 +116,37 @@ const displayProducts = computed(() => {
   return filteredProducts.value;
 });
 
+const playBeep = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    // Classic Supermarket Scanner Beep Profile
+    osc.type = 'square'; 
+    osc.frequency.setValueAtTime(1200, ctx.currentTime); 
+    
+    gainNode.gain.setValueAtTime(0.05, ctx.currentTime); // Lower volume because square wave is loud
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08); // Very short 80ms
+    
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.08);
+  } catch (e) {
+    console.warn('Audio play failed', e);
+  }
+};
+
 const handleProductClick = (product: ProductItem) => {
   if (product.stockQuantity !== undefined && product.stockQuantity <= 0) {
     alert(`"${product.name}" is currently out of stock.`);
     return;
   }
   addToCart(product);
+  playBeep();
 };
 </script>

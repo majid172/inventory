@@ -1,22 +1,26 @@
 <template>
   <NuxtLayout name="admin">
     <div class="space-y-4 select-none">
-      <!-- Desktop Application Database Data Grid Frame with 1px Gridlines -->
-      <div class="border border-slate-300 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden bg-white dark:bg-gray-950">
+      <!-- Desktop Application Database Data Grid Frame -->
+      <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
         <!-- Top Desktop Data Grid Toolbar Bar -->
-        <div class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-b border-slate-300 dark:border-gray-800 px-3 py-2 flex flex-wrap items-center justify-between gap-3">
+        <div class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
-            <button @click="showAddModal = true"
-              class="bg-gradient-to-b from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white dark:text-gray-950 font-bold px-3 py-1.5 rounded border border-emerald-600 text-xs flex items-center gap-1 shadow-sm cursor-pointer active:scale-95">
-              <span class="text-sm font-black mr-1">+</span> Add New Distributor
+            <button @click="openAddModal"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all">
+              <span class="text-sm">+</span> Add New Distributor
             </button>
-            <span class="font-mono text-xs font-bold text-slate-600 dark:text-gray-400 bg-slate-200 dark:bg-gray-800 px-2 py-1 rounded border border-slate-300 dark:border-gray-700">
+            <button v-if="selectedRow" @click="openEditModal"
+              class="bg-white hover:bg-slate-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all">
+              <span>✏️</span> Edit Distributor
+            </button>
+            <span class="font-normal text-xs text-slate-500 dark:text-gray-400">
               Total Distributors: {{ suppliers.length }}
             </span>
           </div>
 
           <div class="flex items-center gap-2">
-            <label class="font-extrabold text-[11px] text-slate-600 dark:text-gray-400 uppercase tracking-wider">FILTER SEARCH:</label>
+            <label class="font-normal text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">FILTER SEARCH:</label>
             <div class="relative">
               <input 
                 type="text" 
@@ -29,23 +33,23 @@
           </div>
         </div>
 
-        <!-- Desktop Grid Table Viewport with Visible 1px Gridlines -->
+        <!-- Desktop Grid Table Viewport -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-300 dark:border-gray-800">
+          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
             <thead>
-              <tr class="bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 text-slate-800 dark:text-gray-200 font-extrabold text-[11px] uppercase tracking-wider">
-                <th class="py-2.5 px-3 w-10 text-center border border-slate-300 dark:border-gray-700 bg-slate-300/80 dark:bg-gray-800">#</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">SUPPLIER ID</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">DISTRIBUTOR / COMPANY</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">REPRESENTATIVE</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">EMAIL ADDRESS</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700">PHONE NUMBER</th>
-                <th class="py-2.5 px-3 border border-slate-300 dark:border-gray-700 text-center">STATUS</th>
+              <tr class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
+                <th class="py-1.5 px-3 w-10 text-center border-r border-slate-200 dark:border-gray-800 font-normal">#</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">SUPPLIER ID</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">DISTRIBUTOR / COMPANY</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">REPRESENTATIVE</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">EMAIL ADDRESS</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">PHONE NUMBER</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">STATUS</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredSuppliers.length === 0">
-                <td colSpan="7" class="py-8 text-center text-slate-400 dark:text-gray-500 font-mono text-xs border border-slate-300 dark:border-gray-800">
+                <td colSpan="7" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No suppliers found in database grid.
                 </td>
               </tr>
@@ -54,52 +58,50 @@
                 :key="sup.id" 
                 @click="selectedRow = sup.id"
                 :class="[
-                  'transition-colors cursor-pointer border-b border-slate-300 dark:border-gray-800',
+                  'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
                   selectedRow === sup.id 
-                    ? 'bg-sky-500 text-white font-bold' 
-                    : 'even:bg-slate-50/80 dark:even:bg-gray-900/50 hover:bg-sky-100 dark:hover:bg-gray-800/80'
+                    ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white' 
+                    : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
                 ]"
               >
                 <!-- Index Column -->
                 <td 
-                  class="py-2 px-3 text-center font-mono font-bold border border-slate-300 dark:border-gray-800 w-10"
-                  :class="selectedRow === sup.id ? 'bg-sky-600 text-white' : 'bg-slate-100/90 dark:bg-gray-900 text-slate-600 dark:text-gray-400'"
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-10 font-normal text-slate-500 dark:text-gray-400"
                 >
                   {{ idx + 1 }}
                 </td>
 
                 <!-- Supplier ID -->
-                <td class="py-2 px-3 font-mono font-bold border border-slate-300 dark:border-gray-800" :class="selectedRow === sup.id ? 'text-white' : 'text-emerald-700 dark:text-emerald-400'">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === sup.id ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-gray-200'">
                   {{ sup.supplier_id }}
                 </td>
 
                 <!-- Company Name -->
-                <td class="py-2 px-3 font-extrabold border border-slate-300 dark:border-gray-800">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">
                   <div class="flex items-center gap-2">
-                    <span>🏢</span>
-                    <span :class="selectedRow === sup.id ? 'text-white' : 'text-blue-700 dark:text-sky-400 hover:underline'">{{ sup.name }}</span>
+                    <span :class="selectedRow === sup.id ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-gray-200'">{{ sup.name }}</span>
                   </div>
                 </td>
 
                 <!-- Contact Name -->
-                <td class="py-2 px-3 border border-slate-300 dark:border-gray-800 font-medium" :class="selectedRow === sup.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === sup.id ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-gray-400'">
                   {{ sup.contact_name }}
                 </td>
 
                 <!-- Email -->
-                <td class="py-2 px-3 font-mono border border-slate-300 dark:border-gray-800" :class="selectedRow === sup.id ? 'text-sky-100' : 'text-slate-600 dark:text-gray-400'">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === sup.id ? 'text-slate-600 dark:text-gray-400' : 'text-slate-500 dark:text-gray-400'">
                   {{ sup.email }}
                 </td>
 
                 <!-- Phone -->
-                <td class="py-2 px-3 font-mono border border-slate-300 dark:border-gray-800" :class="selectedRow === sup.id ? 'text-sky-100' : 'text-slate-600 dark:text-gray-400'">
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal" :class="selectedRow === sup.id ? 'text-slate-600 dark:text-gray-400' : 'text-slate-500 dark:text-gray-400'">
                   {{ sup.phone }}
                 </td>
 
                 <!-- Status -->
-                <td class="py-2 px-3 text-center border border-slate-300 dark:border-gray-800">
+                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800">
                   <span :class="[
-                    'px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider',
+                    'px-2 py-0.5 rounded text-[10px] font-normal border uppercase tracking-wider',
                     selectedRow === sup.id ? 'bg-white text-emerald-900 border-white' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800'
                   ]">
                     ● {{ sup.status }}
@@ -111,38 +113,47 @@
         </div>
 
         <!-- Desktop Grid Footer Bar -->
-        <div class="px-3 py-2 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-950 border-t border-slate-300 dark:border-gray-800 flex items-center justify-between text-xs text-slate-600 dark:text-gray-400">
-          <div>Displaying <strong>{{ filteredSuppliers.length }}</strong> suppliers (Page 1 of 1)</div>
-          <div class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Pharma Suppliers Registry • Connected</div>
+        <div class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 font-normal">
+          <div>Displaying {{ filteredSuppliers.length }} suppliers (Page 1 of 1)</div>
+          <div class="font-normal text-[10px] text-emerald-600 dark:text-emerald-500">Pharma Suppliers Registry • Connected</div>
         </div>
       </div>
 
-      <!-- Add Supplier Modal -->
-      <div v-if="showAddModal" class="fixed inset-0 bg-slate-900/40 dark:bg-gray-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-200 dark:border-gray-800 pb-3">
-            <h3 class="font-black text-emerald-600 dark:text-emerald-400 text-base">Add Pharmaceutical Distributor</h3>
-            <button @click="showAddModal = false" class="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 font-bold cursor-pointer">✕</button>
+      <!-- Add/Edit Supplier Modal -->
+      <div v-if="showModal" class="fixed inset-0 bg-slate-900/40 dark:bg-gray-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded w-full max-w-md shadow-2xl flex flex-col overflow-hidden">
+          
+          <div class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+            <h3 class="font-normal text-slate-800 dark:text-gray-100 text-sm">
+              {{ isEditing ? 'Edit Distributor' : 'Add New Distributor' }}
+            </h3>
+            <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 dark:text-gray-500 dark:hover:text-gray-300 font-bold cursor-pointer">✕</button>
           </div>
 
-          <div class="space-y-3 text-xs">
+          <div class="p-4 space-y-4 bg-white dark:bg-gray-950">
             <div>
-              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">DISTRIBUTOR NAME *</label>
-              <input type="text" v-model="newSup.name" placeholder="e.g. GSK Pharmaceuticals" class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500" />
+              <label class="block font-normal text-slate-500 dark:text-gray-400 text-[11px] uppercase tracking-wider mb-1">DISTRIBUTOR NAME *</label>
+              <input type="text" v-model="formData.name" placeholder="e.g. GSK Pharmaceuticals" class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded px-3 py-1.5 text-sm text-slate-800 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-inner" />
             </div>
             <div>
-              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">CONTACT REPRESENTATIVE</label>
-              <input type="text" v-model="newSup.contact_name" placeholder="Jane Doe" class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500" />
+              <label class="block font-normal text-slate-500 dark:text-gray-400 text-[11px] uppercase tracking-wider mb-1">CONTACT REPRESENTATIVE</label>
+              <input type="text" v-model="formData.contact_name" placeholder="Jane Doe" class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded px-3 py-1.5 text-sm text-slate-800 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-inner" />
             </div>
             <div>
-              <label class="block font-bold text-slate-700 dark:text-gray-300 mb-1">EMAIL ADDRESS</label>
-              <input type="email" v-model="newSup.email" placeholder="orders@distributor.com" class="w-full bg-slate-50 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 rounded-xl p-2.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500" />
+              <label class="block font-normal text-slate-500 dark:text-gray-400 text-[11px] uppercase tracking-wider mb-1">EMAIL ADDRESS</label>
+              <input type="email" v-model="formData.email" placeholder="orders@distributor.com" class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded px-3 py-1.5 text-sm text-slate-800 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-inner" />
+            </div>
+            <div>
+              <label class="block font-normal text-slate-500 dark:text-gray-400 text-[11px] uppercase tracking-wider mb-1">PHONE NUMBER</label>
+              <input type="text" v-model="formData.phone" placeholder="+1-555-0000" class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded px-3 py-1.5 text-sm text-slate-800 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-inner" />
             </div>
           </div>
 
-          <div class="flex gap-2 pt-4">
-            <button @click="showAddModal = false" class="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-950 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-800 text-slate-700 dark:text-gray-300 font-bold py-2.5 rounded-xl text-xs cursor-pointer">Cancel</button>
-            <button @click="handleSaveSupplier" :disabled="!newSup.name" class="flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 disabled:opacity-50 text-white dark:text-gray-950 font-black py-2.5 rounded-xl text-xs shadow-lg cursor-pointer">Save Distributor</button>
+          <div class="bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 px-4 py-3 flex items-center justify-end gap-2">
+            <button @click="showModal = false" class="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-1.5 rounded text-xs transition-colors cursor-pointer">Cancel</button>
+            <button @click="handleSave" :disabled="!formData.name" class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-1.5 rounded text-xs shadow-xs transition-colors cursor-pointer">
+              {{ isEditing ? 'Save Changes' : 'Save Distributor' }}
+            </button>
           </div>
         </div>
       </div>
@@ -154,11 +165,13 @@
 import { ref, computed } from 'vue';
 import { useAdminSuppliers, type AdminSupplier } from '~/composables/useAdminSuppliers';
 
-const { suppliers, addSupplier } = useAdminSuppliers();
+const { suppliers, addSupplier, updateSupplier } = useAdminSuppliers();
 const filterText = ref('');
-const selectedRow = ref<string | number | null>(null);
-const showAddModal = ref(false);
-const newSup = ref<Partial<AdminSupplier>>({ name: '', contact_name: '', email: '' });
+const selectedRow = ref<number | null>(null);
+
+const showModal = ref(false);
+const isEditing = ref(false);
+const formData = ref<Partial<AdminSupplier>>({ name: '', contact_name: '', email: '', phone: '' });
 
 const filteredSuppliers = computed(() => {
   const query = filterText.value.toLowerCase();
@@ -170,10 +183,31 @@ const filteredSuppliers = computed(() => {
   );
 });
 
-const handleSaveSupplier = () => {
-  if (!newSup.value.name) return;
-  addSupplier(newSup.value);
-  newSup.value = { name: '', contact_name: '', email: '' };
-  showAddModal.value = false;
+const openAddModal = () => {
+  isEditing.value = false;
+  formData.value = { name: '', contact_name: '', email: '', phone: '' };
+  showModal.value = true;
+};
+
+const openEditModal = () => {
+  if (!selectedRow.value) return;
+  const sup = suppliers.value.find(s => s.id === selectedRow.value);
+  if (sup) {
+    isEditing.value = true;
+    formData.value = { ...sup };
+    showModal.value = true;
+  }
+};
+
+const handleSave = async () => {
+  if (!formData.value.name) return;
+  
+  if (isEditing.value && formData.value.id) {
+    await updateSupplier(formData.value.id, formData.value);
+  } else {
+    await addSupplier(formData.value);
+  }
+  
+  showModal.value = false;
 };
 </script>

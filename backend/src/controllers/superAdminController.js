@@ -18,11 +18,12 @@ const getAnalytics = async (req, res) => {
     try {
       const [[tenantStats]] = await db.query(`
         SELECT
-          COUNT(*) AS total_tenants,
-          SUM(CASE WHEN status='active' OR status IS NULL THEN 1 ELSE 0 END) AS active_tenants,
-          SUM(CASE WHEN status='trial' THEN 1 ELSE 0 END) AS trial_tenants,
-          SUM(CASE WHEN status='suspended' OR status='inactive' THEN 1 ELSE 0 END) AS suspended_tenants
-        FROM tenants
+          COUNT(DISTINCT t.id) AS total_tenants,
+          SUM(CASE WHEN t.status='active' OR t.status IS NULL THEN 1 ELSE 0 END) AS active_tenants,
+          SUM(CASE WHEN t.status='trial' THEN 1 ELSE 0 END) AS trial_tenants,
+          SUM(CASE WHEN t.status='suspended' OR t.status='inactive' THEN 1 ELSE 0 END) AS suspended_tenants
+        FROM tenants t
+        INNER JOIN users u ON t.id = u.tenant_id
       `);
       if (tenantStats) {
         totalTenants = tenantStats.total_tenants || 0;
@@ -322,7 +323,7 @@ const formatPlan = (r) => {
 
 const getPlans = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM subscription_plans ORDER BY id ASC');
+    const [rows] = await db.query('SELECT * FROM subscription_plans ORDER BY price ASC, id ASC');
     const plans = rows.map(formatPlan);
     return res.json({ success: true, plans, data: plans });
   } catch (err) {
@@ -415,14 +416,39 @@ const deletePlan = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. MASTER DRUGS DICTIONARY CRUD (Table: master_drugs)
 // ─────────────────────────────────────────────────────────────────────────────
+// Auto-migrate master_drugs columns if missing
+(async () => {
+  try {
+    const [cols] = await db.query('SHOW COLUMNS FROM master_drugs');
+    const names = (cols || []).map(c => c.Field);
+    if (!names.includes('strength')) {
+      await db.query('ALTER TABLE master_drugs ADD COLUMN strength VARCHAR(100) NULL AFTER dosage_form');
+    }
+    if (!names.includes('default_price')) {
+      await db.query('ALTER TABLE master_drugs ADD COLUMN default_price DECIMAL(10,2) DEFAULT 0.00 AFTER rx_required');
+    }
+    if (!names.includes('therapeutic_class')) {
+      await db.query('ALTER TABLE master_drugs ADD COLUMN therapeutic_class VARCHAR(150) NULL AFTER default_price');
+    }
+    if (!names.includes('barcode')) {
+      await db.query('ALTER TABLE master_drugs ADD COLUMN barcode VARCHAR(100) NULL AFTER therapeutic_class');
+    }
+  } catch (e) {}
+})();
+
 const formatMasterDrug = (d) => ({
   id: d.id.toString(),
-  brand_name: d.brand_name,
-  brandName: d.brand_name,
-  generic_name: d.generic_name,
-  genericName: d.generic_name,
+  brand_name: d.brand_name || '',
+  brandName: d.brand_name || '',
+  generic_name: d.generic_name || '',
+  genericName: d.generic_name || '',
   dosage_form: d.dosage_form || 'Tablet',
   dosageForm: d.dosage_form || 'Tablet',
+  strength: d.strength || '',
+  default_price: d.default_price || 0,
+  defaultPrice: d.default_price || 0,
+  therapeutic_class: d.therapeutic_class || '',
+  barcode: d.barcode || '',
   manufacturer: d.manufacturer || '',
   rx_required: !!d.rx_required,
   rxRequired: !!d.rx_required,
@@ -438,9 +464,9 @@ const getMasterDrugs = async (req, res) => {
     const params = [];
 
     if (search) {
-      sql += ' AND (brand_name LIKE ? OR generic_name LIKE ? OR manufacturer LIKE ?)';
+      sql += ' AND (brand_name LIKE ? OR generic_name LIKE ? OR manufacturer LIKE ? OR strength LIKE ? OR barcode LIKE ?)';
       const q = `%${search}%`;
-      params.push(q, q, q);
+      params.push(q, q, q, q, q);
     }
 
     sql += ' ORDER BY id DESC LIMIT ? OFFSET ?';
@@ -457,12 +483,16 @@ const getMasterDrugs = async (req, res) => {
 
 const createMasterDrug = async (req, res) => {
   try {
-    const { brand_name, brandName, generic_name, genericName, dosage_form, dosageForm, manufacturer, rx_required, rxRequired, plan_tier, planTier } = req.body;
+    const { brand_name, brandName, generic_name, genericName, dosage_form, dosageForm, strength, manufacturer, default_price, defaultPrice, therapeutic_class, barcode, rx_required, rxRequired, plan_tier, planTier } = req.body;
 
     const bName = brand_name || brandName;
     const gName = generic_name || genericName;
     const dForm = dosage_form || dosageForm || 'Tablet';
+    const stVal = strength || null;
     const mfg = manufacturer || null;
+    const defPrice = default_price || defaultPrice || 0.00;
+    const thClass = therapeutic_class || null;
+    const bCode = barcode || null;
     const rx = (rx_required !== undefined ? rx_required : rxRequired) ? 1 : 0;
     const pTier = (plan_tier || planTier || 'starter').toLowerCase();
 
@@ -471,9 +501,9 @@ const createMasterDrug = async (req, res) => {
     }
 
     const [r] = await db.query(
-      `INSERT INTO master_drugs (brand_name, generic_name, dosage_form, manufacturer, rx_required, plan_tier)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [bName, gName, dForm, mfg, rx, pTier]
+      `INSERT INTO master_drugs (brand_name, generic_name, dosage_form, strength, manufacturer, rx_required, default_price, therapeutic_class, barcode, plan_tier)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [bName, gName, dForm, stVal, mfg, rx, defPrice, thClass, bCode, pTier]
     );
 
     const [[created]] = await db.query('SELECT * FROM master_drugs WHERE id = ?', [r.insertId]);
@@ -494,11 +524,15 @@ const createMasterDrug = async (req, res) => {
 const updateMasterDrug = async (req, res) => {
   try {
     const id = req.params.id;
-    const { brand_name, brandName, generic_name, genericName, dosage_form, dosageForm, manufacturer, rx_required, rxRequired, plan_tier, planTier } = req.body;
+    const { brand_name, brandName, generic_name, genericName, dosage_form, dosageForm, strength, manufacturer, default_price, defaultPrice, therapeutic_class, barcode, rx_required, rxRequired, plan_tier, planTier } = req.body;
 
     const bName = brand_name || brandName;
     const gName = generic_name || genericName;
     const dForm = dosage_form || dosageForm;
+    const stVal = strength;
+    const defPrice = default_price !== undefined ? default_price : defaultPrice;
+    const thClass = therapeutic_class;
+    const bCode = barcode;
     const rx = (rx_required !== undefined ? rx_required : rxRequired) !== undefined ? ((rx_required || rxRequired) ? 1 : 0) : undefined;
     const pTier = plan_tier || planTier;
 
@@ -508,7 +542,11 @@ const updateMasterDrug = async (req, res) => {
     if (bName) { updates.push('brand_name = ?'); params.push(bName); }
     if (gName) { updates.push('generic_name = ?'); params.push(gName); }
     if (dForm) { updates.push('dosage_form = ?'); params.push(dForm); }
+    if (stVal !== undefined) { updates.push('strength = ?'); params.push(stVal); }
     if (manufacturer !== undefined) { updates.push('manufacturer = ?'); params.push(manufacturer); }
+    if (defPrice !== undefined) { updates.push('default_price = ?'); params.push(defPrice); }
+    if (thClass !== undefined) { updates.push('therapeutic_class = ?'); params.push(thClass); }
+    if (bCode !== undefined) { updates.push('barcode = ?'); params.push(bCode); }
     if (rx !== undefined) { updates.push('rx_required = ?'); params.push(rx); }
     if (pTier) { updates.push('plan_tier = ?'); params.push(pTier.toLowerCase()); }
 
@@ -548,15 +586,64 @@ const deleteMasterDrug = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const getAllPayments = async (req, res) => {
   try {
-    const [rows] = await db.query(`
-      SELECT p.*, t.name AS tenant_name
-      FROM payments p
-      LEFT JOIN tenants t ON p.tenant_id = t.id
-      ORDER BY p.id DESC LIMIT 50
-    `);
+    const role = (req.user?.role || '').toUpperCase();
+    const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'SUPERADMIN';
+    const tenantId = req.tenantId || req.user?.tenantId || req.user?.tenant_id || (req.headers['x-tenant-id'] ? parseInt(req.headers['x-tenant-id'], 10) : null);
+
+    let rows = [];
+    try {
+      let sql = `
+        SELECT b.*, b.trx_no AS transaction_no, t.name AS tenant_name, t.domain AS tenant_domain
+        FROM billings b
+        LEFT JOIN tenants t ON b.tenant_id = t.id
+      `;
+      let params = [];
+
+      if (!isSuperAdmin) {
+        if (!tenantId) {
+          return res.json({ success: true, payments: [] });
+        }
+        sql += ` WHERE b.tenant_id = ?`;
+        params.push(tenantId);
+      }
+
+      sql += ` ORDER BY b.id DESC`;
+
+      const [bRows] = await db.query(sql, params);
+      if (bRows && bRows.length > 0) {
+        rows = bRows;
+      }
+    } catch (e) {
+      console.warn("Could not query billings table:", e.message);
+    }
+
+    if (!rows || rows.length === 0) {
+      try {
+        let sql = `
+          SELECT p.*, p.transaction_no AS trx_no, t.name AS tenant_name, t.domain AS tenant_domain, sp.name AS plan_name
+          FROM payments p
+          LEFT JOIN tenants t ON p.tenant_id = t.id
+          LEFT JOIN subscription_plans sp ON (p.plan_id = sp.id OR p.plan_id = sp.slug)
+        `;
+        let params = [];
+
+        if (!isSuperAdmin && tenantId) {
+          sql += ` WHERE p.tenant_id = ?`;
+          params.push(tenantId);
+        }
+
+        sql += ` ORDER BY p.id DESC`;
+
+        const [pRows] = await db.query(sql, params);
+        if (pRows && pRows.length > 0) {
+          rows = pRows;
+        }
+      } catch (e) {}
+    }
+
     return res.json({ success: true, payments: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -571,8 +658,8 @@ const getUsers = async (req, res) => {
   try {
     const { search, role, tenantId } = req.query;
 
-    // 1. Query users table directly from MySQL
-    let sql = 'SELECT * FROM users WHERE 1=1';
+    // 1. Query users table directly from MySQL (Excluding Super Admin accounts)
+    let sql = "SELECT * FROM users WHERE LOWER(role) NOT IN ('super_admin', 'superadmin')";
     const params = [];
 
     if (search) {
@@ -637,7 +724,14 @@ const getUsers = async (req, res) => {
             if (sub.plan_name) planName = sub.plan_name;
             if (sub.plan_price) planPrice = sub.plan_price;
             if (sub.status) subStatus = sub.status;
-            if (sub.end_date) endDate = sub.end_date;
+            if (sub.end_date) {
+              endDate = sub.end_date;
+              const todayStr = new Date().toISOString().split('T')[0];
+              const endStr = new Date(sub.end_date).toISOString().split('T')[0];
+              if (endStr < todayStr) {
+                subStatus = 'expired';
+              }
+            }
           }
         } catch (e) {}
 
@@ -657,9 +751,9 @@ const getUsers = async (req, res) => {
         tenant_id: u.tenant_id,
         name: u.name,
         email: u.email,
-        phone: u.phone,
+        phone: u.phone || tenantPhone || null,
         role: u.role || 'STORE_ADMIN',
-        status: u.status || 'active',
+        status: (subStatus === 'expired' || subStatus === 'suspended') ? subStatus : (u.status || 'active'),
         created_at: u.created_at,
         tenant_name: tenantName,
         tenant_domain: tenantDomain,
@@ -760,8 +854,24 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Check user role & tenant_id
+    const [[user]] = await db.query('SELECT * FROM users WHERE id = ?', [id]);
+    if (user && user.tenant_id) {
+      // Check remaining users for this tenant store
+      const [[remaining]] = await db.query(
+        'SELECT COUNT(*) AS total FROM users WHERE tenant_id = ? AND id != ?',
+        [user.tenant_id, id]
+      );
+
+      // If user was tenant owner / store admin or last user, delete the tenant store as well
+      if (user.role === 'tenant_owner' || user.role === 'STORE_ADMIN' || !remaining || remaining.total === 0) {
+        await db.query('DELETE FROM tenants WHERE id = ?', [user.tenant_id]);
+      }
+    }
+
     await db.query('DELETE FROM users WHERE id = ?', [id]);
-    return res.json({ success: true, message: 'User deleted successfully.' });
+    return res.json({ success: true, message: 'User and associated store record updated successfully.' });
   } catch (err) {
     console.error('deleteUser error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -771,39 +881,26 @@ const deleteUser = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. PLATFORM SETTINGS & SITE MAINTENANCE
 // ─────────────────────────────────────────────────────────────────────────────
-let memorySettingsCache = {
-  platformName: 'PharmaCare Multi-Tenant SaaS ERP',
-  supportEmail: 'support@pharmacare.com',
-  supportPhone: '+1 (800) 555-PHARMA',
-  currencySymbol: '$',
-  currencyCode: 'USD',
-  timezone: 'UTC+6 (Dhaka / Central Asia)',
-  dateFormat: 'YYYY-MM-DD',
-  selfRegistrationEnabled: true,
-  defaultTrialDays: 14,
-  requireEmailVerification: false,
-  defaultPlanId: 1,
-  maintenanceMode: false,
-  maintenanceMessage: 'System is currently undergoing scheduled database maintenance. Please check back shortly.',
-  defaultTaxRate: 0.00,
-  invoicePrefix: 'INV-',
-  enableRxStrictVerification: true,
-  lowStockThreshold: 10,
-  expiryWarningDays: 60,
-  twoFactorAuthRequired: false,
-  sessionTimeoutMinutes: 120,
-  backupSchedule: 'Daily at 02:00 AM UTC',
-  lastBackupAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
-  stripeEnabled: true,
-  sslCommerzEnabled: false,
-  bkashEnabled: true
-};
 
 const getPlatformSettings = async (req, res) => {
   try {
+    const [rows] = await db.query("SELECT setting_value FROM system_settings WHERE setting_key = 'platform_config'");
+    let settings = {};
+    if (rows && rows.length > 0) {
+      settings = typeof rows[0].setting_value === 'string' 
+        ? JSON.parse(rows[0].setting_value) 
+        : rows[0].setting_value;
+    } else {
+      // Fallback default if not yet saved in DB
+      settings = {
+        platformName: 'PharmaCare SaaS',
+        supportEmail: 'support@pharmacare.com',
+        maintenanceMode: false
+      };
+    }
     return res.json({
       success: true,
-      settings: memorySettingsCache
+      settings: settings
     });
   } catch (err) {
     console.error('getPlatformSettings error:', err);
@@ -811,17 +908,25 @@ const getPlatformSettings = async (req, res) => {
   }
 };
 
+const { refreshSettings } = require('../utils/settingsService');
+
 const updatePlatformSettings = async (req, res) => {
   try {
     const newSettings = req.body;
-    memorySettingsCache = {
-      ...memorySettingsCache,
-      ...newSettings
-    };
+    await db.query(
+      `INSERT INTO system_settings (setting_key, setting_value, description)
+       VALUES ('platform_config', ?, 'Complete platform configuration dump')
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [JSON.stringify(newSettings)]
+    );
+    
+    // Refresh the in-memory cache instantly
+    await refreshSettings();
+    
     return res.json({
       success: true,
       message: 'Platform settings updated successfully.',
-      settings: memorySettingsCache
+      settings: newSettings
     });
   } catch (err) {
     console.error('updatePlatformSettings error:', err);

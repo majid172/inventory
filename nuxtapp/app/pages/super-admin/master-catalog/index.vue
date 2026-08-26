@@ -227,7 +227,21 @@
               </div>
 
               <div>
-                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Plan Tier</label>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Strength / Power</label>
+                <input v-model="drugForm.strength" type="text" placeholder="e.g. 500 mg / 665 mg"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Default MRP Price (৳)</label>
+                <input v-model.number="drugForm.defaultPrice" type="number" step="0.10" placeholder="e.g. 5.00"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
+              </div>
+
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Plan Access Tier</label>
                 <select v-model="drugForm.planTier"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs cursor-pointer">
                   <option value="starter">Starter Tier</option>

@@ -2,6 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const corsOptions = require('./config/cors');
 const errorHandler = require('./middleware/errorHandler');
+const maintenanceMiddleware = require('./middleware/maintenanceMiddleware');
+const { initSettings } = require('./utils/settingsService');
+const initBillingDB = require('./db/initBillingDB');
+
+// Initialize global settings cache & billing tables on startup
+initSettings();
+initBillingDB();
 
 // Route Imports
 const authRoutes        = require('./routes/authRoutes');
@@ -9,6 +16,7 @@ const inventoryRoutes   = require('./routes/inventoryRoutes');
 const salesRoutes       = require('./routes/salesRoutes');
 const superAdminRoutes  = require('./routes/superAdminRoutes');
 const plansRoutes       = require('./routes/plansRoutes');
+const settingsRoutes    = require('./routes/settingsRoutes');
 
 // Legacy routes (kept for backward compat)
 const productRoutes     = require('./routes/productRoutes');
@@ -28,8 +36,12 @@ app.get('/', (req, res) => res.json({ status: 'ok', service: 'PharmaCare SaaS AP
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // ── API Routes ──────────────────────────────────────────────────────────────
+// Apply maintenance middleware to all routes (it will bypass super admins internally)
+app.use(maintenanceMiddleware);
+
 app.use('/api/auth',        authRoutes);
 app.use('/api/plans',       plansRoutes);       // Public: plan listing
+app.use('/api/settings',    settingsRoutes);    // Global & Tenant settings
 app.use('/api/inventory',   inventoryRoutes);   // Tenant: inventory, products, categories, reports
 app.use('/api/sales',       salesRoutes);       // Tenant: POS, sales history
 app.use('/api/super-admin', superAdminRoutes);  // Super Admin panel

@@ -99,6 +99,25 @@ CREATE TABLE IF NOT EXISTS `payments` (
   CONSTRAINT `fk_payments_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `billings` (
+  `id`              INT             NOT NULL AUTO_INCREMENT,
+  `tenant_id`       INT             NOT NULL,
+  `invoice_no`      VARCHAR(100)    NOT NULL,
+  `amount`          DECIMAL(10,2)   NOT NULL,
+  `currency`        VARCHAR(10)     NOT NULL DEFAULT 'BDT',
+  `gateway`         VARCHAR(50)     NOT NULL DEFAULT 'bkash',
+  `gateway_ref`     VARCHAR(255)    DEFAULT NULL,
+  `plan_name`       VARCHAR(100)    DEFAULT 'Pro Tier',
+  `billing_cycle`   VARCHAR(20)     NOT NULL DEFAULT 'monthly',
+  `status`          VARCHAR(50)     NOT NULL DEFAULT 'success',
+  `paid_at`         DATETIME        DEFAULT NULL,
+  `created_at`      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_billings_tenant`   (`tenant_id`),
+  INDEX `idx_billings_status`   (`status`),
+  CONSTRAINT `fk_billings_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+);
+
 -- ============================================================================
 -- 5. CATEGORIES TABLE (Tenant-scoped product categories)
 -- ============================================================================
@@ -432,3 +451,39 @@ VALUES
   (4, 2,  49.00, 'USD', 'stripe', 'pi_test_004', 'INV-2026-003', 'starter',    'monthly', 'pending', NULL),
   (5, 4, 149.00, 'USD', 'stripe', 'pi_test_005', 'INV-2026-004', 'pro',        'monthly', 'failed',  NULL)
 ON DUPLICATE KEY UPDATE `status` = VALUES(`status`);
+
+-- ============================================================================
+-- SYSTEM SETTINGS TABLE (Global platform settings like maintenance mode)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `system_settings` (
+  `id`              INT             NOT NULL AUTO_INCREMENT,
+  `setting_key`     VARCHAR(100)    NOT NULL,
+  `setting_value`   JSON            NOT NULL,
+  `description`     VARCHAR(255)    DEFAULT NULL,
+  `updated_by`      INT             DEFAULT NULL,
+  `updated_at`      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_sys_setting_key` (`setting_key`),
+  CONSTRAINT `fk_sys_settings_user` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ============================================================================
+-- TENANT SETTINGS TABLE (Pharmacy-specific configurations)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `tenant_settings` (
+  `id`              INT             NOT NULL AUTO_INCREMENT,
+  `tenant_id`       INT             NOT NULL,
+  `setting_key`     VARCHAR(100)    NOT NULL,
+  `setting_value`   JSON            NOT NULL,
+  `updated_at`      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_tenant_setting` (`tenant_id`, `setting_key`),
+  CONSTRAINT `fk_tenant_settings_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Demo System Settings
+INSERT INTO `system_settings` (`setting_key`, `setting_value`, `description`)
+VALUES
+  ('maintenance_mode', '{"is_active": false, "message": "System is under maintenance. Please try again later."}', 'Global platform maintenance mode'),
+  ('platform_name', '{"name": "PharmaCare SaaS"}', 'The main platform name')
+ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);

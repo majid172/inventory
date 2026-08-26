@@ -44,16 +44,17 @@
             <thead>
               <tr
                 class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
-                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># ID
+                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal">SL.
                 </th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Brand Name</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Generic Compound</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Name</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Generic Name</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Form & Strength</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Category</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Supplier / Dist</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-right font-normal">Price /
-                  Cost</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Stock Qty
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Supplier</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-right font-normal">Price</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-right font-normal">Cost
+                </th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal"> Qty
                 </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Rx Flag
                 </th>
@@ -97,7 +98,7 @@
                 <!-- Form & Strength -->
                 <td
                   class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-600 dark:text-gray-400">
-                  {{ row.dosageForm || 'Tablet' }} ({{ row.strength || '500mg' }})
+                  {{ row.dosageForm || 'Tablet' }}<span v-if="row.strength && row.strength !== '-'"> ({{ row.strength }})</span>
                 </td>
 
                 <!-- Category -->
@@ -114,10 +115,14 @@
 
                 <!-- Price / Cost -->
                 <td class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal">
-                  <div class="text-slate-800 dark:text-gray-200 font-normal">${{ Number(row.price || 0).toFixed(2) }}
+                  <div class="text-slate-800 dark:text-gray-200 font-normal">{{ settingsStore.currencySymbol }}{{ Number(row.price || 0).toFixed(2) }}
                   </div>
-                  <div class="text-[10px] text-slate-400 font-normal">Cost: ${{ Number(row.cost || 0).toFixed(2) }}
+                
+                </td>
+                <td class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal">
+                  <div class="text-slate-800 dark:text-gray-200 font-normal">{{ settingsStore.currencySymbol }}{{ Number(row.cost || 0).toFixed(2) }}
                   </div>
+                 
                 </td>
 
                 <!-- Stock Qty -->
@@ -172,9 +177,7 @@
         <div
           class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 font-normal">
           <div>Total <strong>{{ filteredProducts.length }}</strong> products</div>
-          <div class="text-[10px] text-slate-400 font-normal">
-            MySQL: <code>products</code>
-          </div>
+         
         </div>
       </div>
 
@@ -217,15 +220,67 @@
               </div>
             </div>
 
-            <div :class="newProd.productType === 'medicine' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'">
-              <div>
-                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
-                  {{ newProd.productType === 'medicine' ? 'Brand / Medicine Name *' : 'Product Name *' }}
-                </label>
-                <input type="text" v-model="newProd.name" required
-                  :placeholder="newProd.productType === 'medicine' ? 'e.g. Amoxicillin 500mg' : 'e.g. Savlon Antiseptic 500ml, Baby Diaper L'"
-                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
+            <!-- Master Drug Auto-Fill Notification Badge -->
+            <div v-if="selectedMasterDrug" class="p-2.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                <span class="text-sm">⚡</span>
+                <div>
+                  <span class="font-bold">Auto-filled from Master Catalog:</span>
+                  <span class="ml-1 font-mono text-[11px]">{{ selectedMasterDrug.brandName }} ({{ selectedMasterDrug.strength || 'N/A' }}) - {{ selectedMasterDrug.genericName }}</span>
+                </div>
               </div>
+              <button type="button" @click="clearMasterDrug" class="text-xs text-red-600 hover:text-red-800 dark:text-red-400 font-bold underline cursor-pointer">
+                Clear / Manual
+              </button>
+            </div>
+
+            <div :class="newProd.productType === 'medicine' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'">
+              <!-- Medicine Name with Smart Master Drug Autocomplete -->
+              <div class="relative">
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                  <span>{{ newProd.productType === 'medicine' ? 'Brand / Medicine Name *' : 'Product Name *' }}</span>
+                  <span v-if="newProd.productType === 'medicine'" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">⚡ Auto-Complete Powered</span>
+                </label>
+                <input 
+                  type="text" 
+                  v-model="newProd.name" 
+                  @input="handleMedicineInput" 
+                  @focus="handleMedicineInput"
+                  required
+                  :placeholder="newProd.productType === 'medicine' ? 'Type 2+ letters e.g. Napa, Ace, Seclo...' : 'e.g. Savlon Antiseptic 500ml'"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" 
+                />
+
+                <!-- Master Drug Autocomplete Dropdown Panel -->
+                <div 
+                  v-if="showMasterDrugDropdown && masterDrugSearchResults.length > 0"
+                  class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-gray-800"
+                >
+                  <div class="px-2.5 py-1 bg-slate-100 dark:bg-gray-900 text-[10px] uppercase font-bold text-slate-500 flex justify-between">
+                    <span>SELECT FROM MASTER CATALOG (AUTO-FILL)</span>
+                    <span>{{ masterDrugSearchResults.length }} matches</span>
+                  </div>
+                  <div 
+                    v-for="item in masterDrugSearchResults" 
+                    :key="item.id" 
+                    @mousedown.prevent="selectMasterDrug(item)"
+                    @click="selectMasterDrug(item)"
+                    class="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 cursor-pointer transition-colors"
+                  >
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-slate-900 dark:text-white text-xs">{{ item.brandName || item.brand_name }}</span>
+                      <span class="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border rounded">
+                        {{ item.dosageForm || item.dosage_form || 'Tablet' }} {{ item.strength ? `• ${item.strength}` : '' }}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 flex justify-between">
+                      <span>Generic: <strong class="text-slate-700 dark:text-gray-300">{{ item.genericName || item.generic_name }}</strong></span>
+                      <span v-if="item.manufacturer" class="italic">{{ item.manufacturer }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div v-if="newProd.productType === 'medicine'">
                 <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Generic Compound Name</label>
                 <input type="text" v-model="newProd.genericName" placeholder="e.g. Amoxicillin Trihydrate"
@@ -516,16 +571,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useProductStore, type ProductItem } from '~/stores/products';
 import { useCategoryStore } from '~/stores/categories';
 import { useAdminSuppliers } from '~/composables/useAdminSuppliers';
+import { useProductStore, type ProductItem } from '~/stores/products';
+import { useSettingsStore } from '~/stores/settings';
 
-const productStore = useProductStore();
+const productsStore = useProductStore();
+const settingsStore = useSettingsStore();
 const categoryStore = useCategoryStore();
 const { suppliers: supplierList } = useAdminSuppliers();
 
-const { products, loading } = storeToRefs(productStore);
-const { fetchProducts, addProduct, updateProduct, deleteProduct } = productStore;
+const { products, loading } = storeToRefs(productsStore);
+const { fetchProducts, addProduct, updateProduct, deleteProduct } = productsStore;
 console.log(categoryStore.categories);
 
 const { categories: dbCategories } = storeToRefs(categoryStore);
@@ -577,7 +634,76 @@ const filteredProducts = computed(() => {
   );
 });
 
+// Master Drug Autocomplete & Auto-Fill State
+const masterDrugSearchResults = ref<any[]>([]);
+const showMasterDrugDropdown = ref(false);
+const selectedMasterDrug = ref<any | null>(null);
+
+let searchDebounceTimer: any = null;
+
+const handleMedicineInput = () => {
+  if (newProd.value.productType !== 'medicine') {
+    showMasterDrugDropdown.value = false;
+    return;
+  }
+
+  const query = (newProd.value.name || '').trim();
+  if (query.length < 2) {
+    masterDrugSearchResults.value = [];
+    showMasterDrugDropdown.value = false;
+    return;
+  }
+
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/super-admin/master-drugs?search=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.data)) {
+        masterDrugSearchResults.value = data.data;
+        showMasterDrugDropdown.value = data.data.length > 0;
+        return;
+      }
+    } catch (e) {
+      console.warn("Direct Express fetch failed, trying proxy...", e);
+    }
+
+    try {
+      const res: any = await $fetch(`/api/super-admin/master-drugs?search=${encodeURIComponent(query)}`);
+      if (res && res.success && Array.isArray(res.data)) {
+        masterDrugSearchResults.value = res.data;
+        showMasterDrugDropdown.value = res.data.length > 0;
+      }
+    } catch (e) {
+      console.warn("Master drug fetch failed:", e);
+    }
+  }, 150);
+};
+
+const selectMasterDrug = (item: any) => {
+  selectedMasterDrug.value = item;
+  newProd.value.masterDrugId = item.id;
+  newProd.value.name = item.brandName || item.brand_name || newProd.value.name;
+  newProd.value.genericName = item.genericName || item.generic_name || newProd.value.genericName;
+  newProd.value.dosageForm = item.dosageForm || item.dosage_form || newProd.value.dosageForm || 'Tablet';
+  if (item.strength) newProd.value.strength = item.strength;
+  if (item.manufacturer) newProd.value.manufacturer = item.manufacturer;
+  if (item.rxRequired !== undefined || item.rx_required !== undefined) {
+    newProd.value.rxRequired = item.rxRequired || !!item.rx_required;
+  }
+  if (item.defaultPrice || item.default_price) {
+    newProd.value.price = Number(item.defaultPrice || item.default_price);
+  }
+  showMasterDrugDropdown.value = false;
+};
+
+const clearMasterDrug = () => {
+  selectedMasterDrug.value = null;
+  newProd.value.masterDrugId = undefined;
+};
+
 const openAddModal = async () => {
+  clearMasterDrug();
   await fetchCategories();
   if (dbCategories.value && dbCategories.value.length > 0) {
     newProd.value.categoryId = dbCategories.value[0].id;

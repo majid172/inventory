@@ -19,7 +19,7 @@ const resolveTenantId = async (req) => {
     if (firstTenant && firstTenant.id) {
       return firstTenant.id;
     }
-  } catch (e) {}
+  } catch (e) { }
   return 1;
 };
 
@@ -45,6 +45,7 @@ const getProducts = async (req, res, next) => {
         c.name AS category_name,
         COALESCE(m.generic_name, p.name) AS generic_name,
         COALESCE(m.dosage_form, 'Tablet') AS dosage_form,
+        COALESCE(m.strength, '') AS strength,
         COALESCE(m.manufacturer, 'Pharma Corp') AS manufacturer,
         COALESCE(m.rx_required, 0) AS rx_required,
         COALESCE((
@@ -83,7 +84,7 @@ const getProducts = async (req, res, next) => {
         ), m.manufacturer, 'Pharma Corp') AS supplier_name
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN master_drugs m ON p.master_drug_id = m.id
+      LEFT JOIN master_drugs m ON (p.master_drug_id = m.id OR (p.master_drug_id IS NULL AND LOWER(p.name) = LOWER(m.brand_name)))
       WHERE p.tenant_id = ? OR ? IS NULL
       ORDER BY p.id DESC
     `;
@@ -98,7 +99,7 @@ const getProducts = async (req, res, next) => {
         name: r.name,
         genericName: r.generic_name,
         dosageForm: r.dosage_form,
-        strength: 'Standard',
+        strength: r.strength,
         categoryId: r.category_id,
         category: r.category_name || 'General',
         barcode: r.barcode || `MED-${r.id}`,
@@ -176,17 +177,16 @@ const createProduct = async (req, res, next) => {
       }
     }
 
-    // 2. Resolve Master Drug ID (Optional FK)
+    // 2. Resolve Master Drug ID (Relationship with master_drugs table)
     let mdId = masterDrugId ? parseInt(masterDrugId, 10) : null;
-    const isMedicine = req.body.productType !== 'general' && genericName && genericName.trim() !== '';
-
-    if (!mdId && isMedicine) {
-      const [mdRes] = await db.query(
-        `INSERT INTO master_drugs (brand_name, generic_name, dosage_form, manufacturer, rx_required, plan_tier)
-         VALUES (?, ?, ?, ?, ?, 'starter')`,
-        [name.trim(), genericName.trim(), dosageForm || 'Tablet', manufacturer || 'Pharma Corp', rxRequired ? 1 : 0]
+    if (!mdId && name) {
+      const [[foundMd]] = await db.query(
+        'SELECT id FROM master_drugs WHERE brand_name = ? OR brand_name LIKE ? LIMIT 1',
+        [name.trim(), `%${name.trim()}%`]
       );
-      mdId = mdRes.insertId;
+      if (foundMd && foundMd.id) {
+        mdId = foundMd.id;
+      }
     }
 
     const retailPrice = parseFloat(price) || 0.00;
@@ -194,7 +194,7 @@ const createProduct = async (req, res, next) => {
     const prodBarcode = barcode || `BC-${Date.now().toString().slice(-6)}`;
     const rack = rackLocation || 'Shelf A-01';
 
-    // 3. Insert Product
+    // 3. Insert Product (FK relationship master_drug_id -> master_drugs.id)
     const [prodResult] = await db.query(
       `INSERT INTO products (tenant_id, master_drug_id, category_id, name, barcode, retail_price, reorder_level, rack_location)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -238,8 +238,8 @@ const createProduct = async (req, res, next) => {
       tenantId: createdProd.tenant_id,
       name: createdProd.name,
       genericName: genericName || createdProd.name,
-      dosageForm: dosageForm || 'Tablet',
-      strength: 'Standard',
+      dosageForm: dosageForm || '',
+      strength: strength || '-',
       categoryId: createdProd.category_id,
       category: category || 'General',
       barcode: createdProd.barcode,
@@ -312,16 +312,7 @@ const updateProduct = async (req, res, next) => {
       [name.trim(), catId, retailPrice, reorder, rackLocation || 'Shelf A-01', id]
     );
 
-    // 2. Update Master Drug Details (if attached)
-    const [[prod]] = await db.query('SELECT master_drug_id FROM products WHERE id = ?', [id]);
-    if (prod && prod.master_drug_id) {
-      await db.query(
-        `UPDATE master_drugs 
-         SET brand_name = ?, generic_name = ?, dosage_form = ?, manufacturer = ?, rx_required = ?
-         WHERE id = ?`,
-        [name.trim(), genericName || name.trim(), dosageForm || 'Tablet', manufacturer || 'Pharma Corp', rxRequired ? 1 : 0, prod.master_drug_id]
-      );
-    }
+
 
     // 3. Update Latest Batch
     const [[latestBatch]] = await db.query('SELECT id FROM inventory_batches WHERE product_id = ? ORDER BY id DESC LIMIT 1', [id]);

@@ -43,12 +43,12 @@ export const useProductStore = defineStore('products', {
 
       return state.products.filter(p => {
         const matchesCategory = cat === "all items" || (p.category && p.category.toLowerCase() === cat);
-        const matchesSearch = !query || 
-                              (p.name && p.name.toLowerCase().includes(query)) || 
-                              (p.genericName && p.genericName.toLowerCase().includes(query)) ||
-                              (p.batchNumber && p.batchNumber.toLowerCase().includes(query)) ||
-                              (p.manufacturer && p.manufacturer.toLowerCase().includes(query)) ||
-                              (p.category && p.category.toLowerCase().includes(query));
+        const matchesSearch = !query ||
+          (p.name && p.name.toLowerCase().includes(query)) ||
+          (p.genericName && p.genericName.toLowerCase().includes(query)) ||
+          (p.batchNumber && p.batchNumber.toLowerCase().includes(query)) ||
+          (p.manufacturer && p.manufacturer.toLowerCase().includes(query)) ||
+          (p.category && p.category.toLowerCase().includes(query));
         return matchesCategory && matchesSearch;
       });
     }
@@ -70,7 +70,7 @@ export const useProductStore = defineStore('products', {
             if (user && user.tenantId && user.tenantId !== 'SYSTEM') {
               headers['x-tenant-id'] = String(user.tenantId);
             }
-          } catch (e) {}
+          } catch (e) { }
         }
 
         const savedStore = localStorage.getItem('active_tenant_store');
@@ -78,7 +78,7 @@ export const useProductStore = defineStore('products', {
           try {
             const store = JSON.parse(savedStore);
             if (store && store.id) headers['x-tenant-id'] = String(store.id);
-          } catch (e) {}
+          } catch (e) { }
         }
       }
       return headers;
@@ -103,8 +103,8 @@ export const useProductStore = defineStore('products', {
             productType: item.master_drug_id ? 'medicine' : 'general',
             name: item.name,
             genericName: item.genericName || item.generic_name || item.name,
-            dosageForm: item.dosageForm || item.dosage_form || 'Tablet',
-            strength: item.strength || 'Standard',
+            dosageForm: item.dosageForm || item.dosage_form || '-',
+            strength: item.strength || '-',
             categoryId: item.categoryId || item.category_id,
             category: item.category || item.category_name || 'General',
             barcode: item.barcode || `MED-${item.id}`,

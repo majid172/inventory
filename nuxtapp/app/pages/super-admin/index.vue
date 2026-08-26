@@ -10,10 +10,10 @@
             <span class="text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 px-1.5 py-0.2 text-[10px] font-mono">LIVE DB</span>
           </div>
           <div class="text-2xl font-normal text-emerald-700 dark:text-emerald-400 font-mono">
-            ${{ Number(analyticsData.mrr || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
+            {{ settingsStore.currencySymbol }}{{ Number(analyticsData.mrr || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
           </div>
           <div class="text-[11px] text-slate-400 dark:text-gray-500 mt-1 font-mono">
-            ARR Projection: ${{ Number(analyticsData.arr || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }) }}
+            ARR Projection: {{ settingsStore.currencySymbol }}{{ Number(analyticsData.arr || 0).toLocaleString('en-US', { minimumFractionDigits: 0 }) }}
           </div>
         </div>
 
@@ -29,7 +29,6 @@
           <div class="flex items-center gap-2 mt-1 text-[10px] font-mono font-normal">
             <span class="text-emerald-700 dark:text-emerald-400">{{ analyticsData.activeTenants || activeCount }} Active</span>
             <span class="text-amber-700 dark:text-amber-400">{{ analyticsData.trialTenants || trialCount }} Trial</span>
-            <span class="text-slate-500">{{ analyticsData.totalUsers || 0 }} Staff Accounts</span>
           </div>
         </div>
 
@@ -71,7 +70,7 @@
               <span>🏥</span> Live Subscriber Pharmacy Feed
             </h3>
             <NuxtLink to="/super-admin/users" class="text-emerald-700 dark:text-emerald-400 hover:underline font-normal">
-              Manage All Users & Stores →
+              Manage Subscribers & Users →
             </NuxtLink>
           </div>
 
@@ -113,7 +112,7 @@
                 >
                   <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">
                     <div class="text-slate-800 dark:text-gray-200 font-normal">{{ tenant.storeName }}</div>
-                    <div class="text-[10px] text-slate-400 font-mono">{{ tenant.slug }}.pharmacare.com</div>
+                    <div class="text-[10px] text-slate-400 font-mono">{{ tenant.slug }}.{{ settingsStore.systemSettings.platformName.toLowerCase().replace(/\s+/g, '') }}.com</div>
                   </td>
                   <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">
                     <div class="text-slate-800 dark:text-gray-200">{{ tenant.ownerName }}</div>
@@ -144,7 +143,7 @@
                     </span>
                   </td>
                   <td class="py-1.5 px-3 text-right font-mono font-normal text-emerald-700 dark:text-emerald-400">
-                    ${{ Number(tenant.mrr || 0).toFixed(2) }}
+                    {{ settingsStore.currencySymbol }}{{ Number(tenant.mrr || 0).toFixed(2) }}
                   </td>
                 </tr>
               </tbody>
@@ -175,14 +174,14 @@
               >
                 <div class="flex items-center justify-between font-normal">
                   <span class="text-slate-800 dark:text-gray-200">
-                    🏷️ {{ plan.name }} (${{ Number(plan.price || 49).toFixed(0) }}/mo)
+                    🏷️ {{ plan.name }} ({{ settingsStore.currencySymbol }}{{ Number(plan.price || 49).toFixed(0) }}/mo)
                   </span>
                   <span class="font-mono text-emerald-700 dark:text-emerald-400 font-normal">
                     {{ plan.count || countForPlan(plan.name) }} Stores
                   </span>
                 </div>
                 <div class="text-[11px] text-slate-400 mt-0.5 font-mono">
-                  ${{ Number(plan.price || 49).toFixed(2) }} / {{ plan.durationDays || 30 }} days
+                  {{ settingsStore.currencySymbol }}{{ Number(plan.price || 49).toFixed(2) }} / {{ plan.durationDays || 30 }} days
                 </div>
                 <div class="w-full bg-slate-100 dark:bg-gray-800 h-1.5 mt-2 overflow-hidden">
                   <div 
@@ -209,6 +208,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useSettingsStore } from '~/stores/settings';
+
+const settingsStore = useSettingsStore();
 
 interface SubscriberItem {
   id: string;

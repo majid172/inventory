@@ -91,7 +91,7 @@
                 </td>
                 <td class="py-2 px-2.5 border border-slate-300 dark:border-gray-800">
                   <div class="font-extrabold" :class="selectedRow === tenant.id ? 'text-white' : 'text-slate-900 dark:text-gray-100'">{{ tenant.storeName }}</div>
-                  <div class="text-[10px] font-mono" :class="selectedRow === tenant.id ? 'text-sky-100' : 'text-blue-700 dark:text-sky-400'">{{ tenant.slug }}.pharmacare.com</div>
+                  <div class="text-[10px] font-mono" :class="selectedRow === tenant.id ? 'text-sky-100' : 'text-blue-700 dark:text-sky-400'">{{ tenant.slug }}.{{ settingsStore.systemSettings.platformName.toLowerCase().replace(/\s+/g, '') }}.com</div>
                 </td>
                 <td class="py-2 px-2.5 border border-slate-300 dark:border-gray-800 font-medium" :class="selectedRow === tenant.id ? 'text-white' : 'text-slate-700 dark:text-gray-300'">
                   <div>{{ tenant.ownerName }}</div>
@@ -99,7 +99,7 @@
                 </td>
                 <td class="py-2 px-2.5 border border-slate-300 dark:border-gray-800 font-mono">
                   <span :class="selectedRow === tenant.id ? 'bg-white/20 text-white border-white/40' : tenant.planTier === 'enterprise' ? 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800' : tenant.planTier === 'pro' ? 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-800' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'" class="px-1.5 py-0.2 rounded border text-[10px] font-black uppercase">
-                    {{ tenant.planTier }} (${{ tenant.mrr }}/mo)
+                    {{ tenant.planTier }} ({{ settingsStore.currencySymbol }}{{ tenant.mrr }}/mo)
                   </span>
                 </td>
                 <td class="py-2 px-2.5 text-center border border-slate-300 dark:border-gray-800">
@@ -212,7 +212,7 @@
                 class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-bold outline-none"
               >
                 <option v-for="p in plans" :key="p.id" :value="p.id">
-                  {{ p.name }} (${{ p.priceMonthly }}/mo - {{ p.masterDrugLimit }})
+                  {{ p.name }} ({{ settingsStore.currencySymbol }}{{ p.priceMonthly }}/mo - {{ p.masterDrugLimit }})
                 </option>
               </select>
             </div>
@@ -254,7 +254,7 @@
                 class="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded px-2.5 py-1 font-bold outline-none"
               >
                 <option v-for="p in plans" :key="p.id" :value="p.id">
-                  {{ p.name }} (${{ p.priceMonthly }}/mo)
+                  {{ p.name }} ({{ settingsStore.currencySymbol }}{{ p.priceMonthly }}/mo)
                 </option>
               </select>
             </div>
@@ -283,6 +283,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useSuperAdmin } from '~/composables/useSuperAdmin';
+import { useSettingsStore } from '~/stores/settings';
+
+const settingsStore = useSettingsStore();
 import type { TenantStore } from '~/stores/superAdmin';
 
 const { plans, filteredTenants, searchFilter, statusFilter, planFilter, fetchTenants, fetchPlans, createTenant, updateTenant } = useSuperAdmin();

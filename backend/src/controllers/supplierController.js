@@ -1,23 +1,106 @@
-let suppliers = [
-  { id: 1, supplierId: "SUP_000", name: "Apple Inc", contactName: "Sarah Connor", email: "sarah.connor@apple.com", phone: "+1-555-0100", status: "ACTIVE" },
-  { id: 2, supplierId: "SUP_001", name: "Nike Logistics", contactName: "Michael Scott", email: "michael.scott@nike.com", phone: "+1-555-0101", status: "ACTIVE" }
-];
+const db = require('../config/db');
 
-const getSuppliers = (req, res) => {
-  res.json({ success: true, count: suppliers.length, data: suppliers });
+// Helper to get a valid tenant_id
+const resolveTenantId = async (req) => {
+  if (req.tenantId && req.tenantId !== 'SYSTEM') {
+    return parseInt(req.tenantId, 10);
+  }
+  const xTenant = req.headers['x-tenant-id'] || req.headers['X-Tenant-Id'];
+  if (xTenant && !isNaN(parseInt(xTenant, 10))) {
+    return parseInt(xTenant, 10);
+  }
+  try {
+    const [[firstTenant]] = await db.query('SELECT id FROM tenants ORDER BY id ASC LIMIT 1');
+    if (firstTenant && firstTenant.id) {
+      return firstTenant.id;
+    }
+  } catch (e) {}
+  return 1;
 };
 
-const createSupplier = (req, res) => {
-  const newSup = {
-    id: suppliers.length + 1,
-    supplierId: `SUP_${String(suppliers.length).padStart(3, '0')}`,
-    ...req.body
-  };
-  suppliers.push(newSup);
-  res.status(201).json({ success: true, data: newSup });
+const getSuppliers = async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req);
+    const [rows] = await db.query('SELECT * FROM suppliers WHERE tenant_id = ? ORDER BY created_at DESC', [tenantId]);
+    
+    // Map to frontend expected format
+    const formattedSuppliers = rows.map(r => ({
+      id: r.id,
+      supplier_id: 'SUP_' + String(r.id).padStart(3, '0'),
+      name: r.name,
+      contact_name: r.contact_person || r.contact_name || '',
+      email: r.email || '',
+      phone: r.phone || '',
+      status: r.is_active ? 'ACTIVE' : 'INACTIVE',
+      due_amount: r.due_amount
+    }));
+    
+    res.json({ success: true, count: formattedSuppliers.length, data: formattedSuppliers });
+  } catch (err) {
+    console.error('Error fetching suppliers:', err);
+    res.status(500).json({ success: false, message: 'Server error fetching suppliers' });
+  }
+};
+
+const createSupplier = async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req);
+    const { name, contact_name, email, phone, status } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Supplier name is required' });
+    }
+    
+    const is_active = status === 'INACTIVE' ? 0 : 1;
+    
+    const [result] = await db.query(
+      'INSERT INTO suppliers (tenant_id, name, contact_person, email, phone, is_active) VALUES (?, ?, ?, ?, ?, ?)',
+      [tenantId, name, contact_name || '', email || '', phone || '', is_active]
+    );
+    
+    const newSupplier = {
+      id: result.insertId,
+      supplier_id: 'SUP_' + String(result.insertId).padStart(3, '0'),
+      name,
+      contact_name,
+      email,
+      phone,
+      status: is_active ? 'ACTIVE' : 'INACTIVE'
+    };
+    
+    res.status(201).json({ success: true, data: newSupplier });
+  } catch (err) {
+    console.error('Error creating supplier:', err);
+    res.status(500).json({ success: false, message: 'Server error creating supplier' });
+  }
+};
+
+const updateSupplier = async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req);
+    const { id } = req.params;
+    const { name, contact_name, email, phone, status } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Supplier name is required' });
+    }
+    
+    const is_active = status === 'INACTIVE' ? 0 : 1;
+    
+    await db.query(
+      'UPDATE suppliers SET name = ?, contact_person = ?, email = ?, phone = ?, is_active = ? WHERE id = ? AND tenant_id = ?',
+      [name, contact_name || '', email || '', phone || '', is_active, id, tenantId]
+    );
+    
+    res.json({ success: true, message: 'Supplier updated successfully' });
+  } catch (err) {
+    console.error('Error updating supplier:', err);
+    res.status(500).json({ success: false, message: 'Server error updating supplier' });
+  }
 };
 
 module.exports = {
   getSuppliers,
-  createSupplier
+  createSupplier,
+  updateSupplier
 };

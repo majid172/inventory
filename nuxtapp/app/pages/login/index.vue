@@ -4,7 +4,7 @@
     <header class="h-10 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-4 flex items-center justify-between text-xs">
       <div class="flex items-center gap-2">
         <span class="text-base">💊</span>
-        <span class="font-normal text-slate-800 dark:text-gray-100 tracking-wide">PHARMACARE ERP</span>
+        <span class="font-normal text-slate-800 dark:text-gray-100 tracking-wide">{{ settingsStore.systemSettings.platformName.toUpperCase() }} ERP</span>
         <span class="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.2 border border-emerald-300 dark:border-emerald-800">
           Desktop Edition
         </span>
@@ -29,13 +29,27 @@
           </p>
         </div>
 
-        <!-- Error Alert -->
-        <div v-if="authError" class="p-2.5 bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-400 flex items-center justify-between">
-          <div class="flex items-center gap-1.5">
-            <span>⚠️</span>
-            <span>{{ authError }}</span>
+        <!-- Subscription Expired / Account Inactive Error Alert -->
+        <div v-if="authError" 
+          class="p-3 border text-xs font-medium space-y-1 shadow-xs"
+          :class="isSubscriptionExpired ? 'bg-amber-50 dark:bg-amber-950/80 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200' : 'bg-rose-50 dark:bg-rose-950 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-400'"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-start gap-2">
+              <span class="text-base leading-none">{{ isSubscriptionExpired ? '🚨' : '⚠️' }}</span>
+              <div>
+                <strong v-if="isSubscriptionExpired" class="block font-bold text-xs mb-0.5 text-amber-800 dark:text-amber-300">Subscription Expired / Access Suspended</strong>
+                <p class="leading-relaxed">{{ authError }}</p>
+              </div>
+            </div>
+            <button @click="authError = ''" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer text-xs font-bold">✕</button>
           </div>
-          <button @click="authError = ''" class="text-rose-600 hover:text-rose-800 cursor-pointer text-xs">✕</button>
+          <div v-if="isSubscriptionExpired" class="pt-2 mt-1 border-t border-amber-200 dark:border-amber-800/60 flex items-center justify-between">
+            <span class="text-[10px] text-amber-700 dark:text-amber-300">Need to renew your store subscription?</span>
+            <NuxtLink to="/subscribe" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-bold shadow-xs">
+              Renew Plan →
+            </NuxtLink>
+          </div>
         </div>
 
         <!-- Success Alert -->
@@ -101,18 +115,21 @@
 
     <!-- Bottom Footer -->
     <footer class="h-8 bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 px-4 flex items-center justify-between text-[11px] text-slate-500 font-normal">
-      <div>PharmaCare SaaS Enterprise</div>
+      <div>{{ settingsStore.systemSettings.platformName }} SaaS Enterprise</div>
       <div class="font-mono">v2.4 Desktop ERP</div>
     </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuth } from '~/composables/useAuth';
+import { useSettingsStore } from '~/stores/settings';
 
 const router = useRouter();
+const route = useRoute();
+const settingsStore = useSettingsStore();
 const { setAuthSession } = useAuth() as any;
 
 const identifier = ref('');
@@ -120,16 +137,26 @@ const password = ref('');
 const rememberMe = ref(true);
 const loading = ref(false);
 const authError = ref('');
+const isSubscriptionExpired = ref(false);
 const authSuccess = ref('');
+
+onMounted(() => {
+  if (route.query.reason === 'subscription_expired') {
+    authError.value = '⚠️ Subscription Expired! Your store plan has ended. Please renew to regain access.';
+    isSubscriptionExpired.value = true;
+  }
+});
 
 const handleSignIn = async () => {
   if (!identifier.value.trim() || !password.value.trim()) {
     authError.value = 'Please enter both email/username and password.';
+    isSubscriptionExpired.value = false;
     return;
   }
 
   loading.value = true;
   authError.value = '';
+  isSubscriptionExpired.value = false;
   authSuccess.value = '';
 
   try {
@@ -176,29 +203,12 @@ const handleSignIn = async () => {
       }, 250);
     } else {
       authError.value = data.message || 'Invalid email or password. Please try again.';
+      if (data.code === 'SUBSCRIPTION_EXPIRED' || (data.message && (data.message.toLowerCase().includes('expire') || data.message.toLowerCase().includes('inactive') || data.message.toLowerCase().includes('suspend')))) {
+        isSubscriptionExpired.value = true;
+      }
     }
   } catch (err: any) {
-    // Resilient fallback for demo credentials
-    const cleanId = identifier.value.trim().toLowerCase();
-    const isSuper = cleanId.includes('super') || cleanId.includes('pharma');
-    authSuccess.value = 'Session verified. Redirecting...';
-
-    if (process.client) {
-      localStorage.setItem('auth_token', `token_${Date.now()}`);
-      localStorage.setItem('auth_user', JSON.stringify({
-        id: '1',
-        name: identifier.value,
-        email: identifier.value,
-        role: isSuper ? 'SUPER_ADMIN' : 'STORE_ADMIN'
-      }));
-      localStorage.setItem('is_logged_in', 'true');
-      if (isSuper) localStorage.setItem('is_super_admin', 'true');
-    }
-
-    setTimeout(() => {
-      if (isSuper) router.push('/super-admin');
-      else router.push('/admin');
-    }, 250);
+    authError.value = err.message || 'Error connecting to authentication server.';
   } finally {
     loading.value = false;
   }

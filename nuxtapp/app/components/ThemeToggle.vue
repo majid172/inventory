@@ -2,18 +2,18 @@
   <button 
     @click="toggleTheme" 
     type="button"
-    class="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer select-none"
+    class="relative inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-normal transition-colors cursor-pointer select-none"
     :class="[
       isDark 
-        ? 'bg-gray-900 border-gray-800 text-amber-400 hover:bg-gray-800 hover:border-gray-700' 
-        : 'bg-white border-slate-200 text-amber-600 hover:bg-slate-50 hover:border-slate-300 shadow-slate-200'
+        ? 'bg-transparent text-slate-200 hover:bg-slate-500/30' 
+        : 'bg-transparent text-slate-200 hover:bg-slate-500/30'
     ]"
     :title="isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
   >
-    <span class="text-sm transition-transform duration-300 transform" :class="isDark ? 'rotate-0' : 'rotate-180'">
+    <span class="text-xs transition-transform duration-300 transform" :class="isDark ? 'rotate-0' : 'rotate-180'">
       {{ isDark ? '🌙' : '☀️' }}
     </span>
-    <span class="font-sans tracking-wide">
+    <span class="font-sans tracking-wide opacity-80">
       {{ isDark ? 'Dark' : 'Light' }}
     </span>
   </button>

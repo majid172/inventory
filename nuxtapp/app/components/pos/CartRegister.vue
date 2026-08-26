@@ -90,7 +90,7 @@
               Lot: {{ item.product.batchNumber || '-' }} (Exp: {{ item.product.expiryDate || '-' }})
             </div>
           </div>
-          <div class="text-xs font-normal font-mono text-slate-900 dark:text-gray-100">${{ item.itemTotal.toFixed(2) }}</div>
+          <div class="text-xs font-normal font-mono text-slate-900 dark:text-gray-100">{{ settingsStore.currencySymbol }}{{ item.itemTotal.toFixed(2) }}</div>
         </div>
 
         <!-- Dosage Instructions Note Input -->
@@ -130,18 +130,18 @@
 
       <div class="flex justify-between text-xs text-slate-600 dark:text-gray-400 font-normal">
         <span>Subtotal:</span>
-        <span class="font-mono text-slate-800 dark:text-gray-200">${{ subtotal.toFixed(2) }}</span>
+        <span class="font-mono text-slate-800 dark:text-gray-200">{{ settingsStore.currencySymbol }}{{ subtotal.toFixed(2) }}</span>
       </div>
 
       <div v-if="computedDiscount > 0" class="flex justify-between text-xs text-emerald-700 dark:text-emerald-400 font-normal">
         <span>Discount:</span>
-        <span class="font-mono">-${{ computedDiscount.toFixed(2) }}</span>
+        <span class="font-mono">-{{ settingsStore.currencySymbol }}{{ computedDiscount.toFixed(2) }}</span>
       </div>
 
       <!-- Desktop Total Box -->
       <div class="bg-slate-900 text-emerald-400 border border-slate-700 p-1.5 flex justify-between items-center">
         <span class="text-xs font-mono uppercase tracking-wider text-slate-300">TOTAL DUE:</span>
-        <span class="text-lg font-mono font-normal tracking-tight">${{ total.toFixed(2) }}</span>
+        <span class="text-lg font-mono font-normal tracking-tight">{{ settingsStore.currencySymbol }}{{ total.toFixed(2) }}</span>
       </div>
 
       <!-- Action Buttons Grid -->
@@ -168,7 +168,7 @@
         :disabled="cartItems.length === 0"
         class="w-full bg-[#107c41] hover:bg-[#0e6b37] disabled:opacity-40 text-white font-normal py-2 text-xs border border-[#0e6b37] flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
       >
-        <span>💊 PAY & DISPENSE (F4) — ${{ total.toFixed(2) }}</span>
+        <span>💊 PAY & DISPENSE (F4) — {{ settingsStore.currencySymbol }}{{ total.toFixed(2) }}</span>
       </button>
     </div>
   </div>
@@ -177,8 +177,10 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
 import { useCartStore } from '~/stores/cart';
+import { useSettingsStore } from '~/stores/settings';
 
 const cartStore = useCartStore();
+const settingsStore = useSettingsStore();
 
 const { 
   cartItems, 

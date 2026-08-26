@@ -96,13 +96,14 @@
               <tr
                 class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
                 <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># ID</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Subscriber / User</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Contact & Credentials</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Pharmacy / Store Organization</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Subscription Plan & MRR</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">Sub Status</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center w-28 font-normal">System Role</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal w-24">Expiry / Renewal</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Subscriber</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Email</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Phone</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Pharmacy</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Subscription & MRR</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">Status</th>
+                <!-- <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center w-28 font-normal">Role</th> -->
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal w-24">Expiry</th>
                 <th class="py-1.5 px-3 text-center w-28 font-normal">Actions</th>
               </tr>
             </thead>
@@ -110,7 +111,7 @@
               <!-- Loading State -->
               <tr v-if="loading">
                 <td colspan="9" class="py-8 text-center text-slate-400 dark:text-gray-500 font-normal">
-                  <span class="inline-block animate-spin mr-1">⏳</span> Loading subscribers and users from MySQL...
+                  <span class="inline-block animate-spin mr-1">⏳</span> Loading subscribers ...
                 </td>
               </tr>
 
@@ -145,14 +146,19 @@
                 <td
                   class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-800 dark:text-gray-200">
                   <div class="font-normal">{{ row.name }}</div>
-                  <div class="text-[10px] text-slate-400 font-mono">UID: #{{ row.id }}</div>
+                  <!-- <div class="text-[10px] text-slate-400 font-mono">UID: #{{ row.id }}</div> -->
                 </td>
 
-                <!-- Email & Phone -->
+                <!-- Email -->
                 <td
-                  class="py-1.5 px-3 font-normal border-r border-slate-200 dark:border-gray-800">
-                  <div class="font-mono text-[11px] text-slate-700 dark:text-gray-300">{{ row.email }}</div>
-                  <div class="text-[10px] text-slate-400">{{ row.phone || '-' }}</div>
+                  class="py-1.5 px-3 font-mono text-[11px] text-slate-700 dark:text-gray-300 border-r border-slate-200 dark:border-gray-800">
+                  {{ row.email }}
+                </td>
+
+                <!-- Phone -->
+                <td
+                  class="py-1.5 px-3 font-mono text-[11px] text-slate-700 dark:text-gray-300 border-r border-slate-200 dark:border-gray-800">
+                  {{ row.phone || row.tenant_phone || '-' }}
                 </td>
 
                 <!-- Tenant / Store Name -->
@@ -160,10 +166,10 @@
                   class="py-1.5 px-3 font-normal text-slate-700 dark:text-gray-300 border-r border-slate-200 dark:border-gray-800">
                   <div v-if="row.tenant_name">
                     <div class="inline-flex items-center gap-1 font-normal text-slate-800 dark:text-gray-200">
-                      <span>🏥</span> {{ row.tenant_name }}
+                      {{ row.tenant_name }}
                     </div>
                     <div class="text-[10px] text-slate-400 font-mono">
-                      {{ row.tenant_domain || 'store-' + row.tenant_id }}.pharmacare.com
+                      {{ row.tenant_domain || 'store-' + row.tenant_id }}.{{ settingsStore.systemSettings.platformName.toLowerCase().replace(/\s+/g, '') }}.com
                     </div>
                   </div>
                   <span v-else class="text-slate-400 dark:text-gray-500 text-[11px]">
@@ -186,7 +192,7 @@
                       🏷️ {{ row.plan_name }}
                     </span>
                     <span class="text-[10px] text-slate-500 font-mono">
-                      ${{ Number(row.plan_price || 0).toFixed(0) }}/mo
+                      {{ settingsStore.currencySymbol }}{{ Number(row.plan_price || 0).toFixed(0) }}/mo
                     </span>
                   </div>
                   <span v-else class="text-[10px] text-slate-400 dark:text-gray-500 font-mono">
@@ -196,15 +202,15 @@
 
                 <!-- Subscription Status -->
                 <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
-                  <span v-if="row.subscription_status" :class="[
+                  <span v-if="row.status" :class="[
                     'text-[10px] font-mono px-1.5 py-0.2 border uppercase',
-                    row.subscription_status === 'active'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400'
-                      : row.subscription_status === 'trial'
-                        ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400'
-                        : 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-400'
+                    (row.status === 'expired' || row.subscription_status === 'expired' || (row.end_date && new Date(row.end_date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0]))
+                      ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-400 font-bold'
+                      : (row.status === 'trial' || row.subscription_status === 'trial')
+                        ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400 font-bold'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 font-bold'
                   ]">
-                    {{ row.subscription_status }}
+                    {{ (row.end_date && new Date(row.end_date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0]) ? 'EXPIRED' : (row.subscription_status || row.status) }}
                   </span>
                   <span v-else-if="row.tenant_name" class="text-[10px] font-mono px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-300">
                     active
@@ -215,7 +221,7 @@
                 </td>
 
                 <!-- Role -->
-                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
+                <!-- <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
                   <span :class="[
                     'text-[10px] font-mono px-1.5 py-0.2 border',
                     row.role === 'SUPER_ADMIN'
@@ -228,7 +234,7 @@
                   ]">
                     {{ row.role }}
                   </span>
-                </td>
+                </td> -->
 
                 <!-- Expiry Date -->
                 <td
@@ -300,7 +306,7 @@
                 </span>
               </div>
               <div class="text-slate-500 font-mono text-[11px]">
-                Domain: {{ activeDetailUser.tenant_domain || 'app' }}.pharmacare.com
+                Domain: {{ activeDetailUser.tenant_domain || 'app' }}.{{ settingsStore.systemSettings.platformName.toLowerCase().replace(/\s+/g, '') }}.com
               </div>
             </div>
 
@@ -329,7 +335,7 @@
               <div class="bg-white dark:bg-gray-900 p-2 border border-slate-200 dark:border-gray-800 space-y-0.5">
                 <span class="text-[10px] text-slate-400 block uppercase">Subscription Plan</span>
                 <span class="text-emerald-700 dark:text-emerald-400 font-normal">
-                  🏷️ {{ activeDetailUser.plan_name || 'Starter Plan' }} (${{ Number(activeDetailUser.plan_price || 49).toFixed(0) }}/mo)
+                  🏷️ {{ activeDetailUser.plan_name || 'Starter Plan' }} ({{ settingsStore.currencySymbol }}{{ Number(activeDetailUser.plan_price || 49).toFixed(0) }}/mo)
                 </span>
               </div>
 
@@ -547,7 +553,11 @@
 </template>
 
 <script setup lang="ts">
+import SuperAdminHeader from '~/components/super-admin/SuperAdminHeader.vue';
+import { useSettingsStore } from '~/stores/settings';
 import { ref, computed, onMounted } from 'vue';
+
+const settingsStore = useSettingsStore();
 
 interface UserRecord {
   id: number;

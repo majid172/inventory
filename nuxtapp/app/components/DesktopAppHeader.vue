@@ -6,23 +6,41 @@
       <div class="flex items-center gap-1.5">
         <span class="text-xs">💊</span>
         <span class="font-normal tracking-wide text-slate-100">
-          PharmaCare ERP — {{ isSuperAdmin ? 'Platform Management Console' : (activeTenantStoreName || 'Pharmacy Management System') }}
+          {{ settingsStore.systemSettings.platformName }} ERP — {{ isSuperAdmin ? 'Platform Management Console' : (activeTenantStoreName || 'Pharmacy Management System') }}
         </span>
         <span class="text-[10px] text-emerald-400 bg-emerald-950/80 border border-emerald-600/40 px-1.5 py-0.2">
           v2.6 Enterprise [MySQL 8.4]
         </span>
       </div>
 
-      <!-- Right: System Status -->
-      <div class="flex items-center gap-2">
-        <span class="text-[10px] text-slate-300 font-mono">
-          Server: <strong class="text-emerald-300 font-normal">ONLINE (5000)</strong> | Tenant: <strong class="text-white font-normal">{{ currentTenantLabel }}</strong>
-        </span>
+      <!-- Right: User Session & Time (Moved from Toolbar) -->
+      <div class="flex items-center gap-1.5">
+        <div class="text-[10px] font-mono text-slate-300 bg-transparent px-2 py-0.5 border border-transparent rounded cursor-default flex items-center gap-1">
+          <span>🕒</span>
+          <span>{{ formattedTime }}</span>
+        </div>
+        <ThemeToggle />
+        <button 
+          v-if="isLoggedIn"
+          @click="handleLogout"
+          class="bg-transparent hover:bg-slate-500/30 text-slate-200 px-2.5 py-0.5 text-[10px] font-normal cursor-pointer rounded transition-colors flex items-center gap-1"
+        >
+          <span>🚪</span>
+          <span>Sign Out</span>
+        </button>
+        <NuxtLink
+          v-else
+          to="/login"
+          class="bg-transparent hover:bg-slate-500/30 text-slate-200 px-2.5 py-0.5 text-[10px] font-normal cursor-pointer rounded transition-colors flex items-center gap-1"
+        >
+          <span>🔑</span>
+          <span>Sign In</span>
+        </NuxtLink>
       </div>
     </div>
 
     <!-- 2. Classic Desktop Menu Bar (File, Edit, View, Operations, Tools, Help) -->
-    <div class="h-6 bg-[#f0f3f6] dark:bg-gray-950 border-b border-slate-300 dark:border-gray-800 px-1 flex items-center gap-1 text-[11px] font-sans text-slate-700 dark:text-gray-300">
+    <div v-if="isLoggedIn" class="h-6 bg-[#f0f3f6] dark:bg-gray-950 border-b border-slate-300 dark:border-gray-800 px-1 flex items-center gap-1 text-[11px] font-sans text-slate-700 dark:text-gray-300">
       <!-- File Menu -->
       <div class="relative group">
         <button class="px-2 py-0.5 hover:bg-slate-200 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white cursor-pointer font-normal">
@@ -73,7 +91,7 @@
     <!-- 3. Desktop Application Toolbar Ribbon with Quick Action Buttons -->
     <div class="px-2 py-1 bg-[#f8fafc] dark:bg-gray-900/90 border-b border-slate-300 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
       <!-- Left: Fast Navigation Buttons -->
-      <div class="flex items-center gap-1">
+      <div v-if="isLoggedIn" class="flex items-center gap-1">
         <NuxtLink 
           to="/pos"
           class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 px-2.5 py-1 text-slate-800 dark:text-gray-200 flex items-center gap-1.5 shadow-xs font-normal text-[11px] cursor-pointer"
@@ -117,19 +135,7 @@
         </NuxtLink>
       </div>
 
-      <!-- Right: User Session & Time -->
-      <div class="flex items-center gap-2">
-        <div class="text-[11px] font-mono text-slate-600 dark:text-gray-400 bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 px-2 py-0.5">
-          🕒 {{ formattedTime }}
-        </div>
-        <ThemeToggle />
-        <button 
-          @click="handleLogout"
-          class="bg-white dark:bg-gray-800 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 px-2.5 py-1 text-[11px] font-normal cursor-pointer shadow-xs"
-        >
-          🚪 Sign Out
-        </button>
-      </div>
+
     </div>
 
     <!-- PIN Modal -->
@@ -160,9 +166,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ThemeToggle from '~/components/ThemeToggle.vue';
 import { useAuth } from '~/composables/useAuth';
+import { useSettingsStore } from '~/stores/settings';
 
 const route = useRoute();
 const router = useRouter();
+const settingsStore = useSettingsStore();
 const { user, isLoggedIn: authIsLoggedIn, isSuperAdmin: authIsSuperAdmin, changePin, logout, initAuthFromStorage, fetchCurrentUser } = useAuth();
 
 const formattedTime = ref('');
@@ -202,11 +210,20 @@ const currentTenantLabel = computed(() => {
 
 const updateClock = () => {
   const now = new Date();
-  formattedTime.value = now.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+  try {
+    formattedTime.value = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: settingsStore.timezone || undefined
+    });
+  } catch (e) {
+    formattedTime.value = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
 };
 
 const reloadApp = () => {

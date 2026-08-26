@@ -34,7 +34,7 @@
             </div>
 
             <div class="text-right flex flex-col items-end gap-1.5">
-              <span class="font-mono font-normal text-slate-900 dark:text-gray-100">${{ order.total.toFixed(2) }}</span>
+              <span class="font-mono font-normal text-slate-900 dark:text-gray-100">{{ settingsStore.currencySymbol }}{{ order.total.toFixed(2) }}</span>
               <button 
                 @click="restoreHeldOrder(order.id)"
                 class="bg-white hover:bg-emerald-50 dark:bg-gray-800 text-emerald-700 dark:text-emerald-400 border border-slate-300 dark:border-gray-700 hover:border-emerald-500 text-xs px-2.5 py-1 transition-colors cursor-pointer"
@@ -57,7 +57,14 @@
 </template>
 
 <script setup lang="ts">
-import { useCart } from '~/composables/useCart';
+import { storeToRefs } from 'pinia';
+import { useCartStore } from '~/stores/cart';
+import { useSettingsStore } from '~/stores/settings';
 
-const { showHeldOrdersModal, heldOrders, restoreHeldOrder } = useCart();
+const emit = defineEmits(['close']);
+const cartStore = useCartStore();
+const settingsStore = useSettingsStore();
+
+const { showHeldOrdersModal, heldOrders } = storeToRefs(cartStore);
+const { restoreHeldOrder } = cartStore;
 </script>
