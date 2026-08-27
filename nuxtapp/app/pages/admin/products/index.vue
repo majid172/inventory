@@ -56,11 +56,10 @@
                 </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal"> Qty
                 </th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Rx Flag
-                </th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Batch & Exp</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Status
-                </th>
+                <!-- <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Rx Flag
+                </th> -->
+               <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Batch & Exp</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Status</th>
                 <th class="py-1.5 px-3 text-center w-24 font-normal">Actions</th>
               </tr>
             </thead>
@@ -132,11 +131,11 @@
                 </td>
 
                 <!-- Rx Flag -->
-                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
+                <!-- <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
                   <span :class="row.rxRequired ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'">
                     {{ row.rxRequired ? 'Rx Req' : 'OTC' }}
                   </span>
-                </td>
+                </td> -->
 
                 <!-- Batch & Exp -->
                 <td
@@ -145,12 +144,19 @@
                   <div class="text-[10px] text-slate-400">{{ row.expiryDate || '-' }}</div>
                 </td>
 
-                <!-- Status -->
-                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
+                <!-- Availability -->
+                <!-- <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal"> 
                   <span
-                    :class="row.status == 1 || row.status === 'AVAILABLE' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600'">
+                    :class="row.status == 1 || row.status === 'AVAILABLE' ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-600'">
                     {{ row.status == 1 || row.status === 'AVAILABLE' ? 'Available' : 'Out of Stock' }}
                   </span>
+                </td> -->
+                <!-- Active / Inactive Status -->
+                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal"> 
+                  <span
+                    :class="row.is_active == 1 ? 'text-emerald-700 dark:text-emerald-400 font-medium' : 'text-rose-600 font-medium'">
+                    {{ row.is_active == 1 ? 'Active' : 'Inactive' }}
+                  </span> 
                 </td>
 
                 <!-- Actions -->
@@ -380,10 +386,10 @@
               </div>
               <div class="flex items-center gap-2">
                 <label class="font-normal text-slate-700 dark:text-gray-300">Status:</label>
-                <select v-model="newProd.status"
-                  class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-100 font-normal">
-                  <option value="1">Available</option>
-                  <option value="0">Out of Stock</option>
+                <select v-model.number="newProd.is_active"
+                  class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-100 font-normal cursor-pointer">
+                  <option :value="1">Active </option>
+                  <option :value="0">Inactive</option>
                 </select>
               </div>
             </div>
@@ -542,10 +548,10 @@
               </div>
               <div class="flex items-center gap-2">
                 <label class="font-normal text-slate-700 dark:text-gray-300">Status:</label>
-                <select v-model="editProd.status"
-                  class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-100 font-normal">
-                  <option value="1">Available</option>
-                  <option value="0">Out of Stock</option>
+                <select v-model.number="editProd.is_active"
+                  class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-100 font-normal cursor-pointer">
+                  <option :value="1">Active</option>
+                  <option :value="0">Inactive</option>
                 </select>
               </div>
             </div>
@@ -624,14 +630,17 @@ onMounted(() => {
 });
 
 const filteredProducts = computed(() => {
-  const query = filterText.value.toLowerCase();
-  return products.value.filter(p =>
-    p.name.toLowerCase().includes(query) ||
-    (p.genericName && p.genericName.toLowerCase().includes(query)) ||
-    (p.manufacturer && p.manufacturer.toLowerCase().includes(query)) ||
-    (p.batchNumber && p.batchNumber.toLowerCase().includes(query)) ||
-    (p.category && p.category.toLowerCase().includes(query))
-  );
+  const query = (filterText.value || '').toLowerCase().trim();
+  if (!products.value || !Array.isArray(products.value)) return [];
+  return products.value.filter(p => {
+    if (!p) return false;
+    const name = (p.name || '').toLowerCase();
+    const generic = (p.genericName || '').toLowerCase();
+    const mfg = (p.manufacturer || '').toLowerCase();
+    const batch = (p.batchNumber || '').toLowerCase();
+    const cat = (p.category || '').toLowerCase();
+    return name.includes(query) || generic.includes(query) || mfg.includes(query) || batch.includes(query) || cat.includes(query);
+  });
 });
 
 // Master Drug Autocomplete & Auto-Fill State
@@ -746,6 +755,7 @@ const openEditModal = async (product: ProductItem) => {
   const isMed = !!(product.masterDrugId || (product.genericName && product.genericName !== product.name && product.genericName.trim() !== ''));
   editProd.value = {
     ...product,
+    is_active: product.is_active !== undefined ? Number(product.is_active) : (product.isActive !== undefined ? Number(product.isActive) : 1),
     productType: isMed ? 'medicine' : 'general'
   };
   showEditModal.value = true;

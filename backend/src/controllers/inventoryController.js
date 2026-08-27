@@ -10,48 +10,84 @@ const getDashboard = async (req, res) => {
     // Debug log to trace which tenant is being queried
     console.log(`[getDashboard] tenantId=${tid} user=${req.user?.id} role=${req.user?.role}`);
 
-    const [[todaySale]] = await db.query(
-      `SELECT COALESCE(SUM(total), 0) AS today_revenue, COUNT(*) AS today_sales
-       FROM sales WHERE tenant_id = ? AND (DATE(created_at) = CURDATE() OR DATE(created_at) = CURRENT_DATE())`,
-      [tid]
-    );
+    let todaySale = { today_revenue: 0, today_sales: 0 };
+    try {
+      const [[resToday]] = await db.query(
+        `SELECT COALESCE(SUM(total), 0) AS today_revenue, COUNT(*) AS today_sales
+         FROM sales WHERE tenant_id = ? AND (DATE(created_at) = CURDATE() OR DATE(created_at) = CURRENT_DATE())`,
+        [tid]
+      );
+      if (resToday) todaySale = resToday;
+    } catch (e) {
+      console.warn('[getDashboard] todaySale query error:', e.message);
+    }
 
-    const [[monthSale]] = await db.query(
-      `SELECT COALESCE(SUM(total), 0) AS month_revenue, COUNT(*) AS month_sales
-       FROM sales WHERE tenant_id = ? AND MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())`,
-      [tid]
-    );
+    let monthSale = { month_revenue: 0, month_sales: 0 };
+    try {
+      const [[resMonth]] = await db.query(
+        `SELECT COALESCE(SUM(total), 0) AS month_revenue, COUNT(*) AS month_sales
+         FROM sales WHERE tenant_id = ? AND MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())`,
+        [tid]
+      );
+      if (resMonth) monthSale = resMonth;
+    } catch (e) {
+      console.warn('[getDashboard] monthSale query error:', e.message);
+    }
 
-    const [[prodStats]] = await db.query(
-      `SELECT 
-         COUNT(*) AS total_products,
-         COALESCE(SUM(CASE WHEN requires_prescription = 1 OR is_prescription_required = 1 OR requires_rx = 1 THEN 1 ELSE 0 END), 0) AS rx_products
-       FROM products WHERE tenant_id = ?`,
-      [tid]
-    );
+    let prodStats = { total_products: 0, rx_products: 0 };
+    try {
+      const [[resProd]] = await db.query(
+        `SELECT 
+           COUNT(*) AS total_products,
+           COALESCE(SUM(CASE WHEN rx_required = 1 THEN 1 ELSE 0 END), 0) AS rx_products
+         FROM products WHERE tenant_id = ?`,
+        [tid]
+      );
+      if (resProd) prodStats = resProd;
+    } catch (e) {
+      console.warn('[getDashboard] prodStats query error:', e.message);
+      try {
+        const [[resProdFallback]] = await db.query(
+          `SELECT COUNT(*) AS total_products, 0 AS rx_products FROM products WHERE tenant_id = ?`,
+          [tid]
+        );
+        if (resProdFallback) prodStats = resProdFallback;
+      } catch (e2) {}
+    }
 
-    // 4. Near Expiry Batches (<90 Days)
-    const [[expiryStats]] = await db.query(
-      `SELECT COUNT(*) AS near_expiry_count
-       FROM inventory_batches
-       WHERE tenant_id = ? AND expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)
-         AND quantity > 0`,
-      [tid]
-    );
+    let expiryStats = { near_expiry_count: 0 };
+    try {
+      const [[resExp]] = await db.query(
+        `SELECT COUNT(*) AS near_expiry_count
+         FROM inventory_batches
+         WHERE tenant_id = ? AND expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)
+           AND quantity > 0`,
+        [tid]
+      );
+      if (resExp) expiryStats = resExp;
+    } catch (e) {
+      console.warn('[getDashboard] expiryStats query error:', e.message);
+    }
 
     // 5. 7-Day Revenue Trend (Dynamic Daily Aggregates with local date formatting)
-    const [trendRows] = await db.query(
-      `SELECT 
-         DATE_FORMAT(created_at, '%Y-%m-%d') AS sale_date,
-         DATE_FORMAT(created_at, '%a') AS day_label,
-         COALESCE(SUM(total), 0) AS daily_revenue,
-         COUNT(*) AS daily_invoices
-       FROM sales
-       WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-       GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d'), DATE_FORMAT(created_at, '%a')
-       ORDER BY sale_date ASC`,
-      [tid]
-    );
+    let trendRows = [];
+    try {
+      const [rows] = await db.query(
+        `SELECT 
+           DATE_FORMAT(created_at, '%Y-%m-%d') AS sale_date,
+           DATE_FORMAT(created_at, '%a') AS day_label,
+           COALESCE(SUM(total), 0) AS daily_revenue,
+           COUNT(*) AS daily_invoices
+         FROM sales
+         WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+         GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d'), DATE_FORMAT(created_at, '%a')
+         ORDER BY sale_date ASC`,
+        [tid]
+      );
+      if (rows) trendRows = rows;
+    } catch (e) {
+      console.warn('[getDashboard] trendRows query error:', e.message);
+    }
 
     // Format 7 days continuous trend (Local timezone safe)
     const last7Days = [];
@@ -74,18 +110,24 @@ const getDashboard = async (req, res) => {
     const total7DayRevenue = last7Days.reduce((acc, curr) => acc + curr.value, 0);
 
     // 5b. 30-Day Revenue Trend
-    const [trend30Rows] = await db.query(
-      `SELECT 
-         DATE_FORMAT(created_at, '%Y-%m-%d') AS sale_date,
-         DATE_FORMAT(created_at, '%d %b') AS day_label,
-         COALESCE(SUM(total), 0) AS daily_revenue,
-         COUNT(*) AS daily_invoices
-       FROM sales
-       WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
-       GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d'), DATE_FORMAT(created_at, '%d %b')
-       ORDER BY sale_date ASC`,
-      [tid]
-    );
+    let trend30Rows = [];
+    try {
+      const [rows] = await db.query(
+        `SELECT 
+           DATE_FORMAT(created_at, '%Y-%m-%d') AS sale_date,
+           DATE_FORMAT(created_at, '%d %b') AS day_label,
+           COALESCE(SUM(total), 0) AS daily_revenue,
+           COUNT(*) AS daily_invoices
+         FROM sales
+         WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+         GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d'), DATE_FORMAT(created_at, '%d %b')
+         ORDER BY sale_date ASC`,
+        [tid]
+      );
+      if (rows) trend30Rows = rows;
+    } catch (e) {
+      console.warn('[getDashboard] trend30Rows error:', e.message);
+    }
 
     const last30Days = [];
     for (let i = 29; i >= 0; i--) {
@@ -107,18 +149,24 @@ const getDashboard = async (req, res) => {
     const total30DayRevenue = last30Days.reduce((acc, curr) => acc + curr.value, 0);
 
     // 5c. Monthly Trend (Last 12 Months)
-    const [monthlyRows] = await db.query(
-      `SELECT 
-         DATE_FORMAT(created_at, '%Y-%m') AS month_key,
-         DATE_FORMAT(created_at, '%b') AS month_label,
-         COALESCE(SUM(total), 0) AS monthly_revenue,
-         COUNT(*) AS monthly_invoices
-       FROM sales
-       WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
-       GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%b')
-       ORDER BY month_key ASC`,
-      [tid]
-    );
+    let monthlyRows = [];
+    try {
+      const [rows] = await db.query(
+        `SELECT 
+           DATE_FORMAT(created_at, '%Y-%m') AS month_key,
+           DATE_FORMAT(created_at, '%b') AS month_label,
+           COALESCE(SUM(total), 0) AS monthly_revenue,
+           COUNT(*) AS monthly_invoices
+         FROM sales
+         WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+         GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%b')
+         ORDER BY month_key ASC`,
+        [tid]
+      );
+      if (rows) monthlyRows = rows;
+    } catch (e) {
+      console.warn('[getDashboard] monthlyRows error:', e.message);
+    }
 
     const last12Months = [];
     for (let i = 11; i >= 0; i--) {
@@ -139,79 +187,101 @@ const getDashboard = async (req, res) => {
     const totalMonthlyRevenue = last12Months.reduce((acc, curr) => acc + curr.value, 0);
 
     // 6. Top Dispensed Medicines Breakdown
-    const [topMedicines] = await db.query(
-      `SELECT 
-         COALESCE(p.name, si.product_name, 'Medicine') AS name,
-         COALESCE(SUM(si.quantity), 0) AS units_sold,
-         COALESCE(SUM(si.subtotal), 0) AS revenue
-       FROM sale_items si
-       JOIN sales s ON si.sale_id = s.id
-       LEFT JOIN products p ON si.product_id = p.id
-       WHERE s.tenant_id = ?
-       GROUP BY COALESCE(p.name, si.product_name, 'Medicine')
-       ORDER BY units_sold DESC
-       LIMIT 5`,
-      [tid]
-    );
+    let topMedicines = [];
+    try {
+      const [rows] = await db.query(
+        `SELECT 
+           COALESCE(p.name, si.product_name, 'Medicine') AS name,
+           COALESCE(SUM(si.quantity), 0) AS units_sold,
+           COALESCE(SUM(si.subtotal), 0) AS revenue
+         FROM sale_items si
+         JOIN sales s ON si.sale_id = s.id
+         LEFT JOIN products p ON si.product_id = p.id
+         WHERE s.tenant_id = ?
+         GROUP BY COALESCE(p.name, si.product_name, 'Medicine')
+         ORDER BY units_sold DESC
+         LIMIT 5`,
+        [tid]
+      );
+      if (rows) topMedicines = rows;
+    } catch (e) {
+      console.warn('[getDashboard] topMedicines error:', e.message);
+    }
 
     // 7. Recent 5 Sales Transactions (Live Feed matching Orders Page)
-    // Note: No JOIN on users to avoid silent failure if sold_by is null or users table FK issue
-    const [recentSales] = await db.query(
-      `SELECT 
-         s.id,
-         s.invoice_no,
-         s.created_at,
-         DATE_FORMAT(s.created_at, '%d/%m/%Y %H:%i') AS formatted_date,
-         COALESCE(NULLIF(TRIM(s.customer_phone), ''), 'Walk-in Patient') AS patient,
-         UPPER(COALESCE(s.payment_method, 'CASH')) AS payment_method,
-         s.transaction_no,
-         UPPER(COALESCE(s.status, 'COMPLETED')) AS status,
-         COALESCE(s.total, 0) AS total,
-         COALESCE(s.subtotal, s.total) AS subtotal,
-         COALESCE(s.discount, 0) AS discount,
-         COALESCE(s.paid_amount, s.total) AS paid_amount,
-         COALESCE(s.due_amount, 0) AS due_amount,
-         'Pharmacist' AS cashier_name,
-         (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) AS items_count,
-         (SELECT GROUP_CONCAT(CONCAT(si.quantity, 'x ', COALESCE(p2.name, si.product_name, 'Medicine')) SEPARATOR ', ')
-          FROM sale_items si
-          LEFT JOIN products p2 ON si.product_id = p2.id
-          WHERE si.sale_id = s.id) AS items_summary
-       FROM sales s
-       WHERE s.tenant_id = ?
-       ORDER BY s.id DESC
-       LIMIT 5`,
-      [tid]
-    );
+    let recentSales = [];
+    try {
+      const [rows] = await db.query(
+        `SELECT 
+           s.id,
+           s.invoice_no,
+           s.created_at,
+           DATE_FORMAT(s.created_at, '%d/%m/%Y %H:%i') AS formatted_date,
+           COALESCE(NULLIF(TRIM(s.customer_phone), ''), 'Walk-in Patient') AS patient,
+           UPPER(COALESCE(s.payment_method, 'CASH')) AS payment_method,
+           s.transaction_no,
+           UPPER(COALESCE(s.status, 'COMPLETED')) AS status,
+           COALESCE(s.total, 0) AS total,
+           COALESCE(s.subtotal, s.total) AS subtotal,
+           COALESCE(s.discount, 0) AS discount,
+           COALESCE(s.paid_amount, s.total) AS paid_amount,
+           COALESCE(s.due_amount, 0) AS due_amount,
+           'Pharmacist' AS cashier_name,
+           (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) AS items_count,
+           (SELECT GROUP_CONCAT(CONCAT(si.quantity, 'x ', COALESCE(p2.name, si.product_name, 'Medicine')) SEPARATOR ', ')
+            FROM sale_items si
+            LEFT JOIN products p2 ON si.product_id = p2.id
+            WHERE si.sale_id = s.id) AS items_summary
+         FROM sales s
+         WHERE s.tenant_id = ?
+         ORDER BY s.id DESC
+         LIMIT 5`,
+        [tid]
+      );
+      if (rows) recentSales = rows;
+    } catch (e) {
+      console.warn('[getDashboard] recentSales error:', e.message);
+    }
 
     console.log(`[getDashboard] recentSales count=${recentSales.length} for tenant=${tid}`);
 
-
     // 8. Low Stock Alerts
-    const [lowStockAlerts] = await db.query(
-      `SELECT p.id, p.name, p.reorder_level, p.rack_location,
-              COALESCE(SUM(ib.quantity), 0) AS stock_quantity
-       FROM products p
-       LEFT JOIN inventory_batches ib ON p.id = ib.product_id AND p.tenant_id = ib.tenant_id
-       WHERE p.tenant_id = ?
-       GROUP BY p.id, p.name, p.reorder_level, p.rack_location
-       HAVING stock_quantity <= p.reorder_level
-       LIMIT 10`,
-      [tid]
-    );
+    let lowStockAlerts = [];
+    try {
+      const [rows] = await db.query(
+        `SELECT p.id, p.name, p.reorder_level, p.rack_location,
+                COALESCE(SUM(ib.quantity), 0) AS stock_quantity
+         FROM products p
+         LEFT JOIN inventory_batches ib ON p.id = ib.product_id AND p.tenant_id = ib.tenant_id
+         WHERE p.tenant_id = ?
+         GROUP BY p.id, p.name, p.reorder_level, p.rack_location
+         HAVING stock_quantity <= p.reorder_level
+         LIMIT 10`,
+        [tid]
+      );
+      if (rows) lowStockAlerts = rows;
+    } catch (e) {
+      console.warn('[getDashboard] lowStockAlerts error:', e.message);
+    }
 
     // 9. FEFO Near Expiry Batches (<90 days)
-    const [nearExpiryAlerts] = await db.query(
-      `SELECT ib.id, p.name, ib.batch_number, ib.expiry_date, ib.quantity,
-              p.rack_location,
-              DATEDIFF(ib.expiry_date, CURDATE()) AS days_until_expiry
-       FROM inventory_batches ib 
-       JOIN products p ON ib.product_id = p.id AND ib.tenant_id = p.tenant_id
-       WHERE ib.tenant_id = ? AND ib.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)
-         AND ib.quantity > 0
-       ORDER BY ib.expiry_date ASC LIMIT 6`,
-      [tid]
-    );
+    let nearExpiryAlerts = [];
+    try {
+      const [rows] = await db.query(
+        `SELECT ib.id, p.name, ib.batch_number, ib.expiry_date, ib.quantity,
+                p.rack_location,
+                DATEDIFF(ib.expiry_date, CURDATE()) AS days_until_expiry
+         FROM inventory_batches ib 
+         JOIN products p ON ib.product_id = p.id AND ib.tenant_id = p.tenant_id
+         WHERE ib.tenant_id = ? AND ib.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)
+           AND ib.quantity > 0
+         ORDER BY ib.expiry_date ASC LIMIT 6`,
+        [tid]
+      );
+      if (rows) nearExpiryAlerts = rows;
+    } catch (e) {
+      console.warn('[getDashboard] nearExpiryAlerts error:', e.message);
+    }
 
     return res.json({
       success: true,
@@ -238,7 +308,7 @@ const getDashboard = async (req, res) => {
     });
   } catch (err) {
     console.error('getDashboard error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -289,8 +359,19 @@ const getProducts = async (req, res) => {
              COALESCE((
                SELECT SUM(ib.quantity) 
                FROM inventory_batches ib 
-               WHERE ib.product_id = p.id AND ib.tenant_id = p.tenant_id
-             ), 0) AS total_stock
+               WHERE ib.product_id = p.id
+             ), 0) AS total_stock,
+             COALESCE((
+               SELECT SUM(ib.quantity) 
+               FROM inventory_batches ib 
+               WHERE ib.product_id = p.id
+             ), 0) AS stock_quantity,
+             COALESCE((
+               SELECT ib.purchase_price
+               FROM inventory_batches ib
+               WHERE ib.product_id = p.id
+               ORDER BY ib.id DESC LIMIT 1
+             ), 0) AS cost
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN master_drugs md ON p.master_drug_id = md.id
@@ -429,9 +510,23 @@ const createCategory = async (req, res) => {
 const updateCategory = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    const { name, description } = req.body;
-    await db.query('UPDATE categories SET name = ?, description = ? WHERE id = ? AND tenant_id = ?', [name, description || '', req.params.id, tid]);
-    return res.json({ success: true, message: 'Category updated.' });
+    const { name, description, status } = req.body;
+    const statusInt = (status === 0 || status === '0' || status === 'INACTIVE' || status === false) ? 0 : 1;
+
+    await db.query(
+      'UPDATE categories SET name = ?, description = ?, status = ? WHERE id = ? AND tenant_id = ?',
+      [name, description || '', statusInt, req.params.id, tid]
+    );
+
+    // Cascade deactivation to products
+    try {
+      await db.query(
+        'UPDATE products SET status = ? WHERE category_id = ? AND tenant_id = ?',
+        [statusInt, req.params.id, tid]
+      );
+    } catch (e) {}
+
+    return res.json({ success: true, message: 'Category updated successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -440,7 +535,23 @@ const updateCategory = async (req, res) => {
 const deleteCategory = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    await db.query('DELETE FROM categories WHERE id = ? AND tenant_id = ?', [req.params.id, tid]);
+    const catId = req.params.id;
+
+    // Deletion Guard: Check if products exist in this category
+    const [[prodCount]] = await db.query(
+      'SELECT COUNT(*) AS count FROM products WHERE category_id = ? AND tenant_id = ?',
+      [catId, tid]
+    );
+
+    const count = prodCount ? parseInt(prodCount.count, 10) : 0;
+    if (count > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `এই ক্যাটাগরিতে ${count}টি মেডিসিন রয়েছে! ডিলিট করার আগে মেডিসিনগুলো অন্য ক্যাটাগরিতে সরান।`
+      });
+    }
+
+    await db.query('DELETE FROM categories WHERE id = ? AND tenant_id = ?', [catId, tid]);
     return res.json({ success: true, message: 'Category deleted.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

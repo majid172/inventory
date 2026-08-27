@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS `sales` (
   `paid_amount`     DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
   `due_amount`      DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
   `payment_method`  VARCHAR(50)     NOT NULL DEFAULT 'cash',
+  `transaction_no`  VARCHAR(100)    DEFAULT NULL,
   `status`          VARCHAR(50)     NOT NULL DEFAULT 'completed',
   `notes`           TEXT            DEFAULT NULL,
   `sold_by`         INT             DEFAULT NULL COMMENT 'user_id of cashier',

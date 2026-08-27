@@ -146,12 +146,20 @@ const updateCategory = async (req, res, next) => {
       });
     }
 
-    const statusInt = (status === 0 || status === '0' || status === 'INACTIVE') ? 0 : 1;
+    const statusInt = (status === 0 || status === '0' || status === 'INACTIVE' || status === false) ? 0 : 1;
 
     await db.query(
       'UPDATE categories SET name = ?, description = ?, status = ? WHERE id = ? AND tenant_id = ?',
       [name.trim(), description || '', statusInt, id, tid]
     );
+
+    // Deactivation Cascade: If category is deactivated, sync all linked products under this category to inactive
+    try {
+      await db.query(
+        'UPDATE products SET status = ? WHERE category_id = ? AND tenant_id = ?',
+        [statusInt, id, tid]
+      );
+    } catch (e) {}
 
     const [[updatedCat]] = await db.query('SELECT * FROM categories WHERE id = ?', [id]);
 
@@ -177,7 +185,9 @@ const updateCategory = async (req, res, next) => {
 
     return res.json({
       success: true,
-      message: 'Category updated successfully.',
+      message: statusInt === 0 
+        ? 'Category and all associated products deactivated successfully.' 
+        : 'Category updated successfully.',
       data: formatted,
       category: formatted
     });
@@ -198,6 +208,22 @@ const deleteCategory = async (req, res, next) => {
     const { id } = req.params;
     const tid = await resolveTenantId(req);
 
+    // 1. Deletion Guard: Check if there are any products linked to this category
+    const [[prodCount]] = await db.query(
+      'SELECT COUNT(*) AS count FROM products WHERE category_id = ? AND tenant_id = ?',
+      [id, tid]
+    );
+
+    const count = prodCount ? parseInt(prodCount.count, 10) : 0;
+
+    if (count > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `এই ক্যাটাগরিতে ${count}টি মেডিসিন রয়েছে! ডিলিট করার আগে মেডিসিনগুলো অন্য ক্যাটাগরিতে সরান।`
+      });
+    }
+
+    // 2. Safe to delete if no products are linked
     await db.query('DELETE FROM categories WHERE id = ? AND tenant_id = ?', [id, tid]);
 
     return res.json({

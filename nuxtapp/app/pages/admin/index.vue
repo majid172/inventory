@@ -274,13 +274,12 @@
                   <th class="py-1.5 px-3 w-10 text-center border-r border-slate-200 dark:border-gray-800 font-normal">#
                   </th>
                   <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">INVOICE NO</th>
-                  <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">CUSTOMER</th>
-                  <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">DISPENSED MEDICINES
+                 
+                  <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal"> MEDICINES
                   </th>
                   <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">
-                    PAYMENT METHOD</th>
-                  <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-24">
-                    TRX NO</th>
+                    PAYMENT </th>
+                  
                   <th
                     class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal font-mono w-24">
                     AMOUNT</th>
@@ -319,10 +318,7 @@
                   </td>
 
                   <!-- Customer / Patient -->
-                  <td
-                    class="py-1.5 px-3 font-normal border-r border-slate-200 dark:border-gray-800 text-slate-800 dark:text-gray-200 whitespace-nowrap">
-                    {{ order.patient || 'Walk-in Patient' }}
-                  </td>
+                 
 
                   <!-- Dispensed Medicines -->
                   <td
@@ -347,15 +343,7 @@
                   </td>
 
                   <!-- TRX NO -->
-                  <td
-                    class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-mono text-[11px]">
-                    <span v-if="order.transaction_no"
-                      class="text-amber-700 dark:text-amber-400 font-medium px-1.5 py-0.2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800">
-                      {{ order.transaction_no }}
-                    </span>
-                    <span v-else class="text-slate-400">-</span>
-                  </td>
-
+                  
                   <!-- Amount -->
                   <td
                     class="py-1.5 px-3 text-right font-mono font-normal text-slate-800 dark:text-gray-200 font-medium border-r border-slate-200 dark:border-gray-800 whitespace-nowrap">

@@ -409,7 +409,11 @@ const handleUpdateCategory = async () => {
 
 const handleRemoveCategory = async (id: number, name: string) => {
   if (confirm(`Are you sure you want to delete category "${name}" (#${id})?`)) {
-    await deleteCategory(id);
+    try {
+      await deleteCategory(id);
+    } catch (e: any) {
+      alert("⚠️ Warning: " + (e.message || "Failed to delete category"));
+    }
   }
 };
 </script>

@@ -41,6 +41,7 @@ const getProducts = async (req, res, next) => {
         p.retail_price AS price,
         p.reorder_level AS min_reorder_level,
         p.rack_location,
+        p.status AS is_active,
         p.created_at,
         c.name AS category_name,
         COALESCE(m.generic_name, p.name) AS generic_name,
@@ -108,6 +109,9 @@ const getProducts = async (req, res, next) => {
         taxRate: 0,
         status: stock > 0 ? 1 : 0,
         statusLabel: stock > 0 ? 'Available' : 'Out of Stock',
+        is_active: r.is_active != null ? parseInt(r.is_active, 10) : 1,
+        isActive: r.is_active != null ? parseInt(r.is_active, 10) : 1,
+        activeStatus: r.is_active != null ? parseInt(r.is_active, 10) : 1,
         rxRequired: !!r.rx_required,
         batchNumber: r.batch_number,
         expiryDate: r.expiry_date,
@@ -305,11 +309,15 @@ const updateProduct = async (req, res, next) => {
     const catId = categoryId ? parseInt(categoryId, 10) : 1;
 
     // 1. Update Product
+    const activeVal = req.body.is_active !== undefined
+      ? (req.body.is_active == 1 || req.body.is_active === '1' ? 1 : 0)
+      : (req.body.isActive !== undefined ? (req.body.isActive == 1 || req.body.isActive === '1' ? 1 : 0) : 1);
+
     await db.query(
       `UPDATE products 
-       SET name = ?, category_id = ?, retail_price = ?, reorder_level = ?, rack_location = ?
+       SET name = ?, category_id = ?, retail_price = ?, reorder_level = ?, rack_location = ?, status = ?
        WHERE id = ?`,
-      [name.trim(), catId, retailPrice, reorder, rackLocation || 'Shelf A-01', id]
+      [name.trim(), catId, retailPrice, reorder, rackLocation || 'Shelf A-01', activeVal, id]
     );
 
 

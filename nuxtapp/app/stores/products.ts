@@ -17,6 +17,8 @@ export interface ProductItem {
   taxRate?: number;
   status: number | string;
   statusLabel?: string;
+  is_active?: number;
+  isActive?: number;
   rxRequired?: boolean;
   batchNumber?: string;
   expiryDate?: string;
@@ -42,6 +44,8 @@ export const useProductStore = defineStore('products', {
       const cat = (state.activeCategory || 'All Items').toLowerCase();
 
       return state.products.filter(p => {
+        // POS only shows Active products (status column = 1)
+        const isActive = p.is_active === 1 || p.isActive === 1 || p.is_active === undefined;
         const matchesCategory = cat === "all items" || (p.category && p.category.toLowerCase() === cat);
         const matchesSearch = !query ||
           (p.name && p.name.toLowerCase().includes(query)) ||
@@ -49,7 +53,7 @@ export const useProductStore = defineStore('products', {
           (p.batchNumber && p.batchNumber.toLowerCase().includes(query)) ||
           (p.manufacturer && p.manufacturer.toLowerCase().includes(query)) ||
           (p.category && p.category.toLowerCase().includes(query));
-        return matchesCategory && matchesSearch;
+        return isActive && matchesCategory && matchesSearch;
       });
     },
     expiringSoonCount: (state) => {
@@ -105,7 +109,11 @@ export const useProductStore = defineStore('products', {
           headers: this.getHeaders()
         });
         const json = await res.json();
-        const itemsList = json && json.data ? json.data : (Array.isArray(json) ? json : []);
+        const itemsList = json && Array.isArray(json.data) 
+          ? json.data 
+          : (json && Array.isArray(json.products) 
+              ? json.products 
+              : (Array.isArray(json) ? json : []));
 
         if (Array.isArray(itemsList)) {
           this.products = itemsList.map((item: any) => ({
@@ -120,17 +128,19 @@ export const useProductStore = defineStore('products', {
             categoryId: item.categoryId || item.category_id,
             category: item.category || item.category_name || 'General',
             barcode: item.barcode || `MED-${item.id}`,
-            price: parseFloat(item.price) || 0,
-            cost: parseFloat(item.cost) || 0,
+            price: parseFloat(item.price ?? item.retail_price ?? 0) || 0,
+            cost: parseFloat(item.cost ?? item.purchase_price ?? 0) || 0,
             taxRate: 0,
             status: item.status !== undefined ? item.status : 1,
             statusLabel: (item.status === 1 || item.status === '1' || item.statusLabel === 'Available') ? 'Available' : 'Out of Stock',
+            is_active: item.is_active !== undefined ? Number(item.is_active) : (item.isActive !== undefined ? Number(item.isActive) : 1),
+            isActive: item.is_active !== undefined ? Number(item.is_active) : (item.isActive !== undefined ? Number(item.isActive) : 1),
             rxRequired: !!(item.rxRequired || item.rx_required),
             batchNumber: item.batchNumber || item.batch_number || '-',
             expiryDate: item.expiryDate || (item.expiry_date ? String(item.expiry_date).split('T')[0] : '-'),
-            manufacturer: item.manufacturer || item.supplier_name || 'Pharma Corp',
-            rackLocation: item.rackLocation || item.rack_location || 'Shelf A-01',
-            stockQuantity: parseInt(item.stockQuantity ?? item.stock_quantity ?? 0, 10),
+            manufacturer: item.manufacturer || item.supplier_name || '',
+            rackLocation: item.rackLocation || item.rack_location || '',
+            stockQuantity: parseInt(item.stockQuantity ?? item.stock_quantity ?? item.total_stock ?? 0, 10),
             minReorderLevel: parseInt(item.minReorderLevel ?? item.min_reorder_level ?? 10, 10),
             created_at: item.created_at
           }));
