@@ -51,6 +51,18 @@ export const useProductStore = defineStore('products', {
           (p.category && p.category.toLowerCase().includes(query));
         return matchesCategory && matchesSearch;
       });
+    },
+    expiringSoonCount: (state) => {
+      const today = new Date();
+      return state.products.filter(p => {
+        if (!p.expiryDate || p.expiryDate === '-') return false;
+        const exp = new Date(p.expiryDate);
+        const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 3600 * 24));
+        return diffDays <= 90 && diffDays > 0;
+      }).length;
+    },
+    rxProductsCount: (state) => {
+      return state.products.filter(p => !!p.rxRequired).length;
     }
   },
 

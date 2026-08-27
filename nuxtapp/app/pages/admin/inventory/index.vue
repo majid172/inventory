@@ -36,6 +36,17 @@
             <h2 class="text-xs font-normal text-slate-800 dark:text-gray-100 flex items-center gap-1.5 uppercase tracking-wide">
               <span>📦</span> Batch & Expiry Inventory Balance (FEFO)
             </h2>
+            <button 
+              @click="productStore.fetchProducts()" 
+              :disabled="loading"
+              class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-normal px-2 py-0.5 text-xs flex items-center gap-1 transition-all shadow-xs cursor-pointer ml-2"
+              title="Refresh Batches"
+            >
+              <svg :class="['w-3 h-3 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Refresh
+            </button>
           </div>
 
           <div class="flex items-center gap-2">
@@ -67,12 +78,24 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="batchList.length === 0">
+              <tr v-if="loading">
+                <td colSpan="7" class="py-8 text-center text-slate-500 dark:text-gray-400 font-normal text-xs">
+                  <div class="inline-flex items-center gap-2">
+                    <svg class="animate-spin h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading batch inventory...
+                  </div>
+                </td>
+              </tr>
+              <tr v-else-if="batchList.length === 0">
                 <td colSpan="7" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No batch inventory items found in database grid.
                 </td>
               </tr>
               <tr 
+                v-else
                 v-for="(item, idx) in batchList" 
                 :key="item.id" 
                 @click="selectedRow = item.id"
@@ -146,14 +169,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useProductStore } from '~/stores/products';
 
 const productStore = useProductStore();
-const { products, expiringSoonCount } = storeToRefs(productStore);
+const { products, expiringSoonCount, loading } = storeToRefs(productStore);
 const filterText = ref('');
 const selectedRow = ref<number | string | null>(null);
+
+onMounted(() => {
+  productStore.fetchProducts();
+});
 
 const getExpiryStatus = (dateStr?: string) => {
   if (!dateStr) return { label: 'GOOD STOCK', color: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800' };
