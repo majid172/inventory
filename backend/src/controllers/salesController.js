@@ -1,5 +1,6 @@
 // ============================================================================
-// PharmaCare SaaS — Sales & POS Controller (100% Aligned with MySQL SQL Dump)
+// PharmaCare SaaS — Sales & Invoices Controller (Lean 2-Table Architecture)
+// Tables: `sales` and `sale_items` (customer_phone based, no customer table needed)
 // ============================================================================
 
 const db = require('../config/db');
@@ -14,26 +15,61 @@ const processSale = async (req, res) => {
 
     const tid = req.tenantId || 1;
     const userId = req.user?.id || 1;
-    const { customer_id, items, total_amount, discount = 0, tax = 0, payment_method = 'cash' } = req.body;
+    const { 
+      customer_phone,
+     
+      items, 
+      total_amount, 
+      subtotal,
+      discount = 0, 
+      tax = 0, 
+      total,
+      paid_amount,
+      due_amount = 0,
+      payment_method = 'cash',
+      transaction_no,
+      notes
+    } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: 'Sale must contain at least one item.' });
     }
 
-    // 1. Insert into sales table
+    const invoiceNo = req.body.invoice_no || `INV-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Date.now().toString().slice(-5)}`;
+    const subtotalVal = parseFloat(subtotal || total_amount || total || 0);
+    const discountVal = parseFloat(discount || 0);
+    const taxVal = parseFloat(tax || 0);
+    const totalVal = parseFloat(total || total_amount || (subtotalVal + taxVal - discountVal));
+    const paidVal = parseFloat(paid_amount !== undefined ? paid_amount : totalVal);
+    const dueVal = parseFloat(due_amount || Math.max(0, totalVal - paidVal));
+    const phoneVal = customer_phone || 'Walk-in Patient';
+    const finalTrxNo = transaction_no || null;
+    const finalNotes = notes || null;
+
+    // 1. Insert into sales table (Matched 100% with MySQL sales table)
     const [saleResult] = await connection.query(
-      `INSERT INTO sales (tenant_id, user_id, customer_id, total_amount, discount, tax, payment_method, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'completed')`,
-      [tid, userId, customer_id || null, parseFloat(total_amount), parseFloat(discount), parseFloat(tax), payment_method]
+      `INSERT INTO sales (
+         tenant_id, invoice_no, customer_phone, 
+         subtotal, discount, tax, total, paid_amount, due_amount, 
+         payment_method, transaction_no, status, notes, sold_by
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?)`,
+      [
+        tid, invoiceNo, phoneVal,
+        subtotalVal, discountVal, taxVal, totalVal, paidVal, dueVal,
+        payment_method, finalTrxNo, finalNotes, userId
+      ]
     );
     const saleId = saleResult.insertId;
 
-    // 2. Process each item and deduct stock from inventory_batches
+    // 2. Process each item and deduct stock from inventory_batches (FEFO)
     for (const item of items) {
       const productId = item.product_id || item.id;
       let requestedQty = parseInt(item.quantity, 10) || 1;
       const unitPrice = parseFloat(item.unit_price || item.retail_price || item.price || 0);
-      const totalPrice = unitPrice * requestedQty;
+      const itemDiscount = parseFloat(item.discount || 0);
+      const itemSubtotal = (unitPrice * requestedQty) - itemDiscount;
+      const prodName = item.name || item.product_name || 'Medicine Item';
 
       // FEFO Batch Selection: Select earliest expiring batch with available quantity
       const [batches] = await connection.query(
@@ -61,31 +97,41 @@ const processSale = async (req, res) => {
         }
       }
 
+      // Deduct product overall stock if products table has stock_quantity
+      try {
+        await connection.query(
+          `UPDATE products SET stock_quantity = GREATEST(0, COALESCE(stock_quantity, 0) - ?) WHERE id = ? AND tenant_id = ?`,
+          [requestedQty, productId, tid]
+        );
+      } catch (e) {}
+
       // Insert sale item record
       await connection.query(
-        `INSERT INTO sale_items (sale_id, product_id, batch_id, quantity, unit_price, total_price)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [saleId, productId, allocatedBatchId, requestedQty, unitPrice, totalPrice]
+        `INSERT INTO sale_items (tenant_id, sale_id, product_id, batch_id, product_name, quantity, unit_price, discount, subtotal)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [tid, saleId, productId, allocatedBatchId, prodName, requestedQty, unitPrice, itemDiscount, itemSubtotal]
       );
     }
 
     await connection.commit();
 
-    const [[createdSale]] = await db.query('SELECT * FROM sales WHERE id = ?', [saleId]);
+    const [[createdSale]] = await db.query(`SELECT * FROM sales WHERE id = ?`, [saleId]);
     const [saleItemsList] = await db.query(
-      `SELECT si.*, p.name AS product_name 
+      `SELECT si.*, 
+              COALESCE(p.name, si.product_name, 'Medicine') AS product_name 
        FROM sale_items si 
-       JOIN products p ON si.product_id = p.id 
+       LEFT JOIN products p ON si.product_id = p.id 
        WHERE si.sale_id = ?`,
       [saleId]
     );
 
     return res.status(201).json({
       success: true,
-      message: 'POS transaction completed successfully.',
+      message: 'POS Sale invoice generated successfully.',
       saleId,
       sale: createdSale,
-      items: saleItemsList
+      items: saleItemsList,
+      invoice_no: createdSale.invoice_no
     });
   } catch (err) {
     await connection.rollback();
@@ -97,71 +143,132 @@ const processSale = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/sales — Sales History
+// GET /api/sales — Sales History & KPI Analytics
 // ─────────────────────────────────────────────────────────────────────────────
 const getSales = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    const { page = 1, limit = 50 } = req.query;
+    const { page = 1, limit = 50, search, method, startDate, endDate } = req.query;
     const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
+    let whereClause = 'WHERE s.tenant_id = ?';
+    const params = [tid];
+
+    if (search) {
+      whereClause += ' AND (s.invoice_no LIKE ? OR s.customer_phone LIKE ? OR s.notes LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    if (method && method !== 'all') {
+      whereClause += ' AND LOWER(s.payment_method) = LOWER(?)';
+      params.push(method);
+    }
+
+    if (startDate) {
+      whereClause += ' AND DATE(s.created_at) >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      whereClause += ' AND DATE(s.created_at) <= ?';
+      params.push(endDate);
+    }
+
+    // Total Count
+    const [[countRow]] = await db.query(
+      `SELECT COUNT(*) AS total FROM sales s ${whereClause}`,
+      params
+    );
+    const totalCount = countRow ? countRow.total : 0;
+
+    // Sales Records with item summary
+    const queryParams = [...params, parseInt(limit, 10), offset];
     const [rows] = await db.query(
-      `SELECT s.*, u.name AS cashier_name, c.name AS customer_name
+      `SELECT s.*, 
+              s.customer_phone,
+              s.customer_phone AS customer_name,
+              u.name AS cashier_name,
+              (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) AS items_count,
+              (SELECT GROUP_CONCAT(CONCAT(si.quantity, 'x ', COALESCE(p.name, si.product_name, 'Medicine')) SEPARATOR ', ')
+               FROM sale_items si
+               LEFT JOIN products p ON si.product_id = p.id
+               WHERE si.sale_id = s.id) AS items_summary
        FROM sales s
-       LEFT JOIN users u ON s.user_id = u.id
-       LEFT JOIN customers c ON s.customer_id = c.id
-       WHERE s.tenant_id = ?
+       LEFT JOIN users u ON (s.sold_by = u.id)
+       ${whereClause}
        ORDER BY s.id DESC LIMIT ? OFFSET ?`,
-      [tid, parseInt(limit, 10), offset]
+      queryParams
     );
 
-    return res.json({ success: true, count: rows.length, sales: rows, data: rows });
+    // Dynamic KPI Aggregates
+    let stats = {
+      total_invoices: rows.length,
+      total_revenue: 0,
+      today_revenue: 0,
+      today_invoices: 0,
+      cash_count: 0,
+      digital_count: 0
+    };
+
+    try {
+      const [[aggStats]] = await db.query(
+        `SELECT 
+           COUNT(*) AS total_invoices,
+           COALESCE(SUM(total), 0) AS total_revenue,
+           COALESCE(SUM(CASE WHEN DATE(created_at) = CURRENT_DATE THEN total ELSE 0 END), 0) AS today_revenue,
+           COALESCE(SUM(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 ELSE 0 END), 0) AS today_invoices,
+           COALESCE(SUM(CASE WHEN LOWER(payment_method) = 'cash' THEN 1 ELSE 0 END), 0) AS cash_count,
+           COALESCE(SUM(CASE WHEN LOWER(payment_method) != 'cash' THEN 1 ELSE 0 END), 0) AS digital_count
+         FROM sales
+         WHERE tenant_id = ?`,
+        [tid]
+      );
+      if (aggStats) stats = aggStats;
+    } catch (e) {}
+
+    return res.json({ 
+      success: true, 
+      count: totalCount, 
+      total: totalCount, 
+      sales: rows, 
+      data: rows,
+      stats
+    });
   } catch (err) {
+    console.error('getSales error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CUSTOMERS CRUD
+// GET /api/sales/:id — Single Sale Invoice Details with Line Items
 // ─────────────────────────────────────────────────────────────────────────────
-const getCustomers = async (req, res) => {
-  try {
-    const tid = req.tenantId || 1;
-    const [rows] = await db.query('SELECT * FROM customers WHERE tenant_id = ? ORDER BY name ASC', [tid]);
-    return res.json({ success: true, customers: rows, data: rows });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-const createCustomer = async (req, res) => {
-  try {
-    const tid = req.tenantId || 1;
-    const { name, phone, address, points = 0 } = req.body;
-    if (!name) return res.status(400).json({ success: false, message: 'Customer name is required.' });
-
-    const [r] = await db.query(
-      `INSERT INTO customers (tenant_id, name, phone, address, points) VALUES (?, ?, ?, ?, ?)`,
-      [tid, name, phone || null, address || null, parseInt(points, 10) || 0]
-    );
-
-    const [[created]] = await db.query('SELECT * FROM customers WHERE id = ?', [r.insertId]);
-    return res.status(201).json({ success: true, customer: created, data: created });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
 const getSaleById = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    const [[sale]] = await db.query('SELECT * FROM sales WHERE id = ? AND tenant_id = ?', [req.params.id, tid]);
-    if (!sale) return res.status(404).json({ success: false, message: 'Sale not found.' });
+    const [[sale]] = await db.query(
+      `SELECT s.*,
+              s.customer_phone,
+              s.customer_phone AS customer_name,
+              u.name AS cashier_name
+       FROM sales s
+       LEFT JOIN users u ON (s.sold_by = u.id)
+       WHERE s.id = ? AND s.tenant_id = ?`,
+      [req.params.id, tid]
+    );
+
+    if (!sale) return res.status(404).json({ success: false, message: 'Sale invoice record not found.' });
 
     const [items] = await db.query(
-      `SELECT si.*, p.name AS product_name 
+      `SELECT si.*, 
+              COALESCE(p.name, si.product_name, 'Medicine') AS product_name,
+              p.generic_name,
+              p.dosage_form,
+              p.strength,
+              ib.batch_number,
+              ib.expiry_date
        FROM sale_items si 
-       JOIN products p ON si.product_id = p.id 
+       LEFT JOIN products p ON si.product_id = p.id 
+       LEFT JOIN inventory_batches ib ON si.batch_id = ib.id
        WHERE si.sale_id = ?`,
       [req.params.id]
     );
@@ -176,7 +283,5 @@ module.exports = {
   processSale,
   createSale: processSale,
   getSales,
-  getSaleById,
-  getCustomers,
-  createCustomer
+  getSaleById
 };

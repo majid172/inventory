@@ -8,7 +8,8 @@ const {
   getSuppliers, createSupplier, updateSupplier,
   getBatches,
   getMySubscription,
-  getSalesReport, getStockReport, getExpiryReport
+  getSalesReport, getStockReport, getExpiryReport,
+  getProfitLossReport, getExpiryLossReport
 } = require('../controllers/inventoryController');
 const {
   verifyTokenMiddleware, requireTenantAccess, requireActiveSubscription,
@@ -51,8 +52,11 @@ router.post('/stock-in',  requireRole('STORE_ADMIN','PHARMACIST'), stockIn);
 router.post('/stock-out', requireRole('STORE_ADMIN','PHARMACIST'), stockOut);
 
 // Reports
-router.get('/reports/sales',   getSalesReport);
-router.get('/reports/stock',   getStockReport);
-router.get('/reports/expiry',  getExpiryReport);
+router.get('/reports/sales',       getSalesReport);
+router.get('/reports/stock',       getStockReport);
+router.get('/reports/expiry',      getExpiryReport);
+router.get('/reports/profit-loss', getProfitLossReport);
+router.get('/reports/expiry-loss', getExpiryLossReport);
 
 module.exports = router;
+

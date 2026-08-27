@@ -61,19 +61,59 @@ const updateSystemSettings = async (req, res) => {
 // Requires authentication & tenant access
 const getTenantSettings = async (req, res) => {
   try {
-    const tenantId = req.tenantId;
-    if (!tenantId) return res.status(403).json({ success: false, message: 'No tenant context' });
+    let tenantId = req.tenantId || (req.user && req.user.tenantId);
 
-    const [rows] = await db.query('SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ?', [tenantId]);
-    const settings = {};
-    rows.forEach(row => {
-      try {
-        settings[row.setting_key] = JSON.parse(row.setting_value);
-      } catch (e) {
-        settings[row.setting_key] = row.setting_value;
+    // 1. Fetch tenant basic record from `tenants` table
+    let tenant = null;
+    try {
+      if (tenantId && tenantId !== 'SYSTEM') {
+        const [[t]] = await db.query('SELECT * FROM tenants WHERE id = ?', [tenantId]);
+        tenant = t;
       }
-    });
-    res.json({ success: true, settings });
+      if (!tenant) {
+        const [[firstT]] = await db.query('SELECT * FROM tenants ORDER BY id ASC LIMIT 1');
+        tenant = firstT;
+        tenantId = tenant?.id || 1;
+      }
+    } catch (e) {
+      console.warn('Tenant table query error:', e.message);
+    }
+
+    // 2. Fetch custom key-value settings from `tenant_settings` table if exists
+    let settings = {};
+    try {
+      const [rows] = await db.query('SELECT setting_key, setting_value FROM tenant_settings WHERE tenant_id = ?', [tenantId]);
+      rows.forEach(row => {
+        try {
+          settings[row.setting_key] = JSON.parse(row.setting_value);
+        } catch (e) {
+          settings[row.setting_key] = row.setting_value;
+        }
+      });
+    } catch (e) {}
+
+    const storeNameVal = tenant?.name || tenant?.store_name || 'My Pharmacy Store';
+    const storePhoneVal = tenant?.phone || '';
+    const storeAddressVal = tenant?.address || '';
+    const taxRegVal = tenant?.tax_registration_number || '';
+
+    settings = {
+      name: storeNameVal,
+      storeName: storeNameVal,
+      store_name: storeNameVal,
+      phone: storePhoneVal,
+      address: storeAddressVal,
+      tax_registration_number: taxRegVal,
+      tenantId: tenant?.id || 1,
+      ...settings
+    };
+
+    if (!settings.name || settings.name === 'My Pharmacy Store') settings.name = storeNameVal;
+    if (!settings.storeName) settings.storeName = storeNameVal;
+    if (!settings.phone) settings.phone = storePhoneVal;
+    if (!settings.address) settings.address = storeAddressVal;
+
+    res.json({ success: true, settings, tenant });
   } catch (err) {
     console.error('getTenantSettings error:', err.message);
     res.status(500).json({ success: false, message: 'Server Error' });

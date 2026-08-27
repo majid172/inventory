@@ -6,7 +6,8 @@
       class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-lg shadow-lg overflow-hidden font-sans">
 
       <!-- Desktop Window Titlebar (Clean, Regular Font) -->
-      <div class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
+      <div
+        class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
         <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
           <span>💳</span> POS Payment (Checkout Window)
         </h3>
@@ -34,14 +35,15 @@
                   ? 'bg-[#107c41] text-white border-[#0e6b37]'
                   : 'bg-white dark:bg-gray-900 text-slate-700 dark:text-gray-300 border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-800'
               ]">
-              <span class="text-xs">{{ method === 'CASH' ? '💵' : method === 'CARD' ? '💳' : method === 'MOBILE' ? '📱' : '🏥' }}</span>
+              <!-- <span class="text-xs">{{ method === 'CASH' ? '💵' : method === 'CARD' ? '💳' : method === 'MOBILE' ? '📱' : '🏥' }}</span> -->
               <span class="text-[11px] font-mono">{{ method }}</span>
             </button>
           </div>
         </div>
 
         <!-- Total Due Summary Display (Sharp Desktop Box) -->
-        <div class="bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 p-2.5 flex items-center justify-between">
+        <div
+          class="bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 p-2.5 flex items-center justify-between">
           <span class="text-slate-600 dark:text-gray-400 font-normal text-xs uppercase tracking-wide">
             Total Dispense Amount Due:
           </span>
@@ -92,6 +94,44 @@
           </div>
         </div>
 
+        <!-- Mobile Banking Transaction ID Input Box (bKash / Nagad / Rocket) -->
+        <div v-if="selectedMethod === 'MOBILE' || selectedMethod === 'CARD'"
+          class="space-y-2 bg-slate-50 dark:bg-gray-900/60 p-2.5 border border-slate-200 dark:border-gray-800">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-normal text-slate-700 dark:text-gray-300 text-xs">
+                {{ selectedMethod === 'MOBILE' ? 'Mobile Banking TrxID / Transaction Number *' : 'Card Authorization / Slip Ref #' }}
+              </label>
+              <span class="text-[10px] text-slate-400 font-mono">e.g. 9B8A7C6D</span>
+            </div>
+            <input 
+              type="text" 
+              v-model="transactionNo" 
+              :placeholder="selectedMethod === 'MOBILE' ? 'Enter Transaction ID (TrxID)' : 'Enter Card Approval / Reference #'" 
+              class="w-full bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] uppercase"
+            />
+          </div>
+
+          <!-- Gateway Selector for Mobile Banking -->
+          <div v-if="selectedMethod === 'MOBILE'" class="flex items-center gap-1.5">
+            <span class="text-[10px] text-slate-500 dark:text-gray-400 uppercase">Provider:</span>
+            <button 
+              v-for="gw in ['bKash', 'Nagad', 'Rocket', 'Upay']" 
+              :key="gw"
+              type="button"
+              @click="mobileGateway = gw"
+              :class="[
+                'px-2 py-0.5 text-[10px] font-mono border transition-all cursor-pointer',
+                mobileGateway === gw 
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700 font-bold' 
+                  : 'bg-white dark:bg-gray-900 text-slate-600 dark:text-gray-400 border-slate-300 dark:border-gray-700'
+              ]"
+            >
+              {{ gw }}
+            </button>
+          </div>
+        </div>
+
         <!-- Insurance Claim Notice -->
         <div v-if="selectedMethod === 'INSURANCE'"
           class="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-2.5 text-xs text-emerald-800 dark:text-emerald-300 space-y-0.5">
@@ -133,6 +173,8 @@ const { completePayment } = cartStore;
 
 const selectedMethod = ref<'CASH' | 'CARD' | 'MOBILE' | 'INSURANCE'>('CASH');
 const amountPaid = ref<number>(0);
+const transactionNo = ref<string>('');
+const mobileGateway = ref<string>('bKash');
 
 watch(total, (newTotal) => {
   amountPaid.value = Math.ceil(newTotal / 10) * 10 || newTotal;
@@ -142,6 +184,8 @@ const cashPresets = [10, 20, 50, 100];
 
 const handlePay = () => {
   const finalPaid = selectedMethod.value === 'CASH' ? amountPaid.value : total.value;
-  completePayment(selectedMethod.value, finalPaid);
+  const methodLabel = selectedMethod.value === 'MOBILE' ? `${mobileGateway.value}` : selectedMethod.value;
+  completePayment(selectedMethod.value, finalPaid, transactionNo.value.trim(), methodLabel);
+  transactionNo.value = '';
 };
 </script>

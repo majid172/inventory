@@ -14,18 +14,19 @@
         <div class="bg-white text-gray-900 p-4 font-mono text-xs border border-slate-300 space-y-2.5">
           <!-- Header -->
           <div class="text-center border-b border-dashed border-gray-300 pb-2.5">
-            <div class="text-sm font-normal tracking-wide text-slate-900 flex items-center justify-center gap-1">
-              <span>💊 PHARMA-CARE MEDICAL</span>
+            <div class="text-sm font-bold tracking-wide text-slate-900 flex items-center justify-center gap-1">
+              <span>💊 {{ storeName }}</span>
             </div>
-            <p class="text-[10px] text-gray-500 font-sans">Licensed Community Pharmacy • Reg #PH-884920</p>
-            <p class="text-[10px] text-gray-400">742 Medical Center Blvd, Suite 101</p>
+            <p v-if="storeAddress" class="text-[10px] text-gray-500 font-sans">{{ storeAddress }}</p>
+            <p class="text-[10px] text-gray-400">
+              <span v-if="storePhone">Phone: {{ storePhone }} • </span>Reg #PH-884920
+            </p>
             
             <div class="mt-2 text-[10px] text-gray-700 bg-slate-50 p-2 text-left space-y-0.5 border border-slate-200">
-              <div>DISPENSE REF: <strong class="font-normal">{{ completedReceipt.orderId }}</strong></div>
+              <div>INVOICE REF: <strong class="font-normal">{{ completedReceipt.orderId }}</strong></div>
               <div>DATE & TIME: {{ completedReceipt.date }}</div>
-              <div>DISPENSE TYPE: {{ completedReceipt.orderType }}</div>
-              <div>PATIENT: {{ completedReceipt.patientName || 'Walk-in Customer' }}</div>
-              <div>PRESCRIBER: {{ completedReceipt.doctorName || 'N/A' }}</div>
+              <div>CUSTOMER / PHONE: <strong class="font-normal">{{ completedReceipt.patientPhone || completedReceipt.patientName || 'Walk-in Customer' }}</strong></div>
+              <div v-if="completedReceipt.doctorName && completedReceipt.doctorName !== 'N/A (OTC)'">PRESCRIBER: {{ completedReceipt.doctorName }}</div>
             </div>
           </div>
 
@@ -69,7 +70,11 @@
             </div>
             <div class="flex justify-between text-[11px] text-gray-600 pt-0.5">
               <span>METHOD:</span>
-              <span>{{ completedReceipt.paymentMethod }}</span>
+              <span class="uppercase font-mono font-medium">{{ completedReceipt.paymentMethod }}</span>
+            </div>
+            <div v-if="completedReceipt.transactionNo" class="flex justify-between text-[11px] text-slate-900 bg-amber-50 dark:bg-amber-950/40 p-1 border border-amber-300 dark:border-amber-800 mt-1">
+              <span class="font-mono text-slate-600 dark:text-gray-400">TRX ID:</span>
+              <span class="font-mono font-bold tracking-wider">{{ completedReceipt.transactionNo }}</span>
             </div>
             <div class="flex justify-between text-[11px] text-gray-600" v-if="completedReceipt.paymentMethod === 'CASH'">
               <span>CHANGE RETURNED:</span>
@@ -87,7 +92,7 @@
             🖨️ Print Receipt
           </button>
           <button 
-            @click="showReceiptModal = false" 
+            @click="closeReceipt" 
             class="px-4 py-1 bg-[#107c41] hover:bg-[#0e6b37] text-white font-normal text-xs border border-[#0e6b37] cursor-pointer"
           >
             New Dispense [Esc]
@@ -103,12 +108,39 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useCartStore } from '~/stores/cart';
 import { useSettingsStore } from '~/stores/settings';
+import { useProductStore } from '~/stores/products';
 
 const emit = defineEmits(['close']);
 const cartStore = useCartStore();
 const settingsStore = useSettingsStore();
+const productStore = useProductStore();
 
 const { showReceiptModal, completedReceipt } = storeToRefs(cartStore);
+
+const closeReceipt = () => {
+  showReceiptModal.value = false;
+  productStore.fetchProducts();
+};
+
+const storeName = computed(() => {
+  return settingsStore.tenantSettings?.name || 
+         settingsStore.tenantSettings?.store_name || 
+         settingsStore.tenantSettings?.storeName || 
+         (process.client && JSON.parse(localStorage.getItem('active_tenant_store') || '{}')?.name) ||
+         'My Pharmacy Store';
+});
+
+const storeAddress = computed(() => {
+  return settingsStore.tenantSettings?.address || 
+         (process.client && JSON.parse(localStorage.getItem('active_tenant_store') || '{}')?.address) || 
+         '';
+});
+
+const storePhone = computed(() => {
+  return settingsStore.tenantSettings?.phone || 
+         (process.client && JSON.parse(localStorage.getItem('active_tenant_store') || '{}')?.phone) || 
+         '';
+});
 
 const windowPrint = () => {
   if (process.client) {

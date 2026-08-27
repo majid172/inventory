@@ -2,50 +2,48 @@
   <NuxtLayout name="admin">
     <div class="space-y-3 font-sans">
       <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
-        <div class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div
+          class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div class="flex items-center gap-2">
             <span class="text-xs font-semibold text-slate-700 dark:text-gray-300">Settings & Preferences</span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-mono px-2 py-0.5 border uppercase bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400">
+            <span
+              class="text-[10px] font-mono px-2 py-0.5 border uppercase bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400">
               ● Store Active
             </span>
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-12 min-h-[460px]">
-          <div class="md:col-span-3 lg:col-span-3 bg-slate-50/80 dark:bg-gray-900/60 border-r border-slate-200 dark:border-gray-800 p-2 space-y-1 text-xs">
+          <div
+            class="md:col-span-3 lg:col-span-3 bg-slate-50/80 dark:bg-gray-900/60 border-r border-slate-200 dark:border-gray-800 p-2 space-y-1 text-xs">
             <div class="px-2 py-1.5 text-[10px] uppercase font-normal text-slate-400 dark:text-gray-500 tracking-wider">
               Settings Categories
             </div>
-            <button 
-              @click="activeTab = 'preferences'"
+            <button @click="activeTab = 'preferences'"
               :class="activeTab === 'preferences' ? 'bg-[#107c41] text-white border-[#107c41]' : 'bg-transparent text-slate-700 dark:text-gray-300 border-transparent hover:bg-slate-200 dark:hover:bg-gray-800'"
-              class="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors cursor-pointer text-xs font-normal border"
-            >
+              class="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors cursor-pointer text-xs font-normal border">
               <span>🏪</span>
               <span>Store Preferences</span>
             </button>
-            <button 
-              @click="activeTab = 'security'"
+            <button @click="activeTab = 'security'"
               :class="activeTab === 'security' ? 'bg-[#107c41] text-white border-[#107c41]' : 'bg-transparent text-slate-700 dark:text-gray-300 border-transparent hover:bg-slate-200 dark:hover:bg-gray-800'"
-              class="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors cursor-pointer text-xs font-normal border mt-1"
-            >
+              class="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors cursor-pointer text-xs font-normal border mt-1">
               <span>🔒</span>
               <span>Account & Security</span>
             </button>
-            <button 
-              @click="activeTab = 'billing'; fetchTenantBillingHistory();"
+            <button @click="activeTab = 'billing'; fetchTenantBillingHistory();"
               :class="activeTab === 'billing' ? 'bg-[#107c41] text-white border-[#107c41]' : 'bg-transparent text-slate-700 dark:text-gray-300 border-transparent hover:bg-slate-200 dark:hover:bg-gray-800'"
-              class="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors cursor-pointer text-xs font-normal border mt-1"
-            >
+              class="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors cursor-pointer text-xs font-normal border mt-1">
               <span>💳</span>
               <span>Billing & Plan History</span>
             </button>
           </div>
 
           <div class="md:col-span-9 lg:col-span-9 p-5 text-xs font-sans bg-white dark:bg-gray-950">
-            <div v-if="toastMessage" class="mb-4 p-2.5 bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-xs flex items-center justify-between">
+            <div v-if="toastMessage"
+              class="mb-4 p-2.5 bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-xs flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <span>✅</span>
                 <span>{{ toastMessage }}</span>
@@ -55,7 +53,8 @@
 
             <div v-if="activeTab === 'preferences'" class="space-y-4 max-w-2xl">
               <div class="border-b border-slate-200 dark:border-gray-800 pb-2">
-                <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
+                <h3
+                  class="font-normal text-xs text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
                   <span>⚙️</span> Store Preferences
                 </h3>
                 <p class="text-slate-500 text-[11px] mt-0.5">
@@ -82,11 +81,12 @@
                     <option value="Asia/Kolkata">UTC+5:30 (IST / New Delhi)</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Project Main Color</label>
                   <div class="flex items-center gap-2">
-                    <input type="color" v-model="settings.themeColor" class="w-8 h-8 rounded cursor-pointer border border-slate-300 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-900" />
+                    <input type="color" v-model="settings.themeColor"
+                      class="w-8 h-8 rounded cursor-pointer border border-slate-300 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-900" />
                     <span class="text-xs font-mono text-slate-500">{{ settings.themeColor || '#107c41' }}</span>
                   </div>
                 </div>
@@ -96,7 +96,8 @@
             <!-- Security Tab -->
             <div v-if="activeTab === 'security'" class="space-y-4 max-w-2xl">
               <div class="border-b border-slate-200 dark:border-gray-800 pb-2">
-                <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
+                <h3
+                  class="font-normal text-xs text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
                   <span>🔒</span> Account & Security
                 </h3>
                 <p class="text-slate-500 text-[11px] mt-0.5">
@@ -116,7 +117,7 @@
                   <input v-model="security.newPassword" type="password" placeholder="Enter new password"
                     class="w-full max-w-md bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
                 </div>
-                
+
                 <div class="md:col-span-2">
                   <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Confirm New Password *</label>
                   <input v-model="security.confirmPassword" type="password" placeholder="Confirm new password"
@@ -126,12 +127,14 @@
             </div>
 
             <!-- Save Action Area (For Preferences & Security Tabs) -->
-            <div v-if="activeTab !== 'billing'" class="mt-8 pt-4 border-t border-slate-200 dark:border-gray-800 flex justify-end">
+            <div v-if="activeTab !== 'billing'"
+              class="mt-8 pt-4 border-t border-slate-200 dark:border-gray-800 flex justify-end">
               <button @click="saveSettings" :disabled="isSaving"
                 class="bg-[#107c41] hover:bg-[#0e6b37] text-white font-normal px-5 py-2 text-xs flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 transition-all rounded-sm">
                 <span v-if="isSaving" class="animate-spin text-xs">⏳</span>
                 <span v-else class="text-xs">💾</span>
-                <span>{{ isSaving ? 'Saving...' : (activeTab === 'security' ? 'Update Password' : 'Save Configuration') }}</span>
+                <span>{{ isSaving ? 'Saving...' : (activeTab === 'security' ? 'Update Password' : 'Save Configuration')
+                  }}</span>
               </button>
             </div>
 
@@ -139,14 +142,16 @@
             <div v-else-if="activeTab === 'billing'" class="space-y-4">
               <div class="border-b border-slate-200 dark:border-gray-800 pb-2 flex items-center justify-between">
                 <div>
-                  <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
+                  <h3
+                    class="font-normal text-xs text-slate-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-1.5">
                     <span>💳</span> Store Billing & Subscription History
                   </h3>
                   <p class="text-slate-500 text-[11px] mt-0.5">
                     View your store's active subscription, invoices, and transaction records.
                   </p>
                 </div>
-                <NuxtLink to="/subscribe" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow-xs">
+                <NuxtLink to="/subscribe"
+                  class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow-xs">
                   Renew Plan 🚀
                 </NuxtLink>
               </div>
@@ -155,7 +160,8 @@
               <div class="overflow-x-auto border border-slate-200 dark:border-gray-800 rounded">
                 <table class="w-full text-left text-xs font-sans border-collapse">
                   <thead>
-                    <tr class="bg-slate-50 dark:bg-gray-900 text-slate-600 dark:text-gray-400 font-semibold text-[10px] uppercase border-b border-slate-200 dark:border-gray-800">
+                    <tr
+                      class="bg-slate-50 dark:bg-gray-900 text-slate-600 dark:text-gray-400 font-semibold text-[10px] uppercase border-b border-slate-200 dark:border-gray-800">
                       <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800">Invoice No</th>
                       <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800">Plan Name</th>
                       <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800">Amount</th>
@@ -170,20 +176,34 @@
                       <td colspan="7" class="py-6 text-slate-400">Loading your store billing history...</td>
                     </tr>
                     <tr v-else-if="tenantBillings.length === 0" class="text-center">
-                      <td colspan="7" class="py-6 text-slate-400">No payment or billing records found for this store.</td>
+                      <td colspan="7" class="py-6 text-slate-400">No payment or billing records found for this store.
+                      </td>
                     </tr>
-                    <tr v-for="item in tenantBillings" :key="item.id" class="hover:bg-slate-50 dark:hover:bg-gray-900/50">
-                      <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-gray-200 border-r border-slate-200 dark:border-gray-800">{{ item.invoice_no || ('INV-' + item.id) }}</td>
-                      <td class="py-2 px-3 font-bold text-emerald-600 dark:text-emerald-400 border-r border-slate-200 dark:border-gray-800">{{ item.plan_name || 'Subscription Plan' }}</td>
-                      <td class="py-2 px-3 font-mono font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-gray-800">{{ settings.currencySymbol || '৳' }}{{ item.amount }}</td>
-                      <td class="py-2 px-3 uppercase font-mono text-[11px] border-r border-slate-200 dark:border-gray-800">{{ item.gateway || 'bKash' }}</td>
-                      <td class="py-2 px-3 font-mono text-xs font-bold text-slate-700 dark:text-gray-300 border-r border-slate-200 dark:border-gray-800">{{ item.trx_no || item.transaction_no || '-' }}</td>
+                    <tr v-for="item in tenantBillings" :key="item.id"
+                      class="hover:bg-slate-50 dark:hover:bg-gray-900/50">
+                      <td
+                        class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-gray-200 border-r border-slate-200 dark:border-gray-800">
+                        {{ item.invoice_no || ('INV-' + item.id) }}</td>
+                      <td
+                        class="py-2 px-3 font-bold text-emerald-600 dark:text-emerald-400 border-r border-slate-200 dark:border-gray-800">
+                        {{ item.plan_name || 'Subscription Plan' }}</td>
+                      <td
+                        class="py-2 px-3 font-mono font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-gray-800">
+                        {{ settings.currencySymbol || '৳' }}{{ item.amount }}</td>
+                      <td
+                        class="py-2 px-3 uppercase font-mono text-[11px] border-r border-slate-200 dark:border-gray-800">
+                        {{ item.gateway || 'bKash' }}</td>
+                      <td
+                        class="py-2 px-3 font-mono text-xs font-bold text-slate-700 dark:text-gray-300 border-r border-slate-200 dark:border-gray-800">
+                        {{ item.trx_no || item.transaction_no || '-' }}</td>
                       <td class="py-2 px-3 border-r border-slate-200 dark:border-gray-800">
-                        <span class="px-1.5 py-0.5 text-[10px] uppercase font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400">
+                        <span
+                          class="px-1.5 py-0.5 text-[10px] uppercase font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400">
                           {{ item.status || 'paid' }}
                         </span>
                       </td>
-                      <td class="py-2 px-3 text-slate-500 text-[11px] font-mono">{{ item.created_at ? new Date(item.created_at).toLocaleDateString() : '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 text-[11px] font-mono">{{ item.created_at ? new
+                        Date(item.created_at).toLocaleDateString() : '-' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -258,18 +278,18 @@ const saveSettings = async () => {
     const token = localStorage.getItem('auth_token');
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    
+
     // Add active tenant header if applicable
     const activeStore = localStorage.getItem('active_tenant_store');
     if (activeStore) {
       try {
         const store = JSON.parse(activeStore);
         if (store && store.id) headers['x-tenant-id'] = String(store.id);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const res = await axios.post('/settings/tenant', { settings: payload }, { headers });
-    
+
     if (res.data && res.data.success) {
       toastMessage.value = 'Settings saved successfully!';
       await settingsStore.fetchTenantSettings();

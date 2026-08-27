@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
-import type { ProductItem } from './products';
+import axios from 'axios';
+import { useProductStore, type ProductItem } from './products';
 
 export interface CartItem {
   cartId: string;
@@ -213,25 +214,91 @@ export const useCartStore = defineStore('cart', {
       this.showHeldOrdersModal = false;
     },
 
-    completePayment(paymentMethod: 'CASH' | 'CARD' | 'MOBILE' | 'INSURANCE', amountPaid: number) {
-      const orderId = `RX_${2000 + Math.floor(Math.random() * 8000)}`;
+    async completePayment(
+      paymentMethod: 'CASH' | 'CARD' | 'MOBILE' | 'INSURANCE', 
+      amountPaid: number, 
+      transactionNo?: string, 
+      customMethodLabel?: string
+    ) {
+      let orderId = `INV-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Date.now().toString().slice(-4)}`;
       const changeGiven = amountPaid - this.total > 0 ? amountPaid - this.total : 0;
+      const currentItems = JSON.parse(JSON.stringify(this.cartItems));
+      const subtotalVal = this.subtotal;
+      const discountVal = this.computedDiscount;
+      const taxVal = this.tax;
+      const totalVal = this.total;
+      const patientNameVal = this.patientName || 'Walk-in Patient';
+      const patientPhoneVal = this.patientPhone || '';
+      const doctorNameVal = this.doctorName || 'N/A (OTC)';
+      const prescriptionRefVal = this.prescriptionRef || 'OTC-DIRECT';
+      const finalMethodName = customMethodLabel || paymentMethod;
+
+      // Instantly deduct stock in product store without needing reload
+      try {
+        const productStore = useProductStore();
+        productStore.deductProductStock(
+          currentItems.map((item: any) => ({
+            id: item.product.id,
+            quantity: item.quantity
+          }))
+        );
+      } catch (e) {}
+
+      // Send to backend API
+      try {
+        const payload = {
+          customer_phone: patientPhoneVal || 'Walk-in Patient',
+          subtotal: subtotalVal,
+          discount: discountVal,
+          tax: taxVal,
+          total: totalVal,
+          paid_amount: amountPaid,
+          due_amount: 0,
+          payment_method: finalMethodName.toLowerCase(),
+          transaction_no: transactionNo || null,
+          notes: null,
+          items: currentItems.map((item: any) => ({
+            product_id: item.product.id,
+            id: item.product.id,
+            name: item.product.name,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            discount: 0
+          }))
+        };
+
+        const res = await axios.post('/sales', payload);
+        if (res.data && res.data.invoice_no) {
+          orderId = res.data.invoice_no;
+        } else if (res.data && res.data.sale && res.data.sale.invoice_no) {
+          orderId = res.data.sale.invoice_no;
+        }
+
+        // Re-fetch products from backend to ensure batch inventory counts match MySQL
+        try {
+          const productStore = useProductStore();
+          productStore.fetchProducts();
+        } catch (e) {}
+      } catch (err) {
+        console.warn('POS backend sale sync fallback:', err);
+      }
 
       this.completedReceipt = {
         orderId,
         date: new Date().toLocaleString(),
-        patientName: this.patientName || 'Walk-in Patient',
-        patientPhone: this.patientPhone,
-        doctorName: this.doctorName || 'N/A (OTC)',
-        prescriptionRef: this.prescriptionRef || 'OTC-DIRECT',
+        patientName: patientNameVal,
+        patientPhone: patientPhoneVal,
+        doctorName: doctorNameVal,
+        prescriptionRef: prescriptionRefVal,
         rxVerified: this.rxVerified || !this.hasRxItems,
         orderType: this.orderType,
-        items: JSON.parse(JSON.stringify(this.cartItems)),
-        subtotal: this.subtotal,
-        discount: this.computedDiscount,
-        tax: this.tax,
-        total: this.total,
-        paymentMethod,
+        items: currentItems,
+        subtotal: subtotalVal,
+        discount: discountVal,
+        tax: taxVal,
+        total: totalVal,
+        paymentMethod: finalMethodName,
+        transactionNo: transactionNo || '',
         amountPaid,
         changeGiven,
         pharmacistLicense: 'PH-884920-REG'

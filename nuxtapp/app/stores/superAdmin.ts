@@ -429,15 +429,31 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
     }
   };
 
-  const fetchMasterDrugs = async () => {
+  const masterDrugsTotal = ref(0);
+  const masterDrugsPage = ref(1);
+  const masterDrugsLimit = ref(20);
+  const masterDrugsTotalPages = ref(1);
+
+  const fetchMasterDrugs = async (params: { page?: number; limit?: number; search?: string; tier?: string } = {}) => {
     try {
-      const res = await fetch('http://localhost:5000/api/super-admin/master-drugs', {
+      const q = new URLSearchParams();
+      if (params.page) q.append('page', String(params.page));
+      if (params.limit) q.append('limit', String(params.limit));
+      if (params.search) q.append('search', params.search);
+      if (params.tier && params.tier !== 'all') q.append('tier', params.tier);
+
+      const url = `http://localhost:5000/api/super-admin/master-drugs${q.toString() ? '?' + q.toString() : ''}`;
+      const res = await fetch(url, {
         headers: getAuthHeaders()
       });
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
           masterDrugs.value = json.data;
+          masterDrugsTotal.value = Number(json.total || json.data.length);
+          masterDrugsPage.value = Number(json.page || params.page || 1);
+          masterDrugsLimit.value = Number(json.limit || params.limit || 20);
+          masterDrugsTotalPages.value = Number(json.totalPages || Math.ceil(masterDrugsTotal.value / masterDrugsLimit.value) || 1);
           return;
         }
       }
@@ -640,6 +656,10 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
     updateTenant,
     deleteTenant,
     fetchMasterDrugs,
+    masterDrugsTotal,
+    masterDrugsPage,
+    masterDrugsLimit,
+    masterDrugsTotalPages,
     createMasterDrug,
     updateMasterDrug,
     deleteMasterDrug,

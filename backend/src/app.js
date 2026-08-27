@@ -5,10 +5,12 @@ const errorHandler = require('./middleware/errorHandler');
 const maintenanceMiddleware = require('./middleware/maintenanceMiddleware');
 const { initSettings } = require('./utils/settingsService');
 const initBillingDB = require('./db/initBillingDB');
+const initSalesDB = require('./db/initSalesDB');
 
-// Initialize global settings cache & billing tables on startup
+// Initialize global settings cache, billing tables & sales tables on startup
 initSettings();
 initBillingDB();
+initSalesDB();
 
 // Route Imports
 const authRoutes        = require('./routes/authRoutes');

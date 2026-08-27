@@ -35,26 +35,27 @@
         </button>
       </div>
 
-      <!-- Patient & Doctor Information -->
-      <div class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 p-2 space-y-1.5 text-xs">
+      <!-- Customer Phone Number Only (Clean & Fast) -->
+      <div class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 p-2 space-y-1 text-xs">
         <div class="flex items-center justify-between text-[10px] text-slate-600 dark:text-gray-400 font-normal uppercase tracking-wider">
-          <span>Patient / Customer Details</span>
-          <span v-if="hasRxItems" class="text-rose-700 bg-rose-50 border border-rose-300 dark:text-rose-400 dark:bg-rose-950 dark:border-rose-900 px-1 py-0.2 font-normal">Rx Required</span>
+          <span>Customer Phone Number</span>
+          <span class="text-slate-400 font-mono text-[9px]">[Optional]</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-1.5">
+        <div class="relative">
           <input 
-            type="text" 
-            v-model="patientName"
-            placeholder="Patient Name [F2]" 
-            class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:border-[#107c41] font-normal"
+            type="tel" 
+            v-model="patientPhone"
+            placeholder="📱 Enter customer phone (e.g. 01711-000000)" 
+            class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:border-[#107c41] font-mono shadow-2xs"
           />
-          <input 
-            type="text" 
-            v-model="doctorName"
-            placeholder="Doctor Name (Rx)" 
-            class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:border-[#107c41] font-normal"
-          />
+          <button 
+            v-if="patientPhone" 
+            @click="patientPhone = ''" 
+            class="absolute right-2 top-1 text-slate-400 hover:text-slate-600 text-xs cursor-pointer font-normal"
+          >
+            ✕
+          </button>
         </div>
       </div>
     </div>
@@ -186,6 +187,7 @@ const {
   cartItems, 
   orderType, 
   patientName,
+  patientPhone,
   doctorName,
   subtotal, 
   computedDiscount, 

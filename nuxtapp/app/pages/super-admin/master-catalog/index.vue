@@ -52,13 +52,18 @@
             <thead>
               <tr
                 class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
-                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># ID</th>
+                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal">#SL.
+                </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Brand Name</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Generic Chemical Name</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">Dosage Form</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Generic Chemical Name
+                </th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">
+                  Dosage Form</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Manufacturer</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">Plan Tier</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-24">Rx Required</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">Plan
+                  Tier</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-24">Rx
+                  Required</th>
                 <th class="py-1.5 px-3 text-center w-24 font-normal">Actions</th>
               </tr>
             </thead>
@@ -84,10 +89,10 @@
                   ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
                   : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
               ]">
-                <!-- ID Column -->
+                <!-- ID Column (Continuous Serial Number) -->
                 <td
-                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 font-normal text-slate-500 dark:text-gray-400">
-                  {{ idx + 1 }}
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 font-normal text-slate-500 dark:text-gray-400 font-mono">
+                  {{ (currentPage - 1) * pageSize + idx + 1 }}
                 </td>
 
                 <!-- Brand Name -->
@@ -105,7 +110,8 @@
                 <!-- Dosage Form -->
                 <td
                   class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal text-slate-700 dark:text-gray-300">
-                  <span class="px-1.5 py-0.2 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-[11px]">
+                  <span
+                    class="px-1.5 py-0.2 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-[11px]">
                     {{ drug.dosageForm || drug.dosage_form || 'Tablet' }}
                   </span>
                 </td>
@@ -117,8 +123,7 @@
                 </td>
 
                 <!-- Plan Tier -->
-                <td
-                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
+                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
                   <span :class="[
                     'text-[10px] font-mono px-1.5 py-0.2 border uppercase',
                     (drug.planTier || drug.plan_tier) === 'enterprise'
@@ -132,8 +137,7 @@
                 </td>
 
                 <!-- Rx Required -->
-                <td
-                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
+                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
                   <span v-if="drug.rxRequired || drug.rx_required"
                     class="text-[10px] font-mono px-1.5 py-0.2 border uppercase bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-400">
                     Rx Req
@@ -164,12 +168,68 @@
           </table>
         </div>
 
-        <!-- Desktop Grid Footer Bar -->
+        <!-- Desktop Grid Footer & Pagination Toolbar -->
         <div
-          class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 font-normal">
-          <div>Total <strong>{{ displayedMasterDrugs.length }}</strong> master medicines in catalog</div>
-          <div class="text-[10px] text-slate-400 font-normal">
-            MySQL: <code>master_drugs</code>
+          class="px-3 py-2 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 dark:text-gray-400 font-sans">
+
+          <!-- Left: Entries Summary & Page Size Selector -->
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5 font-normal">
+              <span>Rows per page:</span>
+              <select v-model="pageSize" @change="changePageSize"
+                class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 px-2 py-0.5 text-xs text-slate-800 dark:text-gray-200 font-medium cursor-pointer rounded-xs">
+                <option :value="10">10</option>
+                <option :value="20">20</option>
+                <option :value="50">50</option>
+                <option :value="100">100</option>
+              </select>
+            </div>
+
+            <div class="font-normal text-slate-500 dark:text-gray-400">
+              Showing <span class="font-mono font-medium text-slate-800 dark:text-gray-200">{{ startEntry }}</span> to
+              <span class="font-mono font-medium text-slate-800 dark:text-gray-200">{{ endEntry }}</span> of
+              <span class="font-mono font-medium text-slate-800 dark:text-gray-200">{{ totalItems }}</span> master drugs
+            </div>
+          </div>
+
+          <!-- Right: Interactive Pagination Buttons -->
+          <div class="flex items-center gap-1 font-mono">
+            <!-- First Page -->
+            <button @click="goToPage(1)" :disabled="currentPage === 1 || loading"
+              class="px-2 py-1 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-[11px] transition-colors"
+              title="First Page">
+              « First
+            </button>
+
+            <!-- Previous Page -->
+            <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1 || loading"
+              class="px-2 py-1 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-[11px] transition-colors"
+              title="Previous Page">
+              ‹ Prev
+            </button>
+
+            <!-- Numeric Page Pills -->
+            <button v-for="p in visiblePages" :key="p" @click="goToPage(p)" :disabled="loading"
+              class="px-2.5 py-1 text-xs border cursor-pointer transition-colors"
+              :class="currentPage === p
+                ? 'bg-[#107c41] text-white border-[#0e6b37] font-bold shadow-xs'
+                : 'bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-700 font-normal'">
+              {{ p }}
+            </button>
+
+            <!-- Next Page -->
+            <button @click="goToPage(currentPage + 1)" :disabled="currentPage >= totalPages || loading"
+              class="px-2 py-1 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-[11px] transition-colors"
+              title="Next Page">
+              Next ›
+            </button>
+
+            <!-- Last Page -->
+            <button @click="goToPage(totalPages)" :disabled="currentPage >= totalPages || loading"
+              class="px-2 py-1 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-[11px] transition-colors"
+              title="Last Page">
+              Last »
+            </button>
           </div>
         </div>
       </div>
@@ -260,7 +320,8 @@
             </div>
 
             <div class="pt-1">
-              <label class="flex items-center gap-2 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+              <label
+                class="flex items-center gap-2 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                 <input type="checkbox" v-model="drugForm.rxRequired" class="text-emerald-600" />
                 <span>Doctor Prescription Required (Rx)</span>
               </label>
@@ -352,7 +413,8 @@
             </div>
 
             <div class="pt-1">
-              <label class="flex items-center gap-2 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+              <label
+                class="flex items-center gap-2 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                 <input type="checkbox" v-model="drugForm.rxRequired" class="text-emerald-600" />
                 <span>Doctor Prescription Required (Rx)</span>
               </label>
@@ -376,13 +438,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted, watch } from 'vue';
 import { useSuperAdmin } from '~/composables/useSuperAdmin';
 
-const { masterDrugs, fetchMasterDrugs, createMasterDrug, updateMasterDrug, deleteMasterDrug } = useSuperAdmin();
+const {
+  masterDrugs,
+  masterDrugsTotal,
+  masterDrugsPage,
+  masterDrugsLimit,
+  masterDrugsTotalPages,
+  fetchMasterDrugs,
+  createMasterDrug,
+  updateMasterDrug,
+  deleteMasterDrug
+} = useSuperAdmin();
 
 const searchFilter = ref('');
 const tierFilter = ref('all');
+const currentPage = ref(1);
+const pageSize = ref(20);
+
 const showAddModal = ref(false);
 const showEditModal = ref(false);
 const editDrugId = ref<string | number | null>(null);
@@ -394,36 +469,97 @@ const drugForm = reactive({
   brandName: '',
   genericName: '',
   dosageForm: 'Tablet',
+  strength: '',
+  defaultPrice: 0,
   manufacturer: '',
   planTier: 'starter',
   rxRequired: false
 });
 
-onMounted(async () => {
+const loadData = async () => {
   loading.value = true;
-  await fetchMasterDrugs();
+  await fetchMasterDrugs({
+    page: currentPage.value,
+    limit: pageSize.value,
+    search: searchFilter.value.trim(),
+    tier: tierFilter.value
+  });
   loading.value = false;
+};
+
+onMounted(async () => {
+  await loadData();
 });
 
+let searchTimeout: any = null;
+watch(searchFilter, () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1;
+    loadData();
+  }, 300);
+});
+
+watch(tierFilter, () => {
+  currentPage.value = 1;
+  loadData();
+});
+
+const totalItems = computed(() => masterDrugsTotal.value || masterDrugs.value.length);
+const totalPages = computed(() => Math.max(1, masterDrugsTotalPages.value || Math.ceil(totalItems.value / pageSize.value)));
+
+const startEntry = computed(() => {
+  if (totalItems.value === 0) return 0;
+  return (currentPage.value - 1) * pageSize.value + 1;
+});
+
+const endEntry = computed(() => {
+  return Math.min(currentPage.value * pageSize.value, totalItems.value);
+});
+
+const visiblePages = computed(() => {
+  const pages: number[] = [];
+  const total = totalPages.value;
+  const current = currentPage.value;
+
+  let start = Math.max(1, current - 2);
+  let end = Math.min(total, current + 2);
+
+  if (end - start < 4) {
+    if (start === 1) {
+      end = Math.min(total, start + 4);
+    } else if (end === total) {
+      start = Math.max(1, end - 4);
+    }
+  }
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  return pages;
+});
+
+const goToPage = (page: number) => {
+  if (page < 1 || page > totalPages.value || page === currentPage.value) return;
+  currentPage.value = page;
+  loadData();
+};
+
+const changePageSize = () => {
+  currentPage.value = 1;
+  loadData();
+};
+
 const displayedMasterDrugs = computed(() => {
-  return masterDrugs.value.filter(drug => {
-    const brand = (drug.brandName || drug.brand_name || '').toLowerCase();
-    const generic = (drug.genericName || drug.generic_name || '').toLowerCase();
-    const mfg = (drug.manufacturer || '').toLowerCase();
-    const q = searchFilter.value.toLowerCase();
-    const matchesSearch = !q || brand.includes(q) || generic.includes(q) || mfg.includes(q);
-
-    const tier = (drug.planTier || drug.plan_tier || 'starter').toLowerCase();
-    const matchesTier = tierFilter.value === 'all' || tier === tierFilter.value.toLowerCase();
-
-    return matchesSearch && matchesTier;
-  });
+  return masterDrugs.value;
 });
 
 const openAddModal = () => {
   drugForm.brandName = '';
   drugForm.genericName = '';
   drugForm.dosageForm = 'Tablet';
+  drugForm.strength = '';
+  drugForm.defaultPrice = 0;
   drugForm.manufacturer = '';
   drugForm.planTier = 'starter';
   drugForm.rxRequired = false;
@@ -438,12 +574,14 @@ const submitAddDrug = async () => {
       brandName: drugForm.brandName,
       genericName: drugForm.genericName,
       dosageForm: drugForm.dosageForm,
+      strength: drugForm.strength,
+      defaultPrice: drugForm.defaultPrice,
       manufacturer: drugForm.manufacturer,
       planTier: drugForm.planTier,
       rxRequired: drugForm.rxRequired
     } as any);
     showAddModal.value = false;
-    await fetchMasterDrugs();
+    await loadData();
   } catch (e: any) {
     alert("Error adding master drug: " + (e.message || "Failed to insert into database"));
   } finally {
@@ -456,6 +594,8 @@ const openEditDrugModal = (drug: any) => {
   drugForm.brandName = drug.brandName || drug.brand_name || '';
   drugForm.genericName = drug.genericName || drug.generic_name || '';
   drugForm.dosageForm = drug.dosageForm || drug.dosage_form || 'Tablet';
+  drugForm.strength = drug.strength || '';
+  drugForm.defaultPrice = Number(drug.defaultPrice || drug.default_price || 0);
   drugForm.manufacturer = drug.manufacturer || '';
   drugForm.planTier = drug.planTier || drug.plan_tier || 'starter';
   drugForm.rxRequired = !!(drug.rxRequired || drug.rx_required);
@@ -466,16 +606,18 @@ const submitEditDrug = async () => {
   if (!editDrugId.value || !drugForm.brandName || !drugForm.genericName) return;
   isSaving.value = true;
   try {
-    await updateMasterDrug(editDrugId.value, {
+    await updateMasterDrug(String(editDrugId.value), {
       brandName: drugForm.brandName,
       genericName: drugForm.genericName,
       dosageForm: drugForm.dosageForm,
+      strength: drugForm.strength,
+      defaultPrice: drugForm.defaultPrice,
       manufacturer: drugForm.manufacturer,
       planTier: drugForm.planTier,
       rxRequired: drugForm.rxRequired
     } as any);
     showEditModal.value = false;
-    await fetchMasterDrugs();
+    await loadData();
   } catch (e: any) {
     alert("Error updating master drug: " + (e.message || "Failed to update"));
   } finally {
@@ -488,7 +630,7 @@ const handleDeleteMasterDrug = async (drug: any) => {
   if (!confirm(`Are you sure you want to delete "${name}" from master drugs dictionary?`)) return;
   try {
     await deleteMasterDrug(drug.id);
-    await fetchMasterDrugs();
+    await loadData();
   } catch (e: any) {
     alert("Error deleting drug: " + (e.message || "Failed to delete"));
   }

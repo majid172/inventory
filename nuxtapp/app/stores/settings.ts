@@ -54,10 +54,32 @@ export const useSettingsStore = defineStore('settings', {
       try {
         const response = await axios.get('/settings/tenant');
         if (response.data && response.data.success) {
-          this.tenantSettings = response.data.settings || {};
+          this.tenantSettings = {
+            ...this.tenantSettings,
+            ...(response.data.settings || {}),
+            ...(response.data.tenant || {})
+          };
+          return;
         }
       } catch (err: any) {
-        console.error('Failed to load tenant settings:', err);
+        console.warn('Backend fetch tenant settings warning:', err.message);
+      }
+
+      // Fallback from localStorage active store
+      if (process.client) {
+        try {
+          const storeJson = localStorage.getItem('active_tenant_store');
+          if (storeJson) {
+            const store = JSON.parse(storeJson);
+            this.tenantSettings = {
+              ...this.tenantSettings,
+              storeName: store.name || store.store_name,
+              store_name: store.name || store.store_name,
+              phone: store.phone,
+              address: store.address
+            };
+          }
+        } catch (e) {}
       }
     }
   }

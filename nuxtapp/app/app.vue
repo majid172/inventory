@@ -1,33 +1,35 @@
 <template>
   <div>
     <NuxtRouteAnnouncer />
-    
+
     <!-- Show Maintenance Screen if active -->
-    <div v-if="settingsStore.systemSettings.maintenanceMode && !isSuperAdmin" class="h-screen w-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-center p-6">
+    <div v-if="settingsStore.systemSettings.maintenanceMode && !isSuperAdmin"
+      class="h-screen w-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-center p-6">
       <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">Under Maintenance</h1>
       <p class="text-gray-600 dark:text-gray-400 text-lg max-w-md">
         {{ settingsStore.systemSettings.maintenanceMessage }}
       </p>
     </div>
-    
+
     <!-- Otherwise show the app -->
     <NuxtPage v-else />
 
     <!-- Dynamic Theme Overrides -->
     <component :is="'style'">
       :root {
-        --theme-main: {{ settingsStore.tenantSettings?.themeColor || '#107c41' }};
+      --theme-main: {{ settingsStore.tenantSettings?.themeColor || '#107c41' }};
       }
-      
+
       .bg-\[\#107c41\], .bg-emerald-600, .bg-\[\#0e6b37\] { background-color: var(--theme-main) !important; }
       .text-\[\#107c41\], .text-emerald-600, .text-emerald-700 { color: var(--theme-main) !important; }
       .border-\[\#107c41\], .border-emerald-600, .border-\[\#0e6b37\] { border-color: var(--theme-main) !important; }
-      
-      .hover\:bg-\[\#107c41\]:hover, .hover\:bg-emerald-700:hover, .bg-emerald-700 { 
-        background-color: var(--theme-main) !important; 
-        filter: brightness(0.85); 
+
+      .hover\:bg-\[\#107c41\]:hover, .hover\:bg-emerald-700:hover, .bg-emerald-700 {
+      background-color: var(--theme-main) !important;
+      filter: brightness(0.85);
       }
-      .hover\:text-\[\#107c41\]:hover, .hover\:text-emerald-600:hover { color: var(--theme-main) !important; filter: brightness(0.85); }
+      .hover\:text-\[\#107c41\]:hover, .hover\:text-emerald-600:hover { color: var(--theme-main) !important; filter:
+      brightness(0.85); }
     </component>
   </div>
 </template>
@@ -58,4 +60,3 @@ onMounted(() => {
   }
 });
 </script>
-

@@ -459,22 +459,47 @@ const formatMasterDrug = (d) => ({
 
 const getMasterDrugs = async (req, res) => {
   try {
-    const { search, page = 1, limit = 200 } = req.query;
+    const { search, tier, page = 1, limit = 20 } = req.query;
+    let countSql = 'SELECT COUNT(*) AS total FROM master_drugs WHERE 1=1';
     let sql = 'SELECT * FROM master_drugs WHERE 1=1';
-    const params = [];
+    const whereParams = [];
 
     if (search) {
-      sql += ' AND (brand_name LIKE ? OR generic_name LIKE ? OR manufacturer LIKE ? OR strength LIKE ? OR barcode LIKE ?)';
+      const condition = ' AND (brand_name LIKE ? OR generic_name LIKE ? OR manufacturer LIKE ? OR strength LIKE ? OR barcode LIKE ?)';
+      countSql += condition;
+      sql += condition;
       const q = `%${search}%`;
-      params.push(q, q, q, q, q);
+      whereParams.push(q, q, q, q, q);
     }
 
-    sql += ' ORDER BY id DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit, 10), (parseInt(page, 10) - 1) * parseInt(limit, 10));
+    if (tier && tier !== 'all') {
+      const condition = ' AND LOWER(plan_tier) = LOWER(?)';
+      countSql += condition;
+      sql += condition;
+      whereParams.push(tier);
+    }
 
-    const [rows] = await db.query(sql, params);
+    const [[countRow]] = await db.query(countSql, whereParams);
+    const total = countRow ? countRow.total : 0;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 20);
+    const totalPages = Math.ceil(total / limitNum) || 1;
+
+    sql += ' ORDER BY id DESC LIMIT ? OFFSET ?';
+    const queryParams = [...whereParams, limitNum, (pageNum - 1) * limitNum];
+
+    const [rows] = await db.query(sql, queryParams);
     const data = rows.map(formatMasterDrug);
-    return res.json({ success: true, data, count: data.length });
+    return res.json({ 
+      success: true, 
+      data, 
+      drugs: data,
+      count: data.length, 
+      total, 
+      page: pageNum, 
+      limit: limitNum, 
+      totalPages 
+    });
   } catch (err) {
     console.error('getMasterDrugs error:', err);
     return res.status(500).json({ success: false, message: `Database Query Error: ${err.message}` });

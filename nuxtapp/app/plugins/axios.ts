@@ -9,19 +9,33 @@ export default defineNuxtPlugin(() => {
   // Add request interceptor to inject active tenant ID and JWT Authorization header
   axios.interceptors.request.use((reqConfig) => {
     if (process.client) {
-      const saved = localStorage.getItem('active_tenant_store');
-      if (saved) {
+      const authToken = localStorage.getItem('auth_token');
+      if (authToken) {
+        reqConfig.headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      // Priority 1: Authenticated User's tenant ID
+      const savedUser = localStorage.getItem('auth_user');
+      if (savedUser) {
         try {
-          const store = JSON.parse(saved);
-          if (store && store.id) {
-            reqConfig.headers['x-tenant-id'] = store.id;
+          const user = JSON.parse(savedUser);
+          if (user && user.tenantId && user.tenantId !== 'SYSTEM') {
+            reqConfig.headers['x-tenant-id'] = String(user.tenantId);
           }
         } catch (e) {}
       }
 
-      const authToken = localStorage.getItem('auth_token');
-      if (authToken) {
-        reqConfig.headers['Authorization'] = `Bearer ${authToken}`;
+      // Priority 2: Active tenant store fallback if no tenant in user
+      if (!reqConfig.headers['x-tenant-id']) {
+        const savedStore = localStorage.getItem('active_tenant_store');
+        if (savedStore) {
+          try {
+            const store = JSON.parse(savedStore);
+            if (store && store.id) {
+              reqConfig.headers['x-tenant-id'] = String(store.id);
+            }
+          } catch (e) {}
+        }
       }
     }
     return reqConfig;

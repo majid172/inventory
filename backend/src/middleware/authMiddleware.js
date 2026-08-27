@@ -44,10 +44,10 @@ const verifyTokenMiddleware = (req, res, next) => {
   }
 
   req.user = decoded;
-  // Attach tenantId shortcut for convenience
-  req.tenantId = decoded.tenantId && decoded.tenantId !== 'SYSTEM'
-    ? parseInt(decoded.tenantId, 10)
-    : null;
+  // Attach tenantId shortcut for convenience (support token claim or x-tenant-id header)
+  const parsedTokenTid = decoded.tenantId && !isNaN(parseInt(decoded.tenantId, 10)) ? parseInt(decoded.tenantId, 10) : null;
+  const parsedHeaderTid = req.headers['x-tenant-id'] && !isNaN(parseInt(req.headers['x-tenant-id'], 10)) ? parseInt(req.headers['x-tenant-id'], 10) : null;
+  req.tenantId = parsedTokenTid || parsedHeaderTid || 1;
 
   next();
 };

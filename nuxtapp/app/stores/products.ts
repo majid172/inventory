@@ -143,6 +143,18 @@ export const useProductStore = defineStore('products', {
       }
     },
 
+    deductProductStock(items: { id: number; quantity: number }[]) {
+      for (const it of items) {
+        const prod = this.products.find(p => p.id === it.id);
+        if (prod && prod.stockQuantity !== undefined) {
+          prod.stockQuantity = Math.max(0, prod.stockQuantity - it.quantity);
+          if (prod.stockQuantity <= 0) {
+            prod.statusLabel = 'Out of Stock';
+          }
+        }
+      }
+    },
+
     async addProduct(newProd: Partial<ProductItem>) {
       this.loading = true;
       try {
