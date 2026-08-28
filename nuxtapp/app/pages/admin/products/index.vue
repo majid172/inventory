@@ -299,6 +299,7 @@
                 <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
                 <select v-model="newProd.dosageForm"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
+                  <option v-if="newProd.dosageForm && !['Tablet', 'Capsule', 'Syrup', 'Injection', 'Ointment', 'Eye Drops'].includes(newProd.dosageForm)" :value="newProd.dosageForm">{{ newProd.dosageForm }}</option>
                   <option value="Tablet">Tablet</option>
                   <option value="Capsule">Capsule</option>
                   <option value="Syrup">Syrup</option>
@@ -465,6 +466,7 @@
                 <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
                 <select v-model="editProd.dosageForm"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
+                  <option v-if="editProd.dosageForm && !['Tablet', 'Capsule', 'Syrup', 'Injection', 'Ointment', 'Eye Drops'].includes(editProd.dosageForm)" :value="editProd.dosageForm">{{ editProd.dosageForm }}</option>
                   <option value="Tablet">Tablet</option>
                   <option value="Capsule">Capsule</option>
                   <option value="Syrup">Syrup</option>

@@ -212,11 +212,11 @@ const batchList = computed(() => {
       id: p.id,
       name: p.name,
       genericName: p.genericName || p.name,
-      strength: p.strength || '500mg',
+      strength: p.strength || '',
       batchNumber: p.batchNumber || `BATCH-${p.id}`,
-      expiryDate: p.expiryDate || '2027-12-31',
-      rackLocation: p.rackLocation || 'Shelf A-01',
-      stockQuantity: p.stockQuantity || 50,
+      expiryDate: p.expiryDate || '2028-12-31',
+      rackLocation: p.rackLocation || 'N/A',
+      stockQuantity: p.stockQuantity || 0,
       icon: p.icon || '',
       expiryStatus: getExpiryStatus(p.expiryDate)
     }));

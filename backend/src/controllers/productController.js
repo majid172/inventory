@@ -145,6 +145,7 @@ const createProduct = async (req, res, next) => {
       name,
       genericName,
       dosageForm,
+      strength,
       categoryId,
       category,
       price,
