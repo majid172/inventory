@@ -14,6 +14,10 @@
               class="bg-white hover:bg-slate-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all">
               <span>✏️</span> Edit Distributor
             </button>
+            <button v-if="selectedRow" @click="handleDelete(selectedRow)"
+              class="bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50 border border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all">
+              <span>🗑️</span> Delete
+            </button>
             <span class="font-normal text-xs text-slate-500 dark:text-gray-400">
               Total Distributors: {{ suppliers.length }}
             </span>
@@ -45,16 +49,22 @@
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">EMAIL</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">PHONE </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">STATUS</th>
+                <th class="py-1.5 px-3 text-center font-normal">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-if="filteredSuppliers.length === 0">
-                <td colSpan="7" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
+              <tr v-if="loading">
+                <td colSpan="8" class="py-12">
+                  <PharmacyLoader text="Loading Distributors..." />
+                </td>
+              </tr>
+              <tr v-else-if="filteredSuppliers.length === 0">
+                <td colSpan="8" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No suppliers found in database grid.
                 </td>
               </tr>
               <tr 
-                v-for="(sup, idx) in filteredSuppliers" 
+                v-for="(sup, idx) in paginatedData" 
                 :key="sup.id" 
                 @click="selectedRow = sup.id"
                 :class="[
@@ -107,16 +117,32 @@
                     ● {{ sup.status }}
                   </span>
                 </td>
+                
+                <!-- Actions -->
+                <td class="py-1.5 px-3 text-center">
+                  <div class="flex items-center justify-center gap-2">
+                    <button @click.stop="selectedRow = sup.id; openEditModal()" class="text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors" title="Edit">
+                      Edit
+                    </button>
+                    <button @click.stop="handleDelete(sup.id)" class="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 transition-colors" title="Delete">
+                      Delete
+                    </button>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Desktop Grid Footer Bar -->
-        <div class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 font-normal">
-          <div>Displaying {{ filteredSuppliers.length }} suppliers (Page 1 of 1)</div>
-          <div class="font-normal text-[10px] text-emerald-600 dark:text-emerald-500">Pharma Suppliers Registry • Connected</div>
-        </div>
+        <!-- Pagination Footer -->
+        <PaginationControls 
+          :current-page="currentPage" 
+          :total-pages="totalPages" 
+          :total-items="filteredSuppliers.length" 
+          :items-per-page="itemsPerPage"
+          @prev="prevPage" 
+          @next="nextPage" 
+        />
       </div>
 
       <!-- Add/Edit Supplier Modal -->
@@ -164,8 +190,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAdminSuppliers, type AdminSupplier } from '~/composables/useAdminSuppliers';
+import { usePagination } from '~/composables/usePagination';
+import PaginationControls from '~/components/PaginationControls.vue';
 
-const { suppliers, addSupplier, updateSupplier } = useAdminSuppliers();
+const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useAdminSuppliers();
 const filterText = ref('');
 const selectedRow = ref<number | null>(null);
 
@@ -182,6 +210,8 @@ const filteredSuppliers = computed(() => {
     s.supplier_id.toLowerCase().includes(query)
   );
 });
+
+const { currentPage, totalPages, paginatedData, nextPage, prevPage, itemsPerPage } = usePagination(filteredSuppliers, 10);
 
 const openAddModal = () => {
   isEditing.value = false;
@@ -209,5 +239,12 @@ const handleSave = async () => {
   }
   
   showModal.value = false;
+};
+
+const handleDelete = async (id: number) => {
+  if (confirm("Are you sure you want to delete this distributor? This action cannot be undone.")) {
+    await deleteSupplier(id);
+    if (selectedRow.value === id) selectedRow.value = null;
+  }
 };
 </script>

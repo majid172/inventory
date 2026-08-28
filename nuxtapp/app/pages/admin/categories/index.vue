@@ -57,12 +57,17 @@
             </thead>
 
             <tbody>
-              <tr v-if="filteredCategories.length === 0">
+              <tr v-if="loading">
+                <td colspan="6" class="py-12">
+                  <PharmacyLoader text="Loading Medical Categories..." />
+                </td>
+              </tr>
+              <tr v-else-if="filteredCategories.length === 0">
                 <td colspan="6" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No medical categories found.
                 </td>
               </tr>
-              <tr v-for="(row, idx) in filteredCategories" :key="row.id" @click="selectedRow = row.id" :class="[
+              <tr v-for="(row, idx) in paginatedData" :key="row.id" @click="selectedRow = row.id" :class="[
                 'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
                 selectedRow === row.id
                   ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
@@ -124,14 +129,15 @@
           </table>
         </div>
 
-        <!-- Desktop Grid Footer Bar -->
-        <div
-          class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 font-normal">
-          <div>Total <strong>{{ filteredCategories.length }}</strong> categories</div>
-          <div class="text-[10px] text-slate-400 font-normal">
-            MySQL: <code>categories</code>
-          </div>
-        </div>
+        <!-- Pagination Footer -->
+        <PaginationControls 
+          :current-page="currentPage" 
+          :total-pages="totalPages" 
+          :total-items="filteredCategories.length" 
+          :items-per-page="itemsPerPage"
+          @prev="prevPage" 
+          @next="nextPage" 
+        />
       </div>
 
       <!-- ===================================================================== -->
@@ -315,6 +321,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useCategoryStore, type CategoryItem } from '~/stores/categories';
+import { usePagination } from '~/composables/usePagination';
+import PaginationControls from '~/components/PaginationControls.vue';
 
 const categoryStore = useCategoryStore();
 const { categories, loading } = storeToRefs(categoryStore);
@@ -354,6 +362,8 @@ const filteredCategories = computed(() => {
     return nameA.localeCompare(nameB);
   });
 });
+
+const { currentPage, totalPages, paginatedData, nextPage, prevPage, itemsPerPage } = usePagination(filteredCategories, 10);
 
 const openAddModal = () => {
   newCatName.value = '';

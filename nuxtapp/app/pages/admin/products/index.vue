@@ -65,12 +65,17 @@
             </thead>
 
             <tbody>
-              <tr v-if="filteredProducts.length === 0">
+              <tr v-if="loading">
+                <td colspan="12" class="py-12">
+                  <PharmacyLoader text="Loading Medicines Catalog..." />
+                </td>
+              </tr>
+              <tr v-else-if="filteredProducts.length === 0">
                 <td colspan="12" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No medicines found in database catalog.
                 </td>
               </tr>
-              <tr v-for="(row, idx) in filteredProducts" :key="row.id" @click="selectedRow = row.id" :class="[
+              <tr v-for="(row, idx) in paginatedData" :key="row.id" @click="selectedRow = row.id" :class="[
                 'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
                 selectedRow === row.id
                   ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
@@ -179,12 +184,15 @@
           </table>
         </div>
 
-        <!-- Desktop Grid Footer Bar -->
-        <div
-          class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 font-normal">
-          <div>Total <strong>{{ filteredProducts.length }}</strong> products</div>
-         
-        </div>
+        <!-- Pagination Footer -->
+        <PaginationControls 
+          :current-page="currentPage" 
+          :total-pages="totalPages" 
+          :total-items="filteredProducts.length" 
+          :items-per-page="itemsPerPage"
+          @prev="prevPage" 
+          @next="nextPage" 
+        />
       </div>
 
       <!-- ===================================================================== -->
@@ -583,6 +591,8 @@ import { useCategoryStore } from '~/stores/categories';
 import { useAdminSuppliers } from '~/composables/useAdminSuppliers';
 import { useProductStore, type ProductItem } from '~/stores/products';
 import { useSettingsStore } from '~/stores/settings';
+import { usePagination } from '~/composables/usePagination';
+import PaginationControls from '~/components/PaginationControls.vue';
 
 const productsStore = useProductStore();
 const settingsStore = useSettingsStore();
@@ -644,6 +654,8 @@ const filteredProducts = computed(() => {
     return name.includes(query) || generic.includes(query) || mfg.includes(query) || batch.includes(query) || cat.includes(query);
   });
 });
+
+const { currentPage, totalPages, paginatedData, nextPage, prevPage, itemsPerPage } = usePagination(filteredProducts, 10);
 
 // Master Drug Autocomplete & Auto-Fill State
 const masterDrugSearchResults = ref<any[]>([]);

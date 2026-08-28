@@ -11,8 +11,15 @@
       </p>
     </div>
 
+    <!-- Global Loader Overlay (Solid background to hide initial flash) -->
+    <div v-if="isGlobalLoading" class="fixed inset-0 z-[99999] bg-[#f2f5f8] dark:bg-gray-950 flex flex-col items-center justify-center">
+      <PharmacyLoader text="Loading System Data..." />
+    </div>
+
     <!-- Otherwise show the app -->
-    <NuxtPage v-else />
+    <div v-show="!isGlobalLoading">
+      <NuxtPage v-if="!(settingsStore.systemSettings.maintenanceMode && !isSuperAdmin)" />
+    </div>
 
     <!-- Dynamic Theme Overrides -->
     <component :is="'style'">
@@ -38,7 +45,9 @@
 import { onMounted, computed } from 'vue';
 import { useTheme } from '~/composables/useTheme';
 import { useSettingsStore } from '~/stores/settings';
-import { useAuthStore } from '~/stores/auth'; // Assuming auth store exists, if not we will handle safely
+import { useGlobalLoader } from '~/composables/useGlobalLoader';
+
+const { isGlobalLoading } = useGlobalLoader();
 
 const { initTheme } = useTheme();
 const settingsStore = useSettingsStore();
@@ -52,11 +61,15 @@ const isSuperAdmin = computed(() => {
   return false;
 });
 
-onMounted(() => {
+onMounted(async () => {
   initTheme();
-  settingsStore.fetchSystemSettings();
+  await settingsStore.fetchSystemSettings();
   if (process.client && localStorage.getItem('auth_token')) {
-    settingsStore.fetchTenantSettings();
+    await settingsStore.fetchTenantSettings();
   }
+  
+  // Now that settings are fetched, the dynamic colors will be applied
+  const { finishInitialLoad } = useGlobalLoader();
+  finishInitialLoad();
 });
 </script>

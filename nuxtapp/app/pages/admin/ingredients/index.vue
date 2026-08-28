@@ -51,7 +51,7 @@
                 </td>
               </tr>
               <tr 
-                v-for="(ing, idx) in filteredIngredients" 
+                v-for="(ing, idx) in paginatedData" 
                 :key="ing.id" 
                 @click="selectedRow = ing.id"
                 :class="[
@@ -120,11 +120,15 @@
           </table>
         </div>
 
-        <!-- Desktop Grid Footer Bar -->
-        <div class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 font-normal">
-          <div>Displaying {{ filteredIngredients.length }} active compounds (Page 1 of 1)</div>
-          <div class="font-normal text-[10px] text-emerald-600 dark:text-emerald-500">API Chemical Inventory • Grid Connected</div>
-        </div>
+        <!-- Pagination Footer -->
+        <PaginationControls 
+          :current-page="currentPage" 
+          :total-pages="totalPages" 
+          :total-items="filteredIngredients.length" 
+          :items-per-page="itemsPerPage"
+          @prev="prevPage" 
+          @next="nextPage" 
+        />
       </div>
 
       <!-- Add Ingredient Modal -->
@@ -166,6 +170,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAdminIngredients, type AdminIngredient } from '~/composables/useAdminIngredients';
+import { usePagination } from '~/composables/usePagination';
+import PaginationControls from '~/components/PaginationControls.vue';
 
 const { ingredients, addIngredient } = useAdminIngredients();
 const filterText = ref('');
@@ -177,6 +183,8 @@ const filteredIngredients = computed(() => {
   const query = filterText.value.toLowerCase();
   return ingredients.value.filter(i => i.name.toLowerCase().includes(query) || i.ingredient_id.toLowerCase().includes(query));
 });
+
+const { currentPage, totalPages, paginatedData, nextPage, prevPage, itemsPerPage } = usePagination(filteredIngredients, 10);
 
 const handleSaveIngredient = () => {
   if (!newIng.value.name) return;

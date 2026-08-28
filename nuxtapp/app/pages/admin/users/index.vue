@@ -61,8 +61,8 @@
                 v-if="userStore.isLoading"
                 class="bg-white dark:bg-gray-950"
               >
-                <td colspan="7" class="py-8 text-center text-slate-500 dark:text-gray-400 font-mono text-xs">
-                  Loading staff directory...
+                <td colspan="7" class="py-12">
+                  <PharmacyLoader text="Loading Staff Directory..." />
                 </td>
               </tr>
               <tr 
@@ -75,7 +75,7 @@
               </tr>
               <tr 
                 v-else
-                v-for="(user, idx) in filteredUsers" 
+                v-for="(user, idx) in paginatedData" 
                 :key="user.id"
                 @click="selectedRow = user.id"
                 :class="[
@@ -153,6 +153,16 @@
             </tbody>
           </table>
         </div>
+        
+        <!-- Pagination Footer -->
+        <PaginationControls 
+          :current-page="currentPage" 
+          :total-pages="totalPages" 
+          :total-items="filteredUsers.length" 
+          :items-per-page="itemsPerPage"
+          @prev="prevPage" 
+          @next="nextPage" 
+        />
       </div>
 
       <!-- Add/Edit User Modal -->
@@ -250,6 +260,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue';
 import { useUserStore } from '~/stores/users';
+import { usePagination } from '~/composables/usePagination';
+import PaginationControls from '~/components/PaginationControls.vue';
 
 const userStore = useUserStore();
 
@@ -284,6 +296,8 @@ const filteredUsers = computed(() => {
     return matchesSearch && matchesRole;
   });
 });
+
+const { currentPage, totalPages, paginatedData, nextPage, prevPage, itemsPerPage } = usePagination(filteredUsers, 10);
 
 const openAddModal = () => {
   isEditing.value = false;

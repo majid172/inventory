@@ -36,8 +36,10 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-gray-800 font-mono">
-              <tr v-if="loading" class="text-center font-sans">
-                <td colspan="6" class="py-8 text-slate-500 dark:text-gray-400">Loading purchase orders...</td>
+              <tr v-if="loading">
+                <td colspan="6" class="py-12">
+                  <PharmacyLoader text="Loading Purchase Orders..." />
+                </td>
               </tr>
               <tr v-else-if="orders.length === 0" class="text-center font-sans">
                 <td colspan="6" class="py-8 text-slate-500 dark:text-gray-400">
@@ -45,7 +47,7 @@
                   <div>No purchase orders found. Create one to procure stock.</div>
                 </td>
               </tr>
-              <tr v-else v-for="order in orders" :key="order.id" class="hover:bg-slate-50 dark:hover:bg-gray-900/50 transition-colors">
+              <tr v-else v-for="order in paginatedData" :key="order.id" class="hover:bg-slate-50 dark:hover:bg-gray-900/50 transition-colors">
                 <td class="py-2.5 px-3 font-medium text-slate-700 dark:text-gray-200">{{ order.poNumber }}</td>
                 <td class="py-2.5 px-3 font-sans text-slate-800 dark:text-gray-100">{{ order.supplierName }}</td>
                 <td class="py-2.5 px-3 text-slate-600 dark:text-gray-400 font-sans">
@@ -74,6 +76,15 @@
             </tbody>
           </table>
         </div>
+        <!-- Pagination Footer -->
+        <PaginationControls 
+          :current-page="currentPage" 
+          :total-pages="totalPages" 
+          :total-items="orders.length" 
+          :items-per-page="itemsPerPage"
+          @prev="prevPage" 
+          @next="nextPage" 
+        />
       </div>
 
       <!-- ========================================== -->
@@ -289,6 +300,8 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuth } from '~/composables/useAuth';
 import axios from 'axios';
 import { useSettingsStore } from '~/stores/settings';
+import { usePagination } from '~/composables/usePagination';
+import PaginationControls from '~/components/PaginationControls.vue';
 
 const settingsStore = useSettingsStore();
 const auth = useAuth();
@@ -298,6 +311,8 @@ const orders = ref<any[]>([]);
 const suppliers = ref<any[]>([]);
 const products = ref<any[]>([]);
 const loading = ref(true);
+
+const { currentPage, totalPages, paginatedData, nextPage, prevPage, itemsPerPage } = usePagination(orders, 10);
 
 // Create PO State
 const showAddModal = ref(false);

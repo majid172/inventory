@@ -8,6 +8,11 @@ export default defineNuxtPlugin(() => {
 
   // Add request interceptor to inject active tenant ID and JWT Authorization header
   axios.interceptors.request.use((reqConfig) => {
+    // Start global loader on request
+    if (process.client) {
+      const { startLoader } = useGlobalLoader();
+      startLoader();
+    }
     if (process.client) {
       const authToken = localStorage.getItem('auth_token');
       if (authToken) {
@@ -43,8 +48,18 @@ export default defineNuxtPlugin(() => {
 
   // Response interceptor to handle token & subscription expiry
   axios.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      if (process.client) {
+        const { stopLoader } = useGlobalLoader();
+        stopLoader();
+      }
+      return response;
+    },
     (error) => {
+      if (process.client) {
+        const { stopLoader } = useGlobalLoader();
+        stopLoader();
+      }
       if (process.client && error.response && (error.response.status === 401 || error.response.status === 403)) {
         const data = error.response.data || {};
         const isExpired = data.code === 'SUBSCRIPTION_EXPIRED' || 

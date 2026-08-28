@@ -55,7 +55,7 @@ const createSupplier = async (req, res) => {
     
     const [result] = await db.query(
       'INSERT INTO suppliers (tenant_id, name, contact_person, email, phone, is_active) VALUES (?, ?, ?, ?, ?, ?)',
-      [tenantId, name, contact_name || '', email || '', phone || '', is_active]
+      [tenantId, name, contact_name || null, email || null, phone || null, is_active]
     );
     
     const newSupplier = {
@@ -89,7 +89,7 @@ const updateSupplier = async (req, res) => {
     
     await db.query(
       'UPDATE suppliers SET name = ?, contact_person = ?, email = ?, phone = ?, is_active = ? WHERE id = ? AND tenant_id = ?',
-      [name, contact_name || '', email || '', phone || '', is_active, id, tenantId]
+      [name, contact_name || null, email || null, phone || null, is_active, id, tenantId]
     );
     
     res.json({ success: true, message: 'Supplier updated successfully' });
@@ -99,8 +99,32 @@ const updateSupplier = async (req, res) => {
   }
 };
 
+const deleteSupplier = async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req);
+    const { id } = req.params;
+    
+    // Check if supplier is used in purchase orders or batches
+    const [poRows] = await db.query('SELECT id FROM purchase_orders WHERE supplier_id = ? AND tenant_id = ? LIMIT 1', [id, tenantId]);
+    if (poRows.length > 0) {
+      return res.status(400).json({ success: false, message: 'Cannot delete supplier because it is linked to purchase orders.' });
+    }
+
+    const [result] = await db.query('DELETE FROM suppliers WHERE id = ? AND tenant_id = ?', [id, tenantId]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Supplier not found' });
+    }
+
+    res.json({ success: true, message: 'Supplier deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting supplier:', err);
+    res.status(500).json({ success: false, message: 'Server error deleting supplier' });
+  }
+};
+
 module.exports = {
   getSuppliers,
   createSupplier,
-  updateSupplier
+  updateSupplier,
+  deleteSupplier
 };

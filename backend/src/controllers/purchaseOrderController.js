@@ -57,7 +57,7 @@ const getPurchaseOrders = async (req, res) => {
       poNumber: r.po_number || `PO-${r.id}`,
       supplierId: r.supplier_id,
       supplierName: r.supplierName || 'Unknown Supplier',
-      status: r.status === 'pending' ? 'DRAFT' : (r.status === 'received' ? 'RECEIVED' : 'CANCELLED'),
+      status: r.status === 'pending' ? 'DRAFT' : (r.status === 'received' ? 'RECEIVED' : (r.status === 'sent' ? 'SENT' : 'CANCELLED')),
       totalAmount: parseFloat(r.total_amount),
       createdAt: r.created_at,
       expectedDate: r.expected_date
@@ -105,7 +105,7 @@ const getPurchaseOrderById = async (req, res) => {
         poNumber: po.po_number || `PO-${po.id}`,
         supplierId: po.supplier_id,
         supplierName: po.supplierName,
-        status: po.status === 'pending' ? 'DRAFT' : (po.status === 'received' ? 'RECEIVED' : 'CANCELLED'),
+        status: po.status === 'pending' ? 'DRAFT' : (po.status === 'received' ? 'RECEIVED' : (po.status === 'sent' ? 'SENT' : 'CANCELLED')),
         totalAmount: parseFloat(po.total_amount),
         createdAt: po.created_at,
         expectedDate: po.expected_date,
@@ -178,9 +178,11 @@ const updatePurchaseOrderStatus = async (req, res) => {
        return res.status(400).json({ success: false, message: 'Invalid status update' });
     }
 
+    const dbStatus = status === 'DRAFT' ? 'pending' : status.toLowerCase();
+
     const [result] = await db.query(
       'UPDATE purchase_orders SET status = ? WHERE id = ? AND tenant_id = ? AND status != "received"',
-      [status === 'RECEIVED' ? 'received' : (status === 'CANCELLED' ? 'cancelled' : 'pending'), poId, tenantId]
+      [dbStatus, poId, tenantId]
     );
 
     if (result.affectedRows === 0) {
@@ -223,17 +225,9 @@ const receivePurchaseOrder = async (req, res) => {
       // Insert into inventory_batches
       await db.query(
         `INSERT INTO inventory_batches 
-         (tenant_id, product_id, batch_number, quantity_received, quantity_remaining, unit_cost_price, supplier_id, expiry_date) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [tenantId, item.product_id, batchNo, item.quantity, item.quantity, item.unit_price, po.supplier_id, expiry]
-      );
-      
-      // Update product total stock
-      await db.query(
-        `UPDATE products SET stock_quantity = (
-          SELECT COALESCE(SUM(quantity), 0) FROM inventory_batches WHERE product_id = ? AND tenant_id = ?
-        ), purchase_price = ? WHERE id = ? AND tenant_id = ?`,
-        [item.product_id, tenantId, item.unit_price, item.product_id, tenantId]
+         (tenant_id, product_id, batch_number, quantity, purchase_price, supplier_id, expiry_date) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [tenantId, item.product_id, batchNo, item.quantity, item.unit_price, po.supplier_id, expiry || '2028-12-31']
       );
     }
 

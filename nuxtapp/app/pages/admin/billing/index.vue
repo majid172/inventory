@@ -160,17 +160,8 @@
             <tbody>
               <!-- Loading State -->
               <tr v-if="loading">
-                <td colspan="9" class="py-8 text-center text-slate-500 dark:text-gray-400 font-normal text-xs">
-                  <div class="inline-flex items-center gap-2">
-                    <svg class="animate-spin h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none"
-                      viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                      </path>
-                    </svg>
-                    Loading billing invoices from database...
-                  </div>
+                <td colspan="9" class="py-12">
+                  <PharmacyLoader text="Loading Billing Invoices..." />
                 </td>
               </tr>
 
@@ -182,7 +173,7 @@
               </tr>
 
               <!-- Data Rows -->
-              <tr v-else v-for="(item, idx) in filteredPayments" :key="item.id" @click="selectedRow = item.id" :class="[
+              <tr v-else v-for="(item, idx) in paginatedData" :key="item.id" @click="selectedRow = item.id" :class="[
                 'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
                 selectedRow === item.id
                   ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
@@ -264,13 +255,15 @@
             </tbody>
           </table>
 
-          <!-- Desktop Grid Footer Bar -->
-          <div
-            class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 font-normal">
-            <div>Displaying <strong>{{ filteredPayments.length }}</strong> billing invoice records</div>
-            <div class="font-normal text-[10px] text-emerald-600 dark:text-emerald-500">MySQL 8.4 Multi-Tenant Ledger •
-              Connected</div>
-          </div>
+          <!-- Pagination Footer -->
+          <PaginationControls 
+            :current-page="currentPage" 
+            :total-pages="totalPages" 
+            :total-items="filteredPayments.length" 
+            :items-per-page="itemsPerPage"
+            @prev="prevPage" 
+            @next="nextPage" 
+          />
         </div>
 
         <!-- ================================================================= -->
@@ -666,6 +659,8 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { useSettingsStore } from '~/stores/settings';
 import { useAuth } from '~/composables/useAuth';
+import { usePagination } from '~/composables/usePagination';
+import PaginationControls from '~/components/PaginationControls.vue';
 
 const settingsStore = useSettingsStore();
 const auth = useAuth();

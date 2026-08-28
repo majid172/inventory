@@ -79,14 +79,8 @@
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colSpan="7" class="py-8 text-center text-slate-500 dark:text-gray-400 font-normal text-xs">
-                  <div class="inline-flex items-center gap-2">
-                    <svg class="animate-spin h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Loading batch inventory...
-                  </div>
+                <td colSpan="7" class="py-12">
+                  <PharmacyLoader text="Loading Batch Inventory..." />
                 </td>
               </tr>
               <tr v-else-if="batchList.length === 0">
@@ -96,7 +90,7 @@
               </tr>
               <tr 
                 v-else
-                v-for="(item, idx) in batchList" 
+                v-for="(item, idx) in paginatedData" 
                 :key="item.id" 
                 @click="selectedRow = item.id"
                 :class="[
@@ -158,11 +152,15 @@
           </table>
         </div>
 
-        <!-- Desktop Grid Footer Bar -->
-        <div class="px-3 py-1.5 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 font-normal">
-          <div>Displaying {{ batchList.length }} batch items (Page 1 of 1)</div>
-          <div class="font-normal text-[10px] text-emerald-600 dark:text-emerald-500">PostgreSQL Batch Inventory • Grid Connected</div>
-        </div>
+        <!-- Pagination Footer -->
+        <PaginationControls 
+          :current-page="currentPage" 
+          :total-pages="totalPages" 
+          :total-items="batchList.length" 
+          :items-per-page="itemsPerPage"
+          @prev="prevPage" 
+          @next="nextPage" 
+        />
       </div>
     </div>
   </NuxtLayout>
@@ -172,6 +170,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useProductStore } from '~/stores/products';
+import { usePagination } from '~/composables/usePagination';
+import PaginationControls from '~/components/PaginationControls.vue';
 
 const productStore = useProductStore();
 const { products, expiringSoonCount, loading } = storeToRefs(productStore);
@@ -221,4 +221,6 @@ const batchList = computed(() => {
       expiryStatus: getExpiryStatus(p.expiryDate)
     }));
 });
+
+const { currentPage, totalPages, paginatedData, nextPage, prevPage, itemsPerPage } = usePagination(batchList, 10);
 </script>

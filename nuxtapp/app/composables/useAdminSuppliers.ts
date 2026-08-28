@@ -75,8 +75,22 @@ export function useAdminSuppliers() {
     }
   };
 
-  const deleteSupplier = (id: number) => {
-    suppliers.value = suppliers.value.filter(s => s.id !== id);
+  const deleteSupplier = async (id: number) => {
+    loading.value = true;
+    try {
+      const res = await axios.delete(`/suppliers/${id}`);
+      const data = res.data;
+      if (data && data.success) {
+        suppliers.value = suppliers.value.filter(s => s.id !== id);
+      } else if (data && !data.success) {
+        alert(data.message || 'Failed to delete supplier');
+      }
+    } catch (err: any) {
+      console.error('Failed to delete supplier', err);
+      alert(err.response?.data?.message || 'Failed to delete supplier');
+    } finally {
+      loading.value = false;
+    }
   };
 
   onMounted(() => {
