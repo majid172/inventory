@@ -36,6 +36,13 @@
               {{ expirySummary.expired_batch_count }}
             </span>
           </button>
+          <button
+            @click="activeTab = 'stock'"
+            class="px-3 py-1 text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+            :class="activeTab === 'stock' ? 'bg-blue-700 text-white shadow-xs' : 'text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'"
+          >
+            <span>📦</span> Stock Valuation
+          </button>
         </div>
       </div>
 
@@ -302,6 +309,183 @@
       </div>
 
       <!-- ===================================================================== -->
+      <!-- TAB 3: STOCK VALUATION REPORT                                         -->
+      <!-- ===================================================================== -->
+      <div v-else-if="activeTab === 'stock'" class="space-y-4">
+        <!-- Stock Toolbar -->
+        <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 px-3.5 py-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+          <span class="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide flex items-center gap-1.5">
+            <span>📦</span> Inventory Stock Valuation Report
+          </span>
+          <div class="flex items-center gap-2">
+            <input type="text" v-model="stockSearch" placeholder="Search medicine..." class="bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2 py-1 text-xs w-44" />
+            <button @click="loadStockData" :disabled="loadingStock" class="bg-white dark:bg-gray-800 hover:bg-slate-100 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 px-2.5 py-1 text-xs flex items-center gap-1 cursor-pointer shadow-xs">
+              <svg :class="['w-3.5 h-3.5 text-slate-500', { 'animate-spin': loadingStock }]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              Refresh
+            </button>
+            <button @click="exportStockReport" class="bg-white dark:bg-gray-800 hover:bg-slate-100 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 px-2.5 py-1 text-xs flex items-center gap-1 cursor-pointer shadow-xs">
+              <span>📥</span> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Stock KPI Cards — Row 1: Revenue & Profit -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <!-- Net Revenue -->
+          <div class="bg-white dark:bg-gray-950 border-2 border-emerald-300 dark:border-emerald-800 p-4 shadow-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">NET REVENUE (সম্ভাব্য আয়)</span>
+              <span class="text-lg">💵</span>
+            </div>
+            <div class="text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-1">
+              {{ settingsStore.currencySymbol }}{{ stockSummary.total_retail_value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+            </div>
+            <div class="text-[10px] text-slate-500 dark:text-gray-400 mt-1">Total retail value of all stock</div>
+          </div>
+
+          <!-- COGS / Cost -->
+          <div class="bg-white dark:bg-gray-950 border border-amber-200 dark:border-amber-900/60 p-4 shadow-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">COST OF GOODS (COGS)</span>
+              <span class="text-lg">📦</span>
+            </div>
+            <div class="text-2xl font-bold font-mono text-amber-700 dark:text-amber-400 mt-1">
+              {{ settingsStore.currencySymbol }}{{ stockSummary.total_stock_value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+            </div>
+            <div class="text-[10px] text-slate-500 dark:text-gray-400 mt-1">Purchase price of all inventory</div>
+          </div>
+
+          <!-- Net Profit -->
+          <div class="bg-white dark:bg-gray-950 border-2 border-blue-300 dark:border-blue-800 p-4 shadow-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wider">NET PROFIT (নিট লাভ)</span>
+              <span class="text-lg">💰</span>
+            </div>
+            <div class="text-2xl font-bold font-mono mt-1"
+              :class="(stockSummary.total_retail_value - stockSummary.total_stock_value) >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+              {{ settingsStore.currencySymbol }}{{ (stockSummary.total_retail_value - stockSummary.total_stock_value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+            </div>
+            <div class="text-[10px] text-slate-500 dark:text-gray-400 mt-1">Revenue − COGS (gross margin on inventory)</div>
+          </div>
+
+          <!-- Profit Margin % -->
+          <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 p-4 shadow-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">PROFIT MARGIN %</span>
+              <span class="text-lg">🎯</span>
+            </div>
+            <div class="text-2xl font-bold font-mono mt-1 flex items-center gap-2"
+              :class="stockSummary.total_retail_value > 0 && ((stockSummary.total_retail_value - stockSummary.total_stock_value) / stockSummary.total_retail_value * 100) >= 20 ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
+              {{ stockSummary.total_retail_value > 0 ? (((stockSummary.total_retail_value - stockSummary.total_stock_value) / stockSummary.total_retail_value) * 100).toFixed(1) : '0.0' }}%
+              <span class="text-[10px] px-1.5 py-0.5 border font-sans"
+                :class="stockSummary.total_retail_value > 0 && ((stockSummary.total_retail_value - stockSummary.total_stock_value) / stockSummary.total_retail_value * 100) >= 20 ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'">
+                {{ stockSummary.total_retail_value > 0 && ((stockSummary.total_retail_value - stockSummary.total_stock_value) / stockSummary.total_retail_value * 100) >= 20 ? 'Healthy' : 'Moderate' }}
+              </span>
+            </div>
+            <div class="text-[10px] text-slate-500 dark:text-gray-400 mt-1">Profit / Revenue ratio</div>
+          </div>
+        </div>
+
+        <!-- Stock KPI Cards — Row 2: Inventory counts -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 p-3 shadow-xs">
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider">Total Medicines</div>
+            <div class="text-xl font-medium font-mono text-slate-800 dark:text-gray-100 mt-0.5">{{ stockSummary.total_products }}</div>
+            <div class="text-[10px] text-slate-400">{{ stockSummary.total_categories }} categories</div>
+          </div>
+          <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 p-3 shadow-xs">
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider">Total Units</div>
+            <div class="text-xl font-medium font-mono text-slate-800 dark:text-gray-100 mt-0.5">{{ stockSummary.total_units.toLocaleString() }}</div>
+            <div class="text-[10px] text-slate-400">on shelf</div>
+          </div>
+          <div class="bg-white dark:bg-gray-950 border border-amber-200 dark:border-amber-900/60 p-3 shadow-xs">
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider">Low Stock ⚠️</div>
+            <div class="text-xl font-medium font-mono text-amber-600 dark:text-amber-400 mt-0.5">{{ stockSummary.low_stock_count }}</div>
+            <div class="text-[10px] text-slate-400">below reorder level</div>
+          </div>
+          <div class="bg-white dark:bg-gray-950 border border-red-200 dark:border-red-900/60 p-3 shadow-xs">
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider">Out of Stock 🚨</div>
+            <div class="text-xl font-medium font-mono text-red-600 dark:text-red-400 mt-0.5">{{ stockSummary.out_of_stock_count }}</div>
+            <div class="text-[10px] text-slate-400">zero units</div>
+          </div>
+        </div>
+
+
+        <!-- Main stock table + category sidebar -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- Product Table -->
+          <div class="lg:col-span-2 border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
+            <div class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-2">
+              <h3 class="text-xs font-semibold text-slate-800 dark:text-gray-100 uppercase tracking-wide">💊 Medicine Stock Ledger ({{ filteredStockProducts.length }} items)</h3>
+            </div>
+            <div class="overflow-x-auto max-h-[480px] overflow-y-auto">
+              <table class="w-full text-left text-xs font-sans border-collapse">
+                <thead class="sticky top-0 bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 text-[11px] text-slate-600 dark:text-gray-400 uppercase">
+                  <tr>
+                    <th class="py-1.5 px-3">Medicine</th>
+                    <th class="py-1.5 px-2 text-center">Category</th>
+                    <th class="py-1.5 px-2 text-right">Units</th>
+                    <th class="py-1.5 px-2 text-right">Cost Price</th>
+                    <th class="py-1.5 px-2 text-right">Retail Price</th>
+                    <th class="py-1.5 px-2 text-right">Stock Value</th>
+                    <th class="py-1.5 px-2 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-gray-800">
+                  <tr v-if="loadingStock">
+                    <td colspan="7" class="py-6 text-center text-slate-400"><span class="inline-block animate-spin mr-1">⏳</span> Loading inventory...</td>
+                  </tr>
+                  <tr v-else-if="filteredStockProducts.length === 0">
+                    <td colspan="7" class="py-8 text-center text-slate-400">No medicines in inventory yet. Add products first.</td>
+                  </tr>
+                  <tr v-for="item in filteredStockProducts" :key="item.id" class="hover:bg-slate-50 dark:hover:bg-gray-900/60">
+                    <td class="py-2 px-3">
+                      <div class="font-medium text-slate-800 dark:text-gray-100">{{ item.name }}</div>
+                      <div class="text-[10px] text-slate-400 font-mono">{{ item.generic_name || item.dosage_form || '-' }}</div>
+                    </td>
+                    <td class="py-2 px-2 text-center text-slate-500 dark:text-gray-400">{{ item.category_name || '-' }}</td>
+                    <td class="py-2 px-2 text-right font-mono font-medium text-slate-800 dark:text-gray-100">{{ item.stock_qty }}</td>
+                    <td class="py-2 px-2 text-right font-mono text-amber-700 dark:text-amber-400">{{ settingsStore.currencySymbol }}{{ item.cost_price.toFixed(2) }}</td>
+                    <td class="py-2 px-2 text-right font-mono text-slate-700 dark:text-gray-300">{{ settingsStore.currencySymbol }}{{ item.retail_price.toFixed(2) }}</td>
+                    <td class="py-2 px-2 text-right font-mono font-medium text-emerald-700 dark:text-emerald-400">{{ settingsStore.currencySymbol }}{{ item.retail_value.toFixed(0) }}</td>
+                    <td class="py-2 px-2 text-center">
+                      <span class="text-[10px] px-1.5 py-0.5 font-mono uppercase border"
+                        :class="item.status === 'OUT' ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300' : item.status === 'LOW' ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'">
+                        {{ item.status }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Category Breakdown -->
+          <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs flex flex-col">
+            <div class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-2">
+              <h3 class="text-xs font-semibold text-slate-800 dark:text-gray-100 uppercase tracking-wide">🏷️ Category Breakdown</h3>
+            </div>
+            <div class="p-3 space-y-2.5 overflow-y-auto">
+              <div v-if="stockCategories.length === 0" class="text-center text-slate-400 py-8 text-xs">No categories found.</div>
+              <div v-for="cat in stockCategories" :key="cat.category_name" class="border border-slate-200 dark:border-gray-800 p-2.5 space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-medium text-slate-800 dark:text-gray-200">{{ cat.category_name }}</span>
+                  <span class="font-mono text-emerald-700 dark:text-emerald-400">{{ settingsStore.currencySymbol }}{{ Number(cat.retail_value).toFixed(0) }}</span>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                  <span>{{ cat.product_count }} items</span>
+                  <span>{{ cat.total_units }} units</span>
+                </div>
+                <div class="w-full bg-slate-200 dark:bg-gray-800 h-1.5 overflow-hidden">
+                  <div class="bg-blue-600 h-full" :style="{ width: `${Math.min(100, (Number(cat.retail_value) / (stockSummary.total_retail_value || 1)) * 100)}%` }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================================================================== -->
       <!-- TAB 2: EXPIRY LOSS & RISK REPORT MODULE                               -->
       <!-- ===================================================================== -->
       <div v-else-if="activeTab === 'expiry'" class="space-y-4">
@@ -525,6 +709,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useReports } from '~/composables/useReports';
 import { useSettingsStore } from '~/stores/settings';
+import axios from 'axios';
 
 const route = useRoute();
 const settingsStore = useSettingsStore();
@@ -543,11 +728,90 @@ const {
   exportToCSV
 } = useReports();
 
-const activeTab = ref<'pnl' | 'expiry'>('pnl');
+const activeTab = ref<'pnl' | 'expiry' | 'stock'>('stock');
 const selectedPeriod = ref('all');
 const customStartDate = ref('');
 const customEndDate = ref('');
 const productSearch = ref('');
+
+// Stock Valuation Report State
+const loadingStock = ref(false);
+const stockSearch = ref('');
+const stockSummary = ref({
+  total_products: 0,
+  total_categories: 0,
+  total_units: 0,
+  total_stock_value: 0,
+  total_retail_value: 0,
+  low_stock_count: 0,
+  out_of_stock_count: 0
+});
+const stockProducts = ref<any[]>([]);
+const stockCategories = ref<any[]>([]);
+
+const filteredStockProducts = computed(() => {
+  if (!stockSearch.value.trim()) return stockProducts.value;
+  const q = stockSearch.value.toLowerCase();
+  return stockProducts.value.filter(p =>
+    p.name?.toLowerCase().includes(q) ||
+    p.generic_name?.toLowerCase().includes(q) ||
+    p.category_name?.toLowerCase().includes(q)
+  );
+});
+
+const getStockHeaders = () => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (process.client) {
+    const token = localStorage.getItem('auth_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const savedUser = localStorage.getItem('auth_user');
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        const tid = user?.tenantId || user?.tenant_id;
+        if (user && tid && String(tid) !== 'SYSTEM') {
+          headers['x-tenant-id'] = String(tid);
+        }
+      } catch (e) {}
+    }
+    if (!headers['x-tenant-id']) {
+      const savedStore = localStorage.getItem('active_tenant_store');
+      if (savedStore) {
+        try {
+          const store = JSON.parse(savedStore);
+          if (store?.id) headers['x-tenant-id'] = String(store.id);
+        } catch (e) {}
+      }
+    }
+  }
+  return headers;
+};
+
+const loadStockData = async () => {
+  loadingStock.value = true;
+  try {
+    const res = await axios.get('/inventory/reports/stock', { headers: getStockHeaders() });
+    if (res.data && res.data.success) {
+      stockSummary.value = res.data.summary || stockSummary.value;
+      stockProducts.value = res.data.products || [];
+      stockCategories.value = res.data.categories || [];
+    }
+  } catch (err: any) {
+    console.error('Failed to load stock report:', err.message);
+  } finally {
+    loadingStock.value = false;
+  }
+};
+
+const exportStockReport = () => {
+  const headers = ['Medicine', 'Generic', 'Category', 'Units on Shelf', 'Cost Price', 'Retail Price', 'Stock Value (Retail)', 'Status'];
+  const rows = filteredStockProducts.value.map(p => [
+    p.name, p.generic_name || '', p.category_name || '',
+    p.stock_qty, p.cost_price.toFixed(2), p.retail_price.toFixed(2),
+    p.retail_value.toFixed(2), p.status
+  ]);
+  exportToCSV('Stock_Valuation_Report', headers, rows);
+};
 
 const periodOptions = [
   { key: 'today', label: 'Today' },
@@ -636,8 +900,11 @@ const exportExpiryReport = () => {
 onMounted(() => {
   if (route.query.tab === 'expiry') {
     activeTab.value = 'expiry';
+  } else if (route.query.tab === 'stock') {
+    activeTab.value = 'stock';
   }
   loadPnlData();
   loadExpiryData();
+  loadStockData();
 });
 </script>

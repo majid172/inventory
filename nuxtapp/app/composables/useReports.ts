@@ -153,8 +153,9 @@ export function useReports() {
       if (savedUser) {
         try {
           const user = JSON.parse(savedUser);
-          if (user && user.tenantId && user.tenantId !== 'SYSTEM') {
-            headers['x-tenant-id'] = String(user.tenantId);
+          const tid = user?.tenantId || user?.tenant_id;
+          if (user && tid && tid !== 'SYSTEM') {
+            headers['x-tenant-id'] = String(tid);
           }
         } catch (e) {}
       }

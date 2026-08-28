@@ -52,7 +52,7 @@ const getDashboard = async (req, res) => {
           [tid]
         );
         if (resProdFallback) prodStats = resProdFallback;
-      } catch (e2) {}
+      } catch (e2) { }
     }
 
     let expiryStats = { near_expiry_count: 0 };
@@ -524,7 +524,7 @@ const updateCategory = async (req, res) => {
         'UPDATE products SET status = ? WHERE category_id = ? AND tenant_id = ?',
         [statusInt, req.params.id, tid]
       );
-    } catch (e) {}
+    } catch (e) { }
 
     return res.json({ success: true, message: 'Category updated successfully.' });
   } catch (err) {
@@ -677,15 +677,95 @@ const getSalesReport = async (req, res) => {
 const getStockReport = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    const [rows] = await db.query(
-      `SELECT p.name, COALESCE(p.retail_price, 0) AS retail_price, p.reorder_level, COALESCE(SUM(ib.quantity), 0) AS total_stock
+
+    // Summary KPIs
+    const [[summary]] = await db.query(
+      `SELECT
+         COUNT(DISTINCT p.id) AS total_products,
+         COUNT(DISTINCT p.category_id) AS total_categories,
+         COALESCE(SUM(ib.quantity), 0) AS total_units,
+         COALESCE(SUM(ib.quantity * COALESCE(ib.purchase_price, p.retail_price * 0.70, 0)), 0) AS total_stock_value,
+         COALESCE(SUM(ib.quantity * COALESCE(p.retail_price, 0)), 0) AS total_retail_value,
+         COUNT(CASE WHEN COALESCE(ib_stock.stock_qty, 0) <= p.reorder_level THEN 1 END) AS low_stock_count,
+         COUNT(CASE WHEN COALESCE(ib_stock.stock_qty, 0) = 0 THEN 1 END) AS out_of_stock_count
        FROM products p
-       LEFT JOIN inventory_batches ib ON p.id = ib.product_id AND p.tenant_id = ib.tenant_id
-       WHERE p.tenant_id = ?
-       GROUP BY p.id`,
-      [tid]
+       LEFT JOIN inventory_batches ib ON p.id = ib.product_id AND ib.tenant_id = p.tenant_id
+       LEFT JOIN (
+         SELECT product_id, SUM(quantity) AS stock_qty FROM inventory_batches WHERE tenant_id = ? GROUP BY product_id
+       ) ib_stock ON p.id = ib_stock.product_id
+       WHERE p.tenant_id = ?`,
+      [tid, tid]
     );
-    return res.json({ success: true, report: rows });
+
+    // Per-product stock detail
+    const [products] = await db.query(
+      `SELECT
+         p.id, p.name, p.barcode, p.rack_location, p.reorder_level,
+         c.name AS category_name,
+         md.generic_name, md.dosage_form, md.manufacturer,
+         COALESCE(p.retail_price, 0) AS retail_price,
+         COALESCE(ib_stock.stock_qty, 0) AS stock_qty,
+         COALESCE(ib_latest.purchase_price, p.retail_price * 0.70, 0) AS cost_price,
+         COALESCE(ib_stock.stock_qty, 0) * COALESCE(ib_latest.purchase_price, p.retail_price * 0.70, 0) AS stock_value,
+         COALESCE(ib_stock.stock_qty, 0) * COALESCE(p.retail_price, 0) AS retail_value,
+         ib_exp.nearest_expiry
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
+       LEFT JOIN master_drugs md ON p.master_drug_id = md.id
+       LEFT JOIN (
+         SELECT product_id, SUM(quantity) AS stock_qty FROM inventory_batches WHERE tenant_id = ? GROUP BY product_id
+       ) ib_stock ON p.id = ib_stock.product_id
+       LEFT JOIN (
+         SELECT product_id, purchase_price FROM inventory_batches WHERE tenant_id = ? ORDER BY id DESC LIMIT 1
+       ) ib_latest ON p.id = ib_latest.product_id
+       LEFT JOIN (
+         SELECT product_id, MIN(expiry_date) AS nearest_expiry FROM inventory_batches WHERE tenant_id = ? AND quantity > 0 GROUP BY product_id
+       ) ib_exp ON p.id = ib_exp.product_id
+       WHERE p.tenant_id = ?
+       ORDER BY COALESCE(ib_stock.stock_qty, 0) DESC`,
+      [tid, tid, tid, tid]
+    );
+
+    // Category breakdown
+    const [categories] = await db.query(
+      `SELECT
+         COALESCE(c.name, 'Uncategorized') AS category_name,
+         COUNT(p.id) AS product_count,
+         COALESCE(SUM(ib_stock.stock_qty), 0) AS total_units,
+         COALESCE(SUM(ib_stock.stock_qty * COALESCE(p.retail_price, 0)), 0) AS retail_value
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
+       LEFT JOIN (
+         SELECT product_id, SUM(quantity) AS stock_qty FROM inventory_batches WHERE tenant_id = ? GROUP BY product_id
+       ) ib_stock ON p.id = ib_stock.product_id
+       WHERE p.tenant_id = ?
+       GROUP BY COALESCE(c.name, 'Uncategorized')
+       ORDER BY retail_value DESC`,
+      [tid, tid]
+    );
+
+    return res.json({
+      success: true,
+      summary: {
+        total_products: parseInt(summary?.total_products || 0),
+        total_categories: parseInt(summary?.total_categories || 0),
+        total_units: parseInt(summary?.total_units || 0),
+        total_stock_value: parseFloat(summary?.total_stock_value || 0),
+        total_retail_value: parseFloat(summary?.total_retail_value || 0),
+        low_stock_count: parseInt(summary?.low_stock_count || 0),
+        out_of_stock_count: parseInt(summary?.out_of_stock_count || 0),
+      },
+      products: products.map(p => ({
+        ...p,
+        stock_qty: parseInt(p.stock_qty || 0),
+        retail_price: parseFloat(p.retail_price || 0),
+        cost_price: parseFloat(p.cost_price || 0),
+        stock_value: parseFloat(p.stock_value || 0),
+        retail_value: parseFloat(p.retail_value || 0),
+        status: parseInt(p.stock_qty || 0) === 0 ? 'OUT' : (parseInt(p.stock_qty || 0) <= (p.reorder_level || 10) ? 'LOW' : 'OK')
+      })),
+      categories
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

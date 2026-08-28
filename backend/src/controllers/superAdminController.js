@@ -47,34 +47,51 @@ const getAnalytics = async (req, res) => {
           trialTenants = ptStats.trial_tenants || 0;
           suspendedTenants = ptStats.suspended_tenants || 0;
         }
-      } catch (e2) {}
+      } catch (e2) { }
     }
 
     let totalUsers = 0;
     try {
       const [[uCount]] = await db.query('SELECT COUNT(*) AS total FROM users');
       if (uCount) totalUsers = uCount.total;
-    } catch (e) {}
+    } catch (e) { }
 
     let totalMasterDrugs = 0;
     try {
       const [[drugStats]] = await db.query('SELECT COUNT(*) AS total FROM master_drugs');
       if (drugStats) totalMasterDrugs = drugStats.total;
-    } catch (e) {}
+    } catch (e) { }
 
     let totalProducts = 0;
     try {
       const [[pStats]] = await db.query('SELECT COUNT(*) AS total FROM products');
       if (pStats) totalProducts = pStats.total;
-    } catch (e) {}
+    } catch (e) { }
 
     let totalRevenue = 0;
+    let computedMrr = 0;
     try {
+      // Get all-time revenue
       const [[payStats]] = await db.query(`
         SELECT COALESCE(SUM(amount), 0) AS total_rev FROM payments WHERE status = 'success'
       `);
       if (payStats) totalRevenue = parseFloat(payStats.total_rev) || 0;
-    } catch (e) {}
+
+      // Calculate MRR by summing the plan prices of all active tenants
+      const [[mrrStats]] = await db.query(`
+        SELECT COALESCE(SUM(sp.price), 0) AS current_mrr
+        FROM tenants t
+        INNER JOIN tenant_subscriptions ts ON t.id = ts.tenant_id
+        INNER JOIN subscription_plans sp ON ts.plan_id = sp.id
+        WHERE (t.status = 'active' OR t.status IS NULL) 
+        AND ts.id = (
+          SELECT MAX(id) FROM tenant_subscriptions WHERE tenant_id = t.id
+        )
+      `);
+      if (mrrStats) computedMrr = parseFloat(mrrStats.current_mrr) || 0;
+    } catch (e) {
+      console.warn("MRR calculation error:", e.message);
+    }
 
     let planDist = [];
     try {
@@ -99,12 +116,12 @@ const getAnalytics = async (req, res) => {
           price: parseFloat(p.price) || 49,
           count: 0
         }));
-      } catch (e2) {}
+      } catch (e2) { }
     }
 
-    let computedMrr = totalRevenue;
+    // If the database computation yields 0 (e.g. no subscriptions), provide a fallback estimation for UI
     if (computedMrr === 0) {
-      computedMrr = (activeTenants * 149.00) + (trialTenants * 0);
+      computedMrr = (activeTenants * 149.00);
     }
 
     return res.json({
@@ -433,7 +450,7 @@ const deletePlan = async (req, res) => {
     if (!names.includes('barcode')) {
       await db.query('ALTER TABLE master_drugs ADD COLUMN barcode VARCHAR(100) NULL AFTER therapeutic_class');
     }
-  } catch (e) {}
+  } catch (e) { }
 })();
 
 const formatMasterDrug = (d) => ({
@@ -490,15 +507,15 @@ const getMasterDrugs = async (req, res) => {
 
     const [rows] = await db.query(sql, queryParams);
     const data = rows.map(formatMasterDrug);
-    return res.json({ 
-      success: true, 
-      data, 
+    return res.json({
+      success: true,
+      data,
       drugs: data,
-      count: data.length, 
-      total, 
-      page: pageNum, 
-      limit: limitNum, 
-      totalPages 
+      count: data.length,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages
     });
   } catch (err) {
     console.error('getMasterDrugs error:', err);
@@ -663,7 +680,7 @@ const getAllPayments = async (req, res) => {
         if (pRows && pRows.length > 0) {
           rows = pRows;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     return res.json({ success: true, payments: rows });
@@ -735,7 +752,7 @@ const getUsers = async (req, res) => {
               if (pt.plan_tier) planName = pt.plan_tier.toUpperCase() + ' Tier';
               if (pt.status) subStatus = pt.status;
             }
-          } catch (e2) {}
+          } catch (e2) { }
         }
 
         try {
@@ -758,17 +775,17 @@ const getUsers = async (req, res) => {
               }
             }
           }
-        } catch (e) {}
+        } catch (e) { }
 
         try {
           const [[pCount]] = await db.query('SELECT COUNT(*) AS total FROM products WHERE tenant_id = ?', [u.tenant_id]);
           if (pCount) storeProductsCount = pCount.total;
-        } catch (e) {}
+        } catch (e) { }
 
         try {
           const [[uCount]] = await db.query('SELECT COUNT(*) AS total FROM users WHERE tenant_id = ?', [u.tenant_id]);
           if (uCount) storeUsersCount = uCount.total;
-        } catch (e) {}
+        } catch (e) { }
       }
 
       return {
@@ -850,10 +867,10 @@ const updateUser = async (req, res) => {
     const params = [];
 
     if (name !== undefined) { updates.push('name = ?'); params.push(name.trim()); }
-    if (email !== undefined) { 
+    if (email !== undefined) {
       const [[dupe]] = await db.query('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1', [email.trim().toLowerCase(), id]);
       if (dupe) return res.status(400).json({ success: false, message: 'Email is already used by another user.' });
-      updates.push('email = ?'); params.push(email.trim().toLowerCase()); 
+      updates.push('email = ?'); params.push(email.trim().toLowerCase());
     }
     if (phone !== undefined) { updates.push('phone = ?'); params.push(phone); }
     if (role !== undefined) { updates.push('role = ?'); params.push(role); }
@@ -912,8 +929,8 @@ const getPlatformSettings = async (req, res) => {
     const [rows] = await db.query("SELECT setting_value FROM system_settings WHERE setting_key = 'platform_config'");
     let settings = {};
     if (rows && rows.length > 0) {
-      settings = typeof rows[0].setting_value === 'string' 
-        ? JSON.parse(rows[0].setting_value) 
+      settings = typeof rows[0].setting_value === 'string'
+        ? JSON.parse(rows[0].setting_value)
         : rows[0].setting_value;
     } else {
       // Fallback default if not yet saved in DB
@@ -944,10 +961,10 @@ const updatePlatformSettings = async (req, res) => {
        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
       [JSON.stringify(newSettings)]
     );
-    
+
     // Refresh the in-memory cache instantly
     await refreshSettings();
-    
+
     return res.json({
       success: true,
       message: 'Platform settings updated successfully.',

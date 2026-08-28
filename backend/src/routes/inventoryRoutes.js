@@ -26,35 +26,35 @@ router.get('/dashboard', getDashboard);
 router.get('/my-subscription', getMySubscription);
 
 // Products
-router.get('/products',        getProducts);
-router.get('/products/:id',    getProductById);
-router.post('/products',       requireRole('STORE_ADMIN','PHARMACIST'), enforcePlanLimit('products'), createProduct);
-router.put('/products/:id',    requireRole('STORE_ADMIN','PHARMACIST'), updateProduct);
-router.patch('/products/:id',  requireRole('STORE_ADMIN','PHARMACIST'), updateProduct);
+router.get('/products', getProducts);
+router.get('/products/:id', getProductById);
+router.post('/products', requireRole('STORE_ADMIN', 'PHARMACIST'), enforcePlanLimit('products'), createProduct);
+router.put('/products/:id', requireRole('STORE_ADMIN', 'PHARMACIST'), updateProduct);
+router.patch('/products/:id', requireRole('STORE_ADMIN', 'PHARMACIST'), updateProduct);
 router.delete('/products/:id', requireRole('STORE_ADMIN'), deleteProduct);
 
 // Categories
-router.get('/categories',        getCategories);
-router.post('/categories',       requireRole('STORE_ADMIN'), createCategory);
-router.put('/categories/:id',    requireRole('STORE_ADMIN'), updateCategory);
+router.get('/categories', getCategories);
+router.post('/categories', requireRole('STORE_ADMIN'), createCategory);
+router.put('/categories/:id', requireRole('STORE_ADMIN'), updateCategory);
 router.delete('/categories/:id', requireRole('STORE_ADMIN'), deleteCategory);
 
 // Suppliers
-router.get('/suppliers',        getSuppliers);
-router.post('/suppliers',       requireRole('STORE_ADMIN'), createSupplier);
-router.put('/suppliers/:id',    requireRole('STORE_ADMIN'), updateSupplier);
+router.get('/suppliers', getSuppliers);
+router.post('/suppliers', requireRole('STORE_ADMIN'), createSupplier);
+router.put('/suppliers/:id', requireRole('STORE_ADMIN'), updateSupplier);
 
 // Inventory batches
 router.get('/batches', getBatches);
 
 // Stock operations
-router.post('/stock-in',  requireRole('STORE_ADMIN','PHARMACIST'), stockIn);
-router.post('/stock-out', requireRole('STORE_ADMIN','PHARMACIST'), stockOut);
+router.post('/stock-in', requireRole('STORE_ADMIN', 'PHARMACIST'), stockIn);
+router.post('/stock-out', requireRole('STORE_ADMIN', 'PHARMACIST'), stockOut);
 
 // Reports
-router.get('/reports/sales',       getSalesReport);
-router.get('/reports/stock',       getStockReport);
-router.get('/reports/expiry',      getExpiryReport);
+router.get('/reports/sales', getSalesReport);
+router.get('/reports/stock', getStockReport);
+router.get('/reports/expiry', getExpiryReport);
 router.get('/reports/profit-loss', getProfitLossReport);
 router.get('/reports/expiry-loss', getExpiryLossReport);
 

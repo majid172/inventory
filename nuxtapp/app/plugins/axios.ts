@@ -27,7 +27,7 @@ export default defineNuxtPlugin(() => {
           if (user && user.tenantId && user.tenantId !== 'SYSTEM') {
             reqConfig.headers['x-tenant-id'] = String(user.tenantId);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // Priority 2: Active tenant store fallback if no tenant in user
@@ -39,7 +39,7 @@ export default defineNuxtPlugin(() => {
             if (store && store.id) {
               reqConfig.headers['x-tenant-id'] = String(store.id);
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     }
@@ -62,8 +62,8 @@ export default defineNuxtPlugin(() => {
       }
       if (process.client && error.response && (error.response.status === 401 || error.response.status === 403)) {
         const data = error.response.data || {};
-        const isExpired = data.code === 'SUBSCRIPTION_EXPIRED' || 
-                          (data.message && data.message.toLowerCase().includes('subscription expired'));
+        const isExpired = data.code === 'SUBSCRIPTION_EXPIRED' ||
+          (data.message && data.message.toLowerCase().includes('subscription expired'));
         const isAuthRoute = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/super-admin-login');
 
         if (!isAuthRoute && (error.response.status === 401 || isExpired)) {

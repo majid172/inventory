@@ -116,11 +116,11 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
   // Computed Plan-Wise Metrics & Filters
   const filteredTenants = computed(() => {
     return tenants.value.filter(t => {
-      const matchesSearch = !searchFilter.value || 
+      const matchesSearch = !searchFilter.value ||
         t.storeName.toLowerCase().includes(searchFilter.value.toLowerCase()) ||
         t.ownerName.toLowerCase().includes(searchFilter.value.toLowerCase()) ||
         t.email.toLowerCase().includes(searchFilter.value.toLowerCase());
-      
+
       const matchesStatus = statusFilter.value === 'all' || t.status === statusFilter.value;
       const matchesPlan = planFilter.value === 'all' || t.planTier === planFilter.value;
 
@@ -131,7 +131,7 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
   const filteredMasterDrugs = computed(() => {
     return masterDrugs.value.filter(d => {
       const search = searchFilter.value.toLowerCase();
-      const matchesSearch = !search || 
+      const matchesSearch = !search ||
         (d.brandName && d.brandName.toLowerCase().includes(search)) ||
         (d.genericName && d.genericName.toLowerCase().includes(search)) ||
         (d.manufacturer && d.manufacturer.toLowerCase().includes(search)) ||
