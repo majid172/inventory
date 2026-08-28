@@ -1,4 +1,5 @@
 import { ref, onMounted } from 'vue';
+import axios from 'axios';
 
 export interface AdminSupplier {
   id: number;
@@ -32,8 +33,8 @@ export function useAdminSuppliers() {
   const fetchSuppliers = async () => {
     loading.value = true;
     try {
-      const res = await fetch('http://localhost:5000/api/suppliers', { headers: getHeaders() });
-      const data = await res.json();
+      const res = await axios.get('/suppliers');
+      const data = res.data;
       if (data && data.success) {
         suppliers.value = data.data;
       }
@@ -47,12 +48,8 @@ export function useAdminSuppliers() {
   const addSupplier = async (sup: Partial<AdminSupplier>) => {
     loading.value = true;
     try {
-      const res = await fetch('http://localhost:5000/api/suppliers', {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(sup)
-      });
-      const data = await res.json();
+      const res = await axios.post('/suppliers', sup);
+      const data = res.data;
       if (data && data.success) {
         suppliers.value.unshift(data.data);
       }
@@ -66,12 +63,8 @@ export function useAdminSuppliers() {
   const updateSupplier = async (id: number, sup: Partial<AdminSupplier>) => {
     loading.value = true;
     try {
-      const res = await fetch(`http://localhost:5000/api/suppliers/${id}`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(sup)
-      });
-      const data = await res.json();
+      const res = await axios.put(`/suppliers/${id}`, sup);
+      const data = res.data;
       if (data && data.success) {
         await fetchSuppliers();
       }

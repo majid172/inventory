@@ -40,10 +40,10 @@
               <tr class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
                 <th class="py-1.5 px-3 w-10 text-center border-r border-slate-200 dark:border-gray-800 font-normal">#</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">SUPPLIER ID</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">DISTRIBUTOR / COMPANY</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">COMPANY</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">REPRESENTATIVE</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">EMAIL ADDRESS</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">PHONE NUMBER</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">EMAIL</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">PHONE </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">STATUS</th>
               </tr>
             </thead>

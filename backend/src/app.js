@@ -25,6 +25,7 @@ const productRoutes     = require('./routes/productRoutes');
 const ingredientRoutes  = require('./routes/ingredientRoutes');
 const categoryRoutes    = require('./routes/categoryRoutes');
 const supplierRoutes    = require('./routes/supplierRoutes');
+const purchaseOrderRoutes = require('./routes/purchaseOrderRoutes');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/products',    productRoutes);
 app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/categories',  categoryRoutes);
 app.use('/api/suppliers',   supplierRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
 
 // ── Global Error Handler ─────────────────────────────────────────────────────
 app.use(errorHandler);

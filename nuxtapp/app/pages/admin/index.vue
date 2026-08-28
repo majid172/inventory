@@ -283,8 +283,8 @@
                   <th
                     class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal font-mono w-24">
                     AMOUNT</th>
-                  <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">
-                    STATUS</th>
+                  <!-- <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-28">
+                    STATUS</th> -->
                   <th
                     class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-center w-32 font-mono">
                     DATE / TIME</th>
@@ -351,12 +351,12 @@
                   </td>
 
                   <!-- Status -->
-                  <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800">
+                  <!-- <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800">
                     <span
                       class="px-2 py-0.5 rounded text-[10px] font-normal uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800 whitespace-nowrap">
                       ● {{ order.status || 'COMPLETED' }}
                     </span>
-                  </td>
+                  </td> -->
 
                   <!-- Date / Time -->
                   <td

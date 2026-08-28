@@ -1,143 +1,259 @@
 const db = require('../config/db');
 
-// Auto-migration helper for purchase orders
-let isSchemaChecked = false;
-const ensurePOTable = async () => {
-  if (isSchemaChecked || !db || !db.query) return;
+// Helper to get a valid tenant_id
+const resolveTenantId = async (req) => {
+  if (req.tenantId && req.tenantId !== 'SYSTEM') {
+    return parseInt(req.tenantId, 10);
+  }
+  const xTenant = req.headers['x-tenant-id'] || req.headers['X-Tenant-Id'];
+  if (xTenant && !isNaN(parseInt(xTenant, 10))) {
+    return parseInt(xTenant, 10);
+  }
   try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS purchase_orders (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        tenant_id VARCHAR(50) DEFAULT 'TENANT_101',
-        po_number VARCHAR(50) NOT NULL,
-        supplier_id VARCHAR(50) NOT NULL,
-        status VARCHAR(50) DEFAULT 'DRAFT', -- DRAFT, SENT, RECEIVED, CANCELLED
-        total_amount DECIMAL(10, 2) DEFAULT 0.00,
-        expected_date DATE DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_po_tenant (tenant_id)
-      )
-    `);
-    
+    const [[firstTenant]] = await db.query('SELECT id FROM tenants ORDER BY id ASC LIMIT 1');
+    if (firstTenant && firstTenant.id) {
+      return firstTenant.id;
+    }
+  } catch (e) {}
+  return 1;
+};
+
+// Ensure po_items table exists
+const ensurePOItemsTable = async () => {
+  try {
     await db.query(`
       CREATE TABLE IF NOT EXISTS po_items (
         id INT AUTO_INCREMENT PRIMARY KEY,
         po_id INT NOT NULL,
         product_id INT NOT NULL,
         quantity INT DEFAULT 1,
-        unit_cost DECIMAL(10, 2) DEFAULT 0.00,
-        FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE
-      )
+        unit_price DECIMAL(10, 2) DEFAULT 0.00,
+        FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
     `);
-    isSchemaChecked = true;
   } catch (err) {
-    console.warn("PO schema check warning:", err.message);
+    console.error("PO Items schema check warning:", err.message);
   }
 };
 
-let fallbackPOs = [
-  { id: 1, tenantId: 'TENANT_101', poNumber: "PO_2024_001", supplierId: "SUP_001", supplierName: "GlaxoSmithKline (GSK) Pharma", status: "RECEIVED", totalAmount: 450.50, expectedDate: "2024-10-15", createdAt: new Date().toISOString() },
-  { id: 2, tenantId: 'TENANT_101', poNumber: "PO_2024_002", supplierId: "SUP_002", supplierName: "Pfizer Logistics", status: "DRAFT", totalAmount: 1200.00, expectedDate: "2024-10-25", createdAt: new Date().toISOString() }
-];
-
 const getPurchaseOrders = async (req, res) => {
   try {
-    const tenantId = req.query.tenant_id || req.headers['x-tenant-id'] || 'TENANT_101';
-    await ensurePOTable();
+    const tenantId = await resolveTenantId(req);
+    await ensurePOItemsTable();
 
-    if (db && db.query) {
-      try {
-        const [rows] = await db.query(
-          `SELECT p.*, s.name as supplierName 
-           FROM purchase_orders p
-           LEFT JOIN suppliers s ON p.supplier_id = s.supplier_id
-           WHERE p.tenant_id = ? OR p.tenant_id IS NULL 
-           ORDER BY p.id DESC`,
-          [tenantId]
-        );
-        if (rows && rows.length > 0) {
-          const formatted = rows.map(r => ({
-            id: r.id,
-            tenantId: r.tenant_id,
-            poNumber: r.po_number,
-            supplierId: r.supplier_id,
-            supplierName: r.supplierName || 'Unknown Supplier',
-            status: r.status,
-            totalAmount: parseFloat(r.total_amount),
-            expectedDate: r.expected_date,
-            createdAt: r.created_at
-          }));
-          return res.json({ success: true, count: formatted.length, data: formatted });
-        }
-      } catch (dbErr) {}
-    }
-    
-    // Fallback
-    const tenantPOs = fallbackPOs.filter(p => p.tenantId === tenantId);
-    return res.json({ success: true, count: tenantPOs.length, data: tenantPOs });
+    const [rows] = await db.query(
+      `SELECT p.*, s.name as supplierName 
+       FROM purchase_orders p
+       LEFT JOIN suppliers s ON p.supplier_id = s.id
+       WHERE p.tenant_id = ? 
+       ORDER BY p.id DESC`,
+      [tenantId]
+    );
+
+    const formatted = rows.map(r => ({
+      id: r.id,
+      tenantId: r.tenant_id,
+      poNumber: r.po_number || `PO-${r.id}`,
+      supplierId: r.supplier_id,
+      supplierName: r.supplierName || 'Unknown Supplier',
+      status: r.status === 'pending' ? 'DRAFT' : (r.status === 'received' ? 'RECEIVED' : 'CANCELLED'),
+      totalAmount: parseFloat(r.total_amount),
+      createdAt: r.created_at,
+      expectedDate: r.expected_date
+    }));
+
+    res.json({ success: true, count: formatted.length, data: formatted });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('getPurchaseOrders error:', err);
+    res.status(500).json({ success: false, message: 'Server error fetching purchase orders' });
+  }
+};
+
+const getPurchaseOrderById = async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req);
+    const poId = req.params.id;
+
+    const [poRows] = await db.query(
+      `SELECT p.*, s.name as supplierName 
+       FROM purchase_orders p
+       LEFT JOIN suppliers s ON p.supplier_id = s.id
+       WHERE p.id = ? AND p.tenant_id = ?`,
+      [poId, tenantId]
+    );
+
+    if (poRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Purchase order not found' });
+    }
+
+    const po = poRows[0];
+    
+    // Get items
+    const [itemRows] = await db.query(
+      `SELECT i.*, p.name as productName 
+       FROM po_items i
+       JOIN products p ON i.product_id = p.id
+       WHERE i.po_id = ?`,
+      [poId]
+    );
+
+    res.json({ 
+      success: true, 
+      data: {
+        id: po.id,
+        poNumber: po.po_number || `PO-${po.id}`,
+        supplierId: po.supplier_id,
+        supplierName: po.supplierName,
+        status: po.status === 'pending' ? 'DRAFT' : (po.status === 'received' ? 'RECEIVED' : 'CANCELLED'),
+        totalAmount: parseFloat(po.total_amount),
+        createdAt: po.created_at,
+        expectedDate: po.expected_date,
+        items: itemRows.map(i => ({
+          id: i.id,
+          productId: i.product_id,
+          productName: i.productName,
+          genericName: i.productName, // fallback if not joined
+          quantity: i.quantity,
+          unitCost: parseFloat(i.unit_price),
+          lineTotal: parseFloat(i.unit_price) * i.quantity
+        }))
+      } 
+    });
+  } catch (err) {
+    console.error('getPurchaseOrderById error:', err);
+    res.status(500).json({ success: false, message: 'Server error fetching purchase order' });
   }
 };
 
 const createPurchaseOrder = async (req, res) => {
   try {
-    const tenantId = req.body.tenant_id || req.headers['x-tenant-id'] || 'TENANT_101';
-    await ensurePOTable();
+    const tenantId = await resolveTenantId(req);
+    await ensurePOItemsTable();
     
     const { supplierId, expectedDate, items, totalAmount } = req.body;
+    
     if (!supplierId) return res.status(400).json({ success: false, message: 'Supplier ID is required.' });
+    if (!items || items.length === 0) return res.status(400).json({ success: false, message: 'At least one item is required.' });
 
-    if (db && db.query) {
-      try {
-        const poNumber = `PO_${new Date().getFullYear()}_${Date.now().toString().slice(-5)}`;
-        const [result] = await db.query(
-          `INSERT INTO purchase_orders (tenant_id, po_number, supplier_id, status, expected_date, total_amount) 
-           VALUES (?, ?, ?, 'DRAFT', ?, ?)`,
-          [tenantId, poNumber, supplierId, expectedDate || null, totalAmount || 0]
-        );
-        
-        const newPoId = result.insertId;
-        
-        if (items && Array.isArray(items)) {
-          for (let item of items) {
-             await db.query(
-               "INSERT INTO po_items (po_id, product_id, quantity, unit_cost) VALUES (?, ?, ?, ?)",
-               [newPoId, item.productId, item.quantity, item.unitCost]
-             );
-          }
-        }
-        
-        return res.status(201).json({ 
-          success: true, 
-          message: 'Purchase order created successfully.',
-          data: { id: newPoId, poNumber, supplierId, status: 'DRAFT', expectedDate, totalAmount } 
-        });
-      } catch (dbErr) {}
+    // Note: Use the supplier's actual primary key if the frontend passes the string 'SUP_XXX'
+    let actualSupplierId = supplierId;
+    if (typeof supplierId === 'string' && supplierId.startsWith('SUP_')) {
+      actualSupplierId = parseInt(supplierId.replace('SUP_', ''), 10);
+    }
+
+    const [result] = await db.query(
+      `INSERT INTO purchase_orders (tenant_id, supplier_id, status, total_amount, expected_date) 
+       VALUES (?, ?, 'pending', ?, ?)`,
+      [tenantId, actualSupplierId, totalAmount || 0, expectedDate || null]
+    );
+    
+    const newPoId = result.insertId;
+    
+    for (let item of items) {
+      await db.query(
+        "INSERT INTO po_items (po_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
+        [newPoId, item.productId, item.quantity, item.unitCost]
+      );
     }
     
-    // Fallback
-    const poNumber = `PO_${new Date().getFullYear()}_${Date.now().toString().slice(-4)}`;
-    const newPO = {
-      id: fallbackPOs.length + 1,
-      tenantId,
-      poNumber,
-      supplierId,
-      supplierName: "Demo Supplier",
-      status: 'DRAFT',
-      expectedDate: expectedDate || new Date().toISOString(),
-      totalAmount: totalAmount || 0,
-      createdAt: new Date().toISOString()
-    };
-    fallbackPOs.unshift(newPO);
-    res.status(201).json({ success: true, message: 'Purchase order created (Demo mode).', data: newPO });
+    res.status(201).json({ 
+      success: true, 
+      message: 'Purchase order created successfully.',
+      data: { id: newPoId, poNumber: `PO-${newPoId}`, supplierId: actualSupplierId, status: 'DRAFT', totalAmount, expectedDate } 
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('createPurchaseOrder error:', err);
+    res.status(500).json({ success: false, message: 'Failed to create PO' });
+  }
+};
+
+const updatePurchaseOrderStatus = async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req);
+    const poId = req.params.id;
+    const { status } = req.body;
+
+    if (!['DRAFT', 'SENT', 'CANCELLED'].includes(status)) {
+       return res.status(400).json({ success: false, message: 'Invalid status update' });
+    }
+
+    const [result] = await db.query(
+      'UPDATE purchase_orders SET status = ? WHERE id = ? AND tenant_id = ? AND status != "received"',
+      [status === 'RECEIVED' ? 'received' : (status === 'CANCELLED' ? 'cancelled' : 'pending'), poId, tenantId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'PO not found or already received' });
+    }
+
+    res.json({ success: true, message: `Purchase order marked as ${status}` });
+  } catch (err) {
+    console.error('updatePurchaseOrderStatus error:', err);
+    res.status(500).json({ success: false, message: 'Failed to update PO status' });
+  }
+};
+
+const receivePurchaseOrder = async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req);
+    const poId = req.params.id;
+    const { batches } = req.body; // Array of { productId, batchNumber, expiryDate }
+
+    // Check if PO exists and is not already received
+    const [poRows] = await db.query('SELECT * FROM purchase_orders WHERE id = ? AND tenant_id = ?', [poId, tenantId]);
+    if (poRows.length === 0) return res.status(404).json({ success: false, message: 'PO not found' });
+    
+    const po = poRows[0];
+    if (po.status === 'received') return res.status(400).json({ success: false, message: 'PO is already received' });
+    
+    // Get PO items
+    const [items] = await db.query('SELECT * FROM po_items WHERE po_id = ?', [poId]);
+    if (items.length === 0) return res.status(400).json({ success: false, message: 'PO has no items' });
+
+    const receivedDate = new Date().toISOString().split('T')[0];
+
+    // For each item in PO, create an inventory batch and update product stock
+    for (let item of items) {
+      // Find matching batch info from request
+      const batchInfo = batches ? batches.find(b => b.productId === item.product_id) : {};
+      const batchNo = (batchInfo && batchInfo.batchNumber) ? batchInfo.batchNumber : `BATCH-${po.po_number || 'PO-'+po.id}-${item.product_id}`;
+      const expiry = (batchInfo && batchInfo.expiryDate) ? batchInfo.expiryDate : null;
+      
+      // Insert into inventory_batches
+      await db.query(
+        `INSERT INTO inventory_batches 
+         (tenant_id, product_id, batch_number, quantity_received, quantity_remaining, unit_cost_price, supplier_id, expiry_date) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [tenantId, item.product_id, batchNo, item.quantity, item.quantity, item.unit_price, po.supplier_id, expiry]
+      );
+      
+      // Update product total stock
+      await db.query(
+        `UPDATE products SET stock_quantity = (
+          SELECT COALESCE(SUM(quantity), 0) FROM inventory_batches WHERE product_id = ? AND tenant_id = ?
+        ), purchase_price = ? WHERE id = ? AND tenant_id = ?`,
+        [item.product_id, tenantId, item.unit_price, item.product_id, tenantId]
+      );
+    }
+
+    // Update PO status
+    await db.query(
+      'UPDATE purchase_orders SET status = "received" WHERE id = ?',
+      [poId]
+    );
+
+    res.json({ success: true, message: 'Purchase order received and stock updated' });
+  } catch (err) {
+    console.error('receivePurchaseOrder error:', err);
+    res.status(500).json({ success: false, message: 'Failed to receive PO' });
   }
 };
 
 module.exports = {
   getPurchaseOrders,
-  createPurchaseOrder
+  getPurchaseOrderById,
+  createPurchaseOrder,
+  updatePurchaseOrderStatus,
+  receivePurchaseOrder
 };
