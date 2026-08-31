@@ -3,7 +3,10 @@
     <!-- 1. Top Desktop Application Window Titlebar, Menu Ribbon & Action Bar -->
     <DesktopAppHeader />
 
-    <!-- 2. Main Workspace Viewport (Sidebar + Active Document View) -->
+    <!-- 2. Subscription Status Warning Banner -->
+    <SubscriptionBanner />
+
+    <!-- 3. Main Workspace Viewport (Sidebar + Active Document View) -->
     <div class="flex-1 flex overflow-hidden">
       <!-- Desktop Explorer Tree Sidebar -->
       <AdminSidebar />

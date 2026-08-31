@@ -1,6 +1,60 @@
 <template>
   <NuxtLayout name="admin">
-    <div class="space-y-3 font-sans select-none">
+
+    <!-- ================================================================= -->
+    <!-- SUBSCRIPTION LOCKED OVERLAY                                        -->
+    <!-- Shown when ?locked=1 is in the URL (redirected by middleware)      -->
+    <!-- ================================================================= -->
+    <div
+      v-if="isLocked"
+      class="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-6 font-sans select-none"
+    >
+      <!-- Lock Icon Card -->
+      <div class="bg-white dark:bg-gray-950 border border-red-300 dark:border-red-800 shadow-xl max-w-lg w-full p-8 text-center space-y-5">
+        <!-- Icon -->
+        <div class="text-6xl mb-2">🔒</div>
+
+        <!-- Title -->
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 dark:text-gray-100 tracking-tight">
+            {{ lockedReasonLabel.title }}
+          </h2>
+          <p class="text-sm text-slate-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+            {{ lockedReasonLabel.message }}
+          </p>
+        </div>
+
+        <!-- Expiry info -->
+        <div class="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded p-3 text-xs text-red-700 dark:text-red-400 font-mono">
+          Store Status:
+          <strong class="uppercase ml-1">{{ lockedReasonLabel.status }}</strong>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button
+            @click="openUpgradeModal()"
+            class="w-full sm:w-auto px-6 py-2.5 bg-[#107c41] hover:bg-[#0e6b37] text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+          >
+            <span>💳</span> Renew / Upgrade Plan
+          </button>
+          <button
+            @click="isLocked = false"
+            class="w-full sm:w-auto px-6 py-2.5 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-sm hover:bg-slate-50 transition-all"
+          >
+            View Billing Details
+          </button>
+        </div>
+
+        <!-- Support note -->
+        <p class="text-[11px] text-slate-400 dark:text-gray-500 pt-2 border-t border-slate-100 dark:border-gray-800">
+          Need help? Contact our support team or contact the platform administrator.
+        </p>
+      </div>
+    </div>
+
+    <!-- Normal billing content (shown when not locked, or after user dismisses overlay) -->
+    <div v-else class="space-y-3 font-sans select-none">
       <!-- 1. Top KPI Summary Metrics Cards (Clean Desktop 1px Border Style) -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <!-- Card 1: Active Plan -->
@@ -650,21 +704,57 @@
           </div>
         </div>
       </div>
-    </div>
+    </div><!-- /v-else normal billing -->
+
   </NuxtLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { useSettingsStore } from '~/stores/settings';
 import { useAuth } from '~/composables/useAuth';
 import { usePagination } from '~/composables/usePagination';
 import PaginationControls from '~/components/PaginationControls.vue';
 
+const route = useRoute();
 const settingsStore = useSettingsStore();
 const auth = useAuth();
 
+// ── Subscription Lock ──────────────────────────────────────────────────────
+// isLocked = true when redirected by middleware (?locked=1)
+// User can dismiss the overlay to view billing details
+const isLocked = ref(route.query.locked === '1');
+
+const lockedReasonLabel = computed(() => {
+  const reason = (route.query.reason as string || 'expired').toLowerCase();
+  const labels: Record<string, { title: string; message: string; status: string }> = {
+    expired: {
+      title: 'Subscription Expired',
+      message: 'Your PharmaCare subscription has expired. Renew your plan to restore full POS and inventory access for your pharmacy.',
+      status: 'EXPIRED',
+    },
+    suspended: {
+      title: 'Account Suspended',
+      message: 'Your account has been suspended by the platform administrator. Please renew or contact support to reinstate access.',
+      status: 'SUSPENDED',
+    },
+    trial_expired: {
+      title: 'Free Trial Ended',
+      message: 'Your 14-day free trial has come to an end. Choose a subscription plan to continue using PharmaCare.',
+      status: 'TRIAL EXPIRED',
+    },
+    inactive: {
+      title: 'Account Inactive',
+      message: 'Your pharmacy account is currently inactive. Renew your subscription to reactivate full access.',
+      status: 'INACTIVE',
+    },
+  };
+  return labels[reason] || labels['expired'];
+});
+
+// ── Regular billing state ──────────────────────────────────────────────────
 const activeView = ref<'invoices' | 'plans'>('invoices');
 const isAnnualBilling = ref(false);
 const filterText = ref('');
@@ -834,6 +924,8 @@ const filteredPayments = computed(() => {
     (p.trx_no && String(p.trx_no).toLowerCase().includes(query))
   );
 });
+
+const { currentPage, totalPages, paginatedData, nextPage, prevPage, itemsPerPage } = usePagination(filteredPayments, 10);
 
 const getHeaders = () => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

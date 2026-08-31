@@ -154,10 +154,10 @@ export function useReports() {
         try {
           const user = JSON.parse(savedUser);
           const tid = user?.tenantId || user?.tenant_id;
-          if (user && tid && tid !== 'SYSTEM') {
+          if (user && tid && tid !== '-') {
             headers['x-tenant-id'] = String(tid);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       const savedStore = localStorage.getItem('active_tenant_store');
@@ -165,7 +165,7 @@ export function useReports() {
         try {
           const store = JSON.parse(savedStore);
           if (store && store.id) headers['x-tenant-id'] = String(store.id);
-        } catch (e) {}
+        } catch (e) { }
       }
     }
     return headers;
