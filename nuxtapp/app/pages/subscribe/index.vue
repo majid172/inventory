@@ -30,7 +30,7 @@
             @click="openRegisterModal('pro')"
             class="px-4 py-2 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl font-black shadow-lg shadow-sky-500/25 transition-all transform active:scale-95 flex items-center gap-1.5"
           >
-            <span>🚀</span> Start 14-Day Free Trial
+            <span>🚀</span> Start {{ settingsStore.systemSettings.defaultTrialDays || 14 }}-Day Free Trial
           </button>
         </div>
       </div>
@@ -57,7 +57,7 @@
       <!-- Trust Badges Bar -->
       <div class="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400 font-semibold">
         <div class="flex items-center gap-1.5">
-          <span class="text-emerald-400">✓</span> 14-Day Free Trial
+          <span class="text-emerald-400">✓</span> {{ settingsStore.systemSettings.defaultTrialDays || 14 }}-Day Free Trial
         </div>
         <div class="flex items-center gap-1.5">
           <span class="text-emerald-400">✓</span> No Credit Card Required
@@ -686,6 +686,7 @@ const createdTenant = ref<TenantStore | null>(null);
 
 onMounted(() => {
   fetchPlans();
+  settingsStore.fetchSystemSettings();
 });
 
 const displayPlans = computed(() => {
@@ -818,8 +819,8 @@ const executeBackendOnboarding = async () => {
         phone: res.user.phone,
         planTier: res.user.planTier || signupForm.planTier,
         isRenewal: res.isRenewal || false,
-        status: 'active',
-        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        status: signupForm.billingType === 'trial' ? 'trial' : 'active',
+        nextBillingDate: new Date(Date.now() + (signupForm.billingType === 'trial' ? 14 : 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       } as any;
       showModal.value = false;
       return true;

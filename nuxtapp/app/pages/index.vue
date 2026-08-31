@@ -48,7 +48,7 @@
               @click="openRegisterModal(displayPlans[0] || null)"
               class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-white rounded-lg font-black text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <span>🚀</span> Start 14-Day Free Trial
+              <span>🚀</span> Start {{ settingsStore.systemSettings.defaultTrialDays || 14 }}-Day Free Trial
             </button>
           </div>
         </div>
@@ -340,7 +340,7 @@
             </div>
 
             <!-- Step 1 Buttons -->
-            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-300 dark:border-gray-800">
+            <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-300 dark:border-gray-800">
               <button 
                 type="button" 
                 @click="showModal = false"
@@ -348,13 +348,26 @@
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
-                class="px-4 py-1.5 bg-[#107c41] hover:bg-[#0e6b37] border border-[#0b542c] text-white rounded-none font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer text-xs transition-all"
-              >
-                <span>Next: Payment & Trx ID</span>
-                <span>→</span>
-              </button>
+
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button"
+                  @click="goToPaymentStep"
+                  class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-gray-800 dark:text-gray-200 border border-slate-300 dark:border-gray-700 font-bold rounded-none cursor-pointer text-xs transition-all"
+                >
+                  Pay & Subscribe →
+                </button>
+
+                <button 
+                  type="button" 
+                  @click="handleStartFreeTrial"
+                  :disabled="isSubmitting"
+                  class="px-4 py-1.5 bg-[#107c41] hover:bg-[#0e6b37] border border-[#0b542c] disabled:opacity-50 text-white rounded-none font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer text-xs transition-all"
+                >
+                  <span v-if="isSubmitting" class="animate-spin text-xs">⌛</span>
+                  <span>🚀 Start {{ settingsStore.systemSettings.defaultTrialDays || 14 }}-Day Free Trial Now</span>
+                </button>
+              </div>
             </div>
           </form>
 
@@ -542,6 +555,7 @@ const createdTenant = ref<any>(null);
 
 onMounted(async () => {
   await fetchPlans();
+  await settingsStore.fetchSystemSettings();
 });
 
 const displayPlans = computed(() => {
@@ -615,6 +629,54 @@ const goToPaymentStep = () => {
     return;
   }
   modalStep.value = 2;
+};
+
+const handleStartFreeTrial = async () => {
+  if (!signupForm.storeName.trim() || !signupForm.email.trim() || !signupForm.password.trim()) {
+    alert("Please fill in Store Name, Billing Email, and Password.");
+    return;
+  }
+
+  isSubmitting.value = true;
+  try {
+    const res = await fetch('http://localhost:5000/api/auth/register-tenant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storeName: signupForm.storeName,
+        ownerName: signupForm.ownerName,
+        email: signupForm.email,
+        password: signupForm.password,
+        phone: signupForm.phone,
+        domain: signupForm.slug,
+        planId: selectedPlan.value?.id || 1,
+        gateway: 'free_trial',
+        billingType: 'trial',
+        trx_no: `TRIAL_${Date.now()}`
+      })
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Free trial registration failed');
+    }
+
+    if (json.token && json.user) {
+      setAuthSession(json.token, json.user, json.tenant);
+    }
+
+    createdTenant.value = json.tenant || { name: signupForm.storeName, isTrial: true };
+    showModal.value = false;
+
+    // Direct redirect to Tenant Dashboard
+    setTimeout(() => {
+      navigateTo('/admin');
+    }, 1000);
+  } catch (e: any) {
+    alert("Error registering trial account: " + (e.message || "Please check connection"));
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
 const handleRegisterStore = async () => {

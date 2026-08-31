@@ -635,9 +635,11 @@ const getAllPayments = async (req, res) => {
     let rows = [];
     try {
       let sql = `
-        SELECT b.*, b.trx_no AS transaction_no, t.name AS tenant_name, t.domain AS tenant_domain
+        SELECT b.*, b.trx_no AS transaction_no, t.name AS tenant_name, t.domain AS tenant_domain,
+               ts.start_date, ts.end_date
         FROM billings b
         LEFT JOIN tenants t ON b.tenant_id = t.id
+        LEFT JOIN tenant_subscriptions ts ON (ts.tenant_id = b.tenant_id AND ts.id = (SELECT MAX(id) FROM tenant_subscriptions WHERE tenant_id = b.tenant_id))
       `;
       let params = [];
 
@@ -662,10 +664,12 @@ const getAllPayments = async (req, res) => {
     if (!rows || rows.length === 0) {
       try {
         let sql = `
-          SELECT p.*, p.transaction_no AS trx_no, t.name AS tenant_name, t.domain AS tenant_domain, sp.name AS plan_name
+          SELECT p.*, p.transaction_no AS trx_no, t.name AS tenant_name, t.domain AS tenant_domain, sp.name AS plan_name,
+                 ts.start_date, ts.end_date
           FROM payments p
           LEFT JOIN tenants t ON p.tenant_id = t.id
           LEFT JOIN subscription_plans sp ON (p.plan_id = sp.id OR p.plan_id = sp.slug)
+          LEFT JOIN tenant_subscriptions ts ON (ts.tenant_id = p.tenant_id AND ts.id = (SELECT MAX(id) FROM tenant_subscriptions WHERE tenant_id = p.tenant_id))
         `;
         let params = [];
 

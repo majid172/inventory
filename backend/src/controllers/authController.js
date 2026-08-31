@@ -128,11 +128,15 @@ const registerTenant = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Password is required for new pharmacy store registration.' });
       }
 
-      // 1. Insert Tenant
+      // 1. Determine trial mode
+      const isFreeTrial = req.body.gateway === 'free_trial' || req.body.billingType === 'trial' || !req.body.trx_no;
+      const initialStatus = isFreeTrial ? 'trial' : 'active';
+
+      // Insert Tenant
       const [tenantResult] = await db.query(
         `INSERT INTO tenants (name, domain, address, phone, status)
-         VALUES (?, ?, ?, ?, 'active')`,
-        [bStoreName, bDomain, address || '', phone || null]
+         VALUES (?, ?, ?, ?, ?)`,
+        [bStoreName, bDomain, address || '', phone || null, initialStatus]
       );
       tenantId = tenantResult.insertId;
 
@@ -149,25 +153,33 @@ const registerTenant = async (req, res) => {
     }
 
     // 3. Get Plan Details & Extend / Insert Subscription
+    const isFreeTrial = req.body.gateway === 'free_trial' || req.body.billingType === 'trial' || !req.body.trx_no;
+    const subStatus = isFreeTrial ? 'trial' : 'active';
     const [[planRow]] = await db.query(
       'SELECT * FROM subscription_plans WHERE id = ? OR LOWER(name) LIKE ? LIMIT 1',
       [bPlanId, `%${planTier || 'pro'}%`]
     );
-    const durationDays = planRow?.duration_days || (req.body.billingCycle === 'yearly' ? 365 : 30);
-    const planPrice = planRow?.price || (planTier === 'enterprise' ? 399.00 : planTier === 'starter' ? 49.00 : 149.00);
+    
+    const sysSettings = getSettings();
+    const dynamicTrialDays = (sysSettings && sysSettings.defaultTrialDays !== undefined && sysSettings.defaultTrialDays !== null)
+      ? parseInt(sysSettings.defaultTrialDays, 10)
+      : 14;
+
+    const durationDays = isFreeTrial ? dynamicTrialDays : (planRow?.duration_days || (req.body.billingCycle === 'yearly' ? 365 : 30));
+    const planPrice = isFreeTrial ? 0.00 : (planRow?.price || (planTier === 'enterprise' ? 399.00 : planTier === 'starter' ? 49.00 : 149.00));
 
     const startDate = new Date().toISOString().split('T')[0];
     const endDate = new Date(Date.now() + durationDays * 86400000).toISOString().split('T')[0];
 
-    // Set older active subscriptions for this tenant to expired
+    // Set older active/trial subscriptions for this tenant to expired
     try {
       await db.query(`UPDATE tenant_subscriptions SET status = 'expired' WHERE tenant_id = ?`, [tenantId]);
     } catch (e) {}
 
     const [subResult] = await db.query(
       `INSERT INTO tenant_subscriptions (tenant_id, plan_id, start_date, end_date, status)
-       VALUES (?, ?, ?, ?, 'active')`,
-      [tenantId, bPlanId, startDate, endDate]
+       VALUES (?, ?, ?, ?, ?)`,
+      [tenantId, bPlanId, startDate, endDate, subStatus]
     );
     const subscriptionId = subResult.insertId;
 

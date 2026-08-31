@@ -158,6 +158,26 @@ export const useCartStore = defineStore('cart', {
       }
     },
 
+    setQuantity(cartId: string, newQty: number | string) {
+      const item = this.cartItems.find(i => i.cartId === cartId);
+      if (!item) return;
+
+      const maxStock = item.product.stockQuantity !== undefined && item.product.stockQuantity !== null ? item.product.stockQuantity : 100;
+      let parsed = parseInt(String(newQty), 10);
+
+      if (isNaN(parsed) || parsed < 1) {
+        parsed = 1;
+      }
+
+      if (parsed > maxStock) {
+        alert(`Cannot order over available stock! Maximum stock limit is ${maxStock} units for '${item.product.name}'.`);
+        parsed = maxStock;
+      }
+
+      item.quantity = parsed;
+      item.itemTotal = item.quantity * item.unitPrice;
+    },
+
     updateDosage(cartId: string, dosage: string) {
       const item = this.cartItems.find(i => i.cartId === cartId);
       if (item) {

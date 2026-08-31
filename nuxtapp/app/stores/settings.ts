@@ -8,6 +8,7 @@ export const useSettingsStore = defineStore('settings', {
       maintenanceMode: false,
       maintenanceMessage: 'System is currently undergoing scheduled database maintenance. Please check back shortly.',
       selfRegistrationEnabled: true,
+      defaultTrialDays: 14,
       supportEmail: 'support@pharmacare.com',
       currencySymbol: '$',
       timezone: 'Asia/Dhaka',

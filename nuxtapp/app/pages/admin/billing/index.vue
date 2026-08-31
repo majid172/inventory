@@ -208,20 +208,21 @@
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">STATUS
                 </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">DATE PAID</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">EXPIRY DATE</th>
                 <th class="py-1.5 px-3 text-center w-24 font-normal">RECEIPT</th>
               </tr>
             </thead>
             <tbody>
               <!-- Loading State -->
               <tr v-if="loading">
-                <td colspan="9" class="py-12">
+                <td colspan="10" class="py-12">
                   <PharmacyLoader text="Loading Billing Invoices..." />
                 </td>
               </tr>
 
               <!-- Empty State -->
               <tr v-else-if="filteredPayments.length === 0">
-                <td colspan="9" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
+                <td colspan="10" class="py-6 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No billing invoices found matching your filter.
                 </td>
               </tr>
@@ -295,6 +296,13 @@
                 <td
                   class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-600 dark:text-gray-400 text-[11px]">
                   {{ formatItemDate(item.created_at) }}
+                </td>
+
+                <!-- Expiry Date -->
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-[11px]">
+                  <span :class="isItemExpired(item) ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-700 dark:text-emerald-400 font-medium'">
+                    {{ getItemExpiryDate(item) }}
+                  </span>
                 </td>
 
                 <!-- Actions / Receipt -->
@@ -518,6 +526,7 @@
                 <div>Method: <strong class="uppercase font-mono">{{ selectedInvoice.gateway || 'bKash' }}</strong></div>
                 <div>Trx ID: <span class="font-mono text-emerald-700 dark:text-emerald-400">{{ selectedInvoice.trx_no ||
                   selectedInvoice.transaction_no || 'TRX-8291481' }}</span></div>
+                <div>Plan Expiry: <strong class="font-mono text-emerald-700 dark:text-emerald-400">{{ getItemExpiryDate(selectedInvoice) }}</strong></div>
               </div>
             </div>
 
@@ -821,10 +830,36 @@ const tenantStoreName = computed(() => {
 const formatItemDate = (dateStr?: string) => {
   if (!dateStr) return 'Today';
   try {
-    return new Date(dateStr).toLocaleDateString();
+    return new Date(dateStr).toISOString().split('T')[0];
   } catch (e) {
     return dateStr;
   }
+};
+
+const getItemExpiryDate = (item?: any) => {
+  if (!item) return activeRenewalDate.value;
+  const d = item.end_date || item.expiry_date || item.subscription_end || item.nextBillingDate;
+  if (d) {
+    try {
+      const expDate = new Date(d);
+      if (!isNaN(expDate.getTime())) return expDate.toISOString().split('T')[0];
+    } catch(e) {}
+  }
+  if (item.created_at) {
+    try {
+      const created = new Date(item.created_at);
+      created.setDate(created.getDate() + 30);
+      return created.toISOString().split('T')[0];
+    } catch(e) {}
+  }
+  return activeRenewalDate.value;
+};
+
+const isItemExpired = (item?: any) => {
+  const expStr = getItemExpiryDate(item);
+  if (!expStr) return false;
+  const todayStr = new Date().toISOString().split('T')[0];
+  return expStr < todayStr;
 };
 
 const getPlanCalculatedPrice = (plan: DynamicPlan) => {

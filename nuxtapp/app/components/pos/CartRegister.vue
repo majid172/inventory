@@ -107,9 +107,18 @@
         <!-- Qty & Delete Controls -->
         <div class="flex items-center justify-between pt-1">
           <div class="flex items-center gap-1 bg-slate-100 dark:bg-gray-950 border border-slate-300 dark:border-gray-800 p-0.5">
-            <button @click="updateQuantity(item.cartId, -1)" class="w-5 h-5 flex items-center justify-center font-normal text-xs bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-700 cursor-pointer">-</button>
-            <span class="w-6 text-center text-xs font-mono font-normal text-slate-800 dark:text-gray-100">{{ item.quantity }}</span>
-            <button @click="updateQuantity(item.cartId, 1)" class="w-5 h-5 flex items-center justify-center font-normal text-xs bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-700 cursor-pointer">+</button>
+            <button @click="updateQuantity(item.cartId, -1)" class="w-5 h-5 flex items-center justify-center font-bold text-xs bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-gray-700 select-none">-</button>
+            <input 
+              type="number" 
+              min="1" 
+              :max="item.product.stockQuantity || 9999"
+              :value="item.quantity" 
+              @input="handleQtyInput(item.cartId, $event)"
+              @blur="handleQtyBlur(item.cartId, $event)"
+              @keydown.enter="($event.target as HTMLInputElement).blur()"
+              class="w-10 h-5 text-center text-xs font-mono font-bold text-slate-900 dark:text-gray-100 bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 focus:outline-none focus:border-[#107c41] px-0.5 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
+            />
+            <button @click="updateQuantity(item.cartId, 1)" class="w-5 h-5 flex items-center justify-center font-bold text-xs bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-300 dark:border-gray-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-gray-700 select-none">+</button>
           </div>
 
           <button 
@@ -199,8 +208,28 @@ const {
 
 const { 
   updateQuantity, 
+  setQuantity,
   removeFromCart, 
   clearCart, 
   holdOrder 
 } = cartStore;
+
+const handleQtyInput = (cartId: string, event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const val = target.value;
+  if (val !== '' && !isNaN(parseInt(val, 10))) {
+    cartStore.setQuantity(cartId, parseInt(val, 10));
+  }
+};
+
+const handleQtyBlur = (cartId: string, event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const val = target.value;
+  const parsed = parseInt(val, 10);
+  if (isNaN(parsed) || parsed < 1) {
+    cartStore.setQuantity(cartId, 1);
+  } else {
+    cartStore.setQuantity(cartId, parsed);
+  }
+};
 </script>
