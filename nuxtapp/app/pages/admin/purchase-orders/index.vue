@@ -302,8 +302,10 @@ import axios from 'axios';
 import { useSettingsStore } from '~/stores/settings';
 import { usePagination } from '~/composables/usePagination';
 import PaginationControls from '~/components/PaginationControls.vue';
+import { useProductStore } from '~/stores/products';
 
 const settingsStore = useSettingsStore();
+const productStore = useProductStore();
 const auth = useAuth();
 
 // State
@@ -449,8 +451,15 @@ const updateStatus = async (newStatus: string) => {
     // update in list as well
     const listIdx = orders.value.findIndex(o => o.id === selectedPO.value.id);
     if (listIdx !== -1) orders.value[listIdx].status = newStatus;
-  } catch(e) {
-    alert("Failed to update status");
+
+    if (newStatus === 'RECEIVED') {
+      await Promise.all([
+        productStore.fetchProducts(),
+        fetchData()
+      ]);
+    }
+  } catch(e: any) {
+    alert(e.response?.data?.message || "Failed to update status");
   } finally {
     poActionLoading.value = false;
   }
@@ -479,10 +488,16 @@ const submitReceive = async () => {
     const listIdx = orders.value.findIndex(o => o.id === selectedPO.value.id);
     if (listIdx !== -1) orders.value[listIdx].status = 'RECEIVED';
     
-    alert("Purchase Order successfully received! Stock has been updated.");
+    // Refresh product store stock & PO data list
+    await Promise.all([
+      productStore.fetchProducts(),
+      fetchData()
+    ]);
+    
+    alert("🎉 Purchase Order successfully received! Stock has been updated into inventory.");
     receiveMode.value = false;
-  } catch(e) {
-    alert("Failed to receive PO stock. Ensure it's not already received.");
+  } catch(e: any) {
+    alert(e.response?.data?.message || "Failed to receive PO stock. Ensure it's not already received.");
   } finally {
     poActionLoading.value = false;
   }

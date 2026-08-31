@@ -174,11 +174,17 @@ const updatePurchaseOrderStatus = async (req, res) => {
     const poId = req.params.id;
     const { status } = req.body;
 
-    if (!['DRAFT', 'SENT', 'CANCELLED'].includes(status)) {
+    const normStatus = (status || '').toUpperCase();
+
+    if (!['DRAFT', 'SENT', 'CANCELLED', 'RECEIVED'].includes(normStatus)) {
        return res.status(400).json({ success: false, message: 'Invalid status update' });
     }
 
-    const dbStatus = status === 'DRAFT' ? 'pending' : status.toLowerCase();
+    if (normStatus === 'RECEIVED') {
+      return receivePurchaseOrder(req, res);
+    }
+
+    const dbStatus = normStatus === 'DRAFT' ? 'pending' : normStatus.toLowerCase();
 
     const [result] = await db.query(
       'UPDATE purchase_orders SET status = ? WHERE id = ? AND tenant_id = ? AND status != "received"',
@@ -189,7 +195,7 @@ const updatePurchaseOrderStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'PO not found or already received' });
     }
 
-    res.json({ success: true, message: `Purchase order marked as ${status}` });
+    res.json({ success: true, message: `Purchase order marked as ${normStatus}` });
   } catch (err) {
     console.error('updatePurchaseOrderStatus error:', err);
     res.status(500).json({ success: false, message: 'Failed to update PO status' });
@@ -200,7 +206,7 @@ const receivePurchaseOrder = async (req, res) => {
   try {
     const tenantId = await resolveTenantId(req);
     const poId = req.params.id;
-    const { batches } = req.body; // Array of { productId, batchNumber, expiryDate }
+    const batches = req.body?.batches; // Array of { productId, batchNumber, expiryDate }
 
     // Check if PO exists and is not already received
     const [poRows] = await db.query('SELECT * FROM purchase_orders WHERE id = ? AND tenant_id = ?', [poId, tenantId]);
@@ -213,34 +219,54 @@ const receivePurchaseOrder = async (req, res) => {
     const [items] = await db.query('SELECT * FROM po_items WHERE po_id = ?', [poId]);
     if (items.length === 0) return res.status(400).json({ success: false, message: 'PO has no items' });
 
-    const receivedDate = new Date().toISOString().split('T')[0];
-
     // For each item in PO, create an inventory batch and update product stock
     for (let item of items) {
-      // Find matching batch info from request
-      const batchInfo = batches ? batches.find(b => b.productId === item.product_id) : {};
-      const batchNo = (batchInfo && batchInfo.batchNumber) ? batchInfo.batchNumber : `BATCH-${po.po_number || 'PO-'+po.id}-${item.product_id}`;
-      const expiry = (batchInfo && batchInfo.expiryDate) ? batchInfo.expiryDate : null;
+      const prodId = parseInt(item.product_id, 10);
+      const qty = parseInt(item.quantity, 10) || 1;
+      const unitPrice = parseFloat(item.unit_price) || 0;
+
+      // Find matching batch info from request (flexible string vs int comparison)
+      const batchInfo = Array.isArray(batches) 
+        ? batches.find(b => parseInt(b.productId || b.product_id, 10) === prodId)
+        : null;
+
+      const batchNo = (batchInfo && batchInfo.batchNumber && String(batchInfo.batchNumber).trim())
+        ? String(batchInfo.batchNumber).trim()
+        : `BATCH-PO${po.id}-${prodId}-${Date.now().toString().slice(-4)}`;
+
+      const expiry = (batchInfo && batchInfo.expiryDate && String(batchInfo.expiryDate).trim())
+        ? String(batchInfo.expiryDate).trim()
+        : '2028-12-31';
       
-      // Insert into inventory_batches
+      // 1. Insert into inventory_batches (FEFO tracking)
       await db.query(
         `INSERT INTO inventory_batches 
          (tenant_id, product_id, batch_number, quantity, purchase_price, supplier_id, expiry_date) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [tenantId, item.product_id, batchNo, item.quantity, item.unit_price, po.supplier_id, expiry || '2028-12-31']
+        [tenantId, prodId, batchNo, qty, unitPrice, po.supplier_id, expiry]
       );
+
+      // 2. Also update products table stock_quantity column (if present)
+      try {
+        await db.query(
+          `UPDATE products SET stock_quantity = COALESCE(stock_quantity, 0) + ? WHERE id = ? AND tenant_id = ?`,
+          [qty, prodId, tenantId]
+        );
+      } catch (e) {
+        // Safe fallback if column doesn't exist
+      }
     }
 
-    // Update PO status
+    // Update PO status to 'received'
     await db.query(
       'UPDATE purchase_orders SET status = "received" WHERE id = ?',
       [poId]
     );
 
-    res.json({ success: true, message: 'Purchase order received and stock updated' });
+    res.json({ success: true, message: 'Purchase order received and stock updated successfully.' });
   } catch (err) {
     console.error('receivePurchaseOrder error:', err);
-    res.status(500).json({ success: false, message: 'Failed to receive PO' });
+    res.status(500).json({ success: false, message: 'Failed to receive PO: ' + err.message });
   }
 };
 
