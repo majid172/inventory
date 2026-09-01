@@ -459,11 +459,16 @@ const createPlan = async () => {
   try {
     await createPlanTier({
       name: form.name,
-      price: form.price,
-      durationDays: form.durationDays,
-      maxTerminals: form.maxTerminals,
-      maxUsers: form.maxUsers,
-      maxProducts: form.maxProducts,
+      price: Number(form.price),
+      priceMonthly: Number(form.price),
+      duration_days: Number(form.durationDays),
+      durationDays: Number(form.durationDays),
+      max_terminals: Number(form.maxTerminals),
+      maxTerminals: Number(form.maxTerminals),
+      max_users: Number(form.maxUsers),
+      maxUsers: Number(form.maxUsers),
+      max_products: Number(form.maxProducts),
+      maxProducts: Number(form.maxProducts),
       features: form.features
     } as any);
     showCreateModal.value = false;
@@ -477,16 +482,21 @@ const createPlan = async () => {
 
 const openEditModal = (plan: SubscriptionPlan) => {
   editingPlan.value = plan;
-  form.name = plan.name;
+  form.name = plan.name || '';
   form.price = plan.price ?? (plan as any).priceMonthly ?? (plan as any).price_monthly ?? 49;
-  form.durationDays = (plan as any).durationDays || (plan as any).duration_days || 30;
-  form.maxTerminals = (plan as any).maxTerminals || (plan as any).max_terminals || (plan as any).terminalsLimit || 1;
-  form.maxUsers = (plan as any).maxUsers || (plan as any).max_users || 5;
-  form.maxProducts = (plan as any).maxProducts || (plan as any).max_products || 500;
+  form.durationDays = (plan as any).duration_days || (plan as any).durationDays || 30;
+  form.maxTerminals = (plan as any).max_terminals || (plan as any).maxTerminals || (plan as any).terminalsLimit || 1;
+  form.maxUsers = (plan as any).max_users || (plan as any).maxUsers || 5;
+  form.maxProducts = (plan as any).max_products || (plan as any).maxProducts || 500;
+  
+  let feat = plan.features;
+  if (typeof feat === 'string') {
+    try { feat = JSON.parse(feat); } catch (e) { feat = {} as any; }
+  }
   form.features = {
-    posRegister: plan.features?.posRegister ?? true,
-    rxVerification: plan.features?.rxVerification ?? false,
-    poGenerator: plan.features?.poGenerator ?? false
+    posRegister: feat?.posRegister !== undefined ? Boolean(feat.posRegister) : true,
+    rxVerification: feat?.rxVerification !== undefined ? Boolean(feat.rxVerification) : false,
+    poGenerator: feat?.poGenerator !== undefined ? Boolean(feat.poGenerator) : false
   };
 };
 
@@ -496,11 +506,16 @@ const savePlan = async () => {
   try {
     await updatePlanTier(editingPlan.value.id, {
       name: form.name,
-      price: form.price,
-      durationDays: form.durationDays,
-      maxTerminals: form.maxTerminals,
-      maxUsers: form.maxUsers,
-      maxProducts: form.maxProducts,
+      price: Number(form.price),
+      priceMonthly: Number(form.price),
+      duration_days: Number(form.durationDays),
+      durationDays: Number(form.durationDays),
+      max_terminals: Number(form.maxTerminals),
+      maxTerminals: Number(form.maxTerminals),
+      max_users: Number(form.maxUsers),
+      maxUsers: Number(form.maxUsers),
+      max_products: Number(form.maxProducts),
+      maxProducts: Number(form.maxProducts),
       features: form.features
     } as any);
     editingPlan.value = null;
