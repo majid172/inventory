@@ -18,6 +18,7 @@ router.get('/', async (req, res) => {
       const price = parseFloat(r.price) || parseFloat(r.price_monthly) || 0;
       const durationDays = parseInt(r.duration_days, 10) || 30;
       const maxTerminals = parseInt(r.max_terminals, 10) || parseInt(r.terminals_limit, 10) || 1;
+      const maxBranches = parseInt(r.max_branches, 10) || parseInt(r.branches_limit, 10) || 1;
       const maxUsers = parseInt(r.max_users, 10) || 5;
       const maxProducts = parseInt(r.max_products, 10) || 500;
 
@@ -35,6 +36,10 @@ router.get('/', async (req, res) => {
         max_terminals: maxTerminals,
         terminalsLimit: maxTerminals,
         terminals_limit: maxTerminals,
+        maxBranches,
+        max_branches: maxBranches,
+        branchesLimit: maxBranches,
+        branches_limit: maxBranches,
         maxUsers,
         max_users: maxUsers,
         maxProducts,

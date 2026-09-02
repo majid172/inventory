@@ -1,6 +1,6 @@
 // ============================================================================
 // PharmaCare — Global Route Middleware
-// Handles: Auth guard + Subscription Gatekeeper
+// Handles: Auth guard + Role-Based Access Control (RBAC) + Subscription Gatekeeper
 // ============================================================================
 
 import { useTenantSubscription } from '~/composables/useTenantSubscription';
@@ -9,29 +9,50 @@ export default defineNuxtRouteMiddleware((to, _from) => {
   if (!process.client) return;
 
   const isLoggedIn = !!(localStorage.getItem('auth_token') || localStorage.getItem('is_logged_in'));
-  const isSuperAdmin = localStorage.getItem('is_super_admin') === 'true';
+  let authUser: any = null;
+  const savedUser = localStorage.getItem('auth_user');
+  if (savedUser) {
+    try {
+      authUser = JSON.parse(savedUser);
+    } catch (e) {}
+  }
+
+  const rawRole = (authUser?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+  const isSuperAdmin = localStorage.getItem('is_super_admin') === 'true' || rawRole === 'SUPERADMIN';
+  const isCashier = !isSuperAdmin && (rawRole === 'CASHIER' || rawRole === 'POSUSER');
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 1. Super Admin route guard
+  // 1. Super Admin route guard (/super-admin/**)
   // ──────────────────────────────────────────────────────────────────────────
   if (to.path.startsWith('/super-admin')) {
     if (!isLoggedIn || !isSuperAdmin) {
-      return navigateTo('/login');
+      return navigateTo(isLoggedIn ? (isCashier ? '/pos' : '/admin') : '/login');
     }
     // Super Admin has no subscription restrictions — always allow
     return;
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 2. Protected tenant routes: /admin/** and /pos
+  // 2. Cashier Isolation: Cashiers can ONLY access /pos
+  // ──────────────────────────────────────────────────────────────────────────
+  if (isLoggedIn && isCashier) {
+    // Block cashiers from accessing any admin dashboard or super-admin views
+    if (to.path.startsWith('/admin') || to.path.startsWith('/super-admin')) {
+      console.warn(`[RBAC] Cashier restricted from ${to.path}. Redirecting to /pos`);
+      return navigateTo('/pos');
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 3. Protected tenant routes: /admin/** and /pos
   // ──────────────────────────────────────────────────────────────────────────
   if (to.path.startsWith('/pos') || (to.path.startsWith('/admin') && !to.path.startsWith('/super-admin'))) {
-    // 2a. Must be logged in
+    // 3a. Must be logged in
     if (!isLoggedIn) {
       return navigateTo('/login');
     }
 
-    // 2b. Subscription Gatekeeper
+    // 3b. Subscription Gatekeeper
     // Allow billing page through always so tenant can renew
     const isBillingPage = to.path === '/admin/billing';
 
@@ -42,20 +63,25 @@ export default defineNuxtRouteMiddleware((to, _from) => {
       const info = getSubscriptionInfo();
 
       if (info.isExpired) {
-        // Lock them out — redirect to billing with locked flag
+        // If cashier, block with alert; if owner, redirect to billing
+        if (isCashier) {
+          return navigateTo('/login?reason=subscription_expired');
+        }
         return navigateTo('/admin/billing?locked=1&reason=' + info.status);
       }
 
       // Trigger async background refresh (updates cache for next navigation)
-      // We don't await so it doesn't block route transition
       fetchSubscriptionStatus(false).catch(() => {});
     }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 3. Redirect already-logged-in users away from /login
+  // 4. Redirect already-logged-in users away from /login
   // ──────────────────────────────────────────────────────────────────────────
   if (to.path === '/login' && isLoggedIn) {
-    return navigateTo(isSuperAdmin ? '/super-admin' : '/admin');
+    if (isSuperAdmin) return navigateTo('/super-admin');
+    if (isCashier) return navigateTo('/pos');
+    return navigateTo('/admin');
   }
 });
+

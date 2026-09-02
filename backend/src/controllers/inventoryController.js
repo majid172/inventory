@@ -1232,6 +1232,89 @@ const getExpiryLossReport = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POS TERMINALS MANAGEMENT (Plan limit enforced)
+// ─────────────────────────────────────────────────────────────────────────────
+const getTerminals = async (req, res) => {
+  try {
+    const tid = req.tenantId || 1;
+    const [rows] = await db.query(
+      `SELECT * FROM pos_terminals WHERE tenant_id = ? ORDER BY id ASC`,
+      [tid]
+    );
+
+    // Get current plan limits
+    const [[planRow]] = await db.query(
+      `SELECT sp.max_terminals, sp.name as plan_name 
+       FROM tenants t
+       LEFT JOIN subscription_plans sp ON (t.plan_id = sp.id OR t.plan_tier = sp.id)
+       WHERE t.id = ?`,
+      [tid]
+    );
+
+    const maxTerminals = parseInt(planRow?.max_terminals || 1, 10);
+
+    return res.json({
+      success: true,
+      terminals: rows,
+      data: rows,
+      activeCount: rows.filter(t => t.status === 'active').length,
+      maxTerminals,
+      planName: planRow?.plan_name || 'Standard'
+    });
+  } catch (err) {
+    console.error('getTerminals error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const registerTerminal = async (req, res) => {
+  try {
+    const tid = req.tenantId || 1;
+    const { terminal_code, device_name, mac_or_ip } = req.body;
+
+    const termCode = terminal_code || `POS-TERM-${Date.now().toString().slice(-4)}`;
+    const devName = device_name || 'Counter Terminal';
+
+    await db.query(
+      `INSERT INTO pos_terminals (tenant_id, terminal_code, device_name, mac_or_ip, status, last_active_at)
+       VALUES (?, ?, ?, ?, 'active', NOW())
+       ON DUPLICATE KEY UPDATE 
+         device_name = VALUES(device_name), mac_or_ip = VALUES(mac_or_ip), 
+         status = 'active', last_active_at = NOW()`,
+      [tid, termCode, devName, mac_or_ip || null]
+    );
+
+    const [[term]] = await db.query(
+      `SELECT * FROM pos_terminals WHERE tenant_id = ? AND terminal_code = ?`,
+      [tid, termCode]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Terminal registered and activated successfully.',
+      terminal: term
+    });
+  } catch (err) {
+    console.error('registerTerminal error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteTerminal = async (req, res) => {
+  try {
+    const tid = req.tenantId || 1;
+    await db.query(
+      `DELETE FROM pos_terminals WHERE id = ? AND tenant_id = ?`,
+      [req.params.id, tid]
+    );
+    return res.json({ success: true, message: 'Terminal removed successfully.' });
+  } catch (err) {
+    console.error('deleteTerminal error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getDashboard,
   getMySubscription,
@@ -1255,5 +1338,9 @@ module.exports = {
   getStockReport,
   getExpiryReport,
   getProfitLossReport,
-  getExpiryLossReport
+  getExpiryLossReport,
+  getTerminals,
+  registerTerminal,
+  deleteTerminal
 };
+

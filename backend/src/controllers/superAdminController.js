@@ -309,26 +309,33 @@ const formatPlan = (r) => {
     features = {};
   }
 
-  const price = parseFloat(r.price) || 0;
-  const durationDays = parseInt(r.duration_days, 10) || 30;
-  const maxTerminals = parseInt(r.max_terminals, 10) || 1;
-  const maxUsers = parseInt(r.max_users, 10) || 5;
-  const maxProducts = parseInt(r.max_products, 10) || 500;
+  const price = parseFloat(r.price ?? r.price_monthly ?? 0) || 0;
+  const priceMonthly = parseFloat(r.price_monthly ?? r.price ?? 0) || price;
+  const priceYearly = parseFloat(r.price_yearly ?? 0) || (priceMonthly * 10);
+  const durationDays = parseInt(r.duration_days ?? 30, 10) || 30;
+  const maxTerminals = parseInt(r.max_terminals ?? r.terminals_limit ?? 1, 10) || 1;
+  const maxBranches = parseInt(r.max_branches ?? r.branches_limit ?? 1, 10) || 1;
+  const maxUsers = parseInt(r.max_users ?? 5, 10) || 5;
+  const maxProducts = parseInt(r.max_products ?? 500, 10) || 500;
 
   return {
     id: r.id.toString(),
     name: r.name,
-    price,
-    priceMonthly: price,
-    price_monthly: price,
-    priceYearly: price * 10,
-    price_yearly: price * 10,
+    price: priceMonthly,
+    priceMonthly,
+    price_monthly: priceMonthly,
+    priceYearly,
+    price_yearly: priceYearly,
     durationDays,
     duration_days: durationDays,
     maxTerminals,
     max_terminals: maxTerminals,
     terminalsLimit: maxTerminals,
     terminals_limit: maxTerminals,
+    maxBranches,
+    max_branches: maxBranches,
+    branchesLimit: maxBranches,
+    branches_limit: maxBranches,
     maxUsers,
     max_users: maxUsers,
     maxProducts,
@@ -340,7 +347,7 @@ const formatPlan = (r) => {
 
 const getPlans = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM subscription_plans ORDER BY price ASC, id ASC');
+    const [rows] = await db.query('SELECT * FROM subscription_plans ORDER BY id ASC');
     const plans = rows.map(formatPlan);
     return res.json({ success: true, plans, data: plans });
   } catch (err) {
@@ -351,23 +358,34 @@ const getPlans = async (req, res) => {
 
 const createPlan = async (req, res) => {
   try {
-    const { name, price, duration_days, durationDays, max_terminals, maxTerminals, max_users, maxUsers, max_products, maxProducts, features } = req.body;
+    const { 
+      id, name, price, price_monthly, priceMonthly, price_yearly, priceYearly,
+      duration_days, durationDays, max_terminals, maxTerminals, 
+      max_branches, maxBranches, max_users, maxUsers, max_products, maxProducts, features 
+    } = req.body;
 
+    const pId = id || (name ? name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : `plan_${Date.now()}`);
     const pName = name || 'Standard Plan';
-    const pPrice = parseFloat(price) || 49.00;
+    const pMonthly = parseFloat(price_monthly || priceMonthly || price || 49.00);
+    const pYearly = parseFloat(price_yearly || priceYearly || (pMonthly * 10));
     const pDuration = parseInt(duration_days || durationDays, 10) || 30;
     const pTerminals = parseInt(max_terminals || maxTerminals, 10) || 1;
+    const pBranches = parseInt(max_branches || maxBranches, 10) || 1;
     const pUsers = parseInt(max_users || maxUsers, 10) || 5;
     const pProducts = parseInt(max_products || maxProducts, 10) || 500;
     const pFeatures = typeof features === 'string' ? features : JSON.stringify(features || {});
 
     const [r] = await db.query(
-      `INSERT INTO subscription_plans (name, price, duration_days, max_terminals, max_users, max_products, features)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [pName, pPrice, pDuration, pTerminals, pUsers, pProducts, pFeatures]
+      `INSERT INTO subscription_plans (id, name, price_monthly, price_yearly, duration_days, max_terminals, max_branches, max_users, max_products, features)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE 
+         name = VALUES(name), price_monthly = VALUES(price_monthly), price_yearly = VALUES(price_yearly),
+         max_terminals = VALUES(max_terminals), max_branches = VALUES(max_branches), max_users = VALUES(max_users),
+         max_products = VALUES(max_products), features = VALUES(features)`,
+      [pId, pName, pMonthly, pYearly, pDuration, pTerminals, pBranches, pUsers, pProducts, pFeatures]
     );
 
-    const [[created]] = await db.query('SELECT * FROM subscription_plans WHERE id = ?', [r.insertId]);
+    const [[created]] = await db.query('SELECT * FROM subscription_plans WHERE id = ?', [pId]);
     const planObj = formatPlan(created);
 
     return res.status(201).json({ success: true, message: 'Plan created successfully in MySQL database.', plan: planObj, data: planObj });
@@ -380,18 +398,31 @@ const createPlan = async (req, res) => {
 const updatePlan = async (req, res) => {
   try {
     const planId = req.params.id;
-    const { name, price, duration_days, durationDays, max_terminals, maxTerminals, max_users, maxUsers, max_products, maxProducts, features } = req.body;
+    const { 
+      name, price, price_monthly, priceMonthly, price_yearly, priceYearly,
+      duration_days, durationDays, max_terminals, maxTerminals, 
+      max_branches, maxBranches, max_users, maxUsers, max_products, maxProducts, features 
+    } = req.body;
 
     const updates = [];
     const params = [];
 
     if (name) { updates.push('name = ?'); params.push(name); }
-    if (price !== undefined) { updates.push('price = ?'); params.push(parseFloat(price)); }
+    if (price !== undefined || price_monthly !== undefined || priceMonthly !== undefined) {
+      const pVal = parseFloat(price_monthly ?? priceMonthly ?? price);
+      updates.push('price_monthly = ?'); params.push(pVal);
+    }
+    if (price_yearly !== undefined || priceYearly !== undefined) {
+      updates.push('price_yearly = ?'); params.push(parseFloat(price_yearly ?? priceYearly));
+    }
     if (duration_days !== undefined || durationDays !== undefined) {
       updates.push('duration_days = ?'); params.push(parseInt(duration_days || durationDays, 10));
     }
     if (max_terminals !== undefined || maxTerminals !== undefined) {
       updates.push('max_terminals = ?'); params.push(parseInt(max_terminals || maxTerminals, 10));
+    }
+    if (max_branches !== undefined || maxBranches !== undefined) {
+      updates.push('max_branches = ?'); params.push(parseInt(max_branches || maxBranches, 10));
     }
     if (max_users !== undefined || maxUsers !== undefined) {
       updates.push('max_users = ?'); params.push(parseInt(max_users || maxUsers, 10));

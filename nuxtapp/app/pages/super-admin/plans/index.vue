@@ -223,12 +223,19 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-4 gap-2">
               <div>
                 <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
                   Max Terminals
                 </label>
                 <input v-model.number="form.maxTerminals" type="number" min="1" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Max Branches
+                </label>
+                <input v-model.number="form.maxBranches" type="number" min="1" required
                   class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
               </div>
               <div>
@@ -249,11 +256,15 @@
 
             <!-- Features -->
             <div class="pt-1">
-              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features Included</label>
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features & Module Permissions</label>
               <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.posRegister" class="text-emerald-600" />
                   <span>POS Terminal Counter</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.fefoExpiry" class="text-emerald-600" />
+                  <span>FEFO Expiry Batch Tracking</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.rxVerification" class="text-emerald-600" />
@@ -262,6 +273,14 @@
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.poGenerator" class="text-emerald-600" />
                   <span>PO Supplier Generator</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.smsReceipts" class="text-emerald-600" />
+                  <span>SMS Customer Receipts</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.multiBranch" class="text-emerald-600" />
+                  <span>Multi-Branch Chain Sync</span>
                 </label>
               </div>
             </div>
@@ -287,7 +306,7 @@
       <div v-if="editingPlan"
         class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none animate-fadeIn">
         <div
-          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-md shadow-lg overflow-hidden">
+          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-lg shadow-lg overflow-hidden">
           <!-- Window Titlebar -->
           <div
             class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between">
@@ -327,12 +346,19 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-4 gap-2">
               <div>
                 <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
                   Max Terminals
                 </label>
                 <input v-model.number="form.maxTerminals" type="number" min="1" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">
+                  Max Branches
+                </label>
+                <input v-model.number="form.maxBranches" type="number" min="1" required
                   class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-[#107c41] text-xs font-mono" />
               </div>
               <div>
@@ -353,11 +379,15 @@
 
             <!-- Features -->
             <div class="pt-1">
-              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features Included</label>
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features & Module Permissions</label>
               <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.posRegister" class="text-emerald-600" />
                   <span>POS Terminal Counter</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.fefoExpiry" class="text-emerald-600" />
+                  <span>FEFO Expiry Batch Tracking</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.rxVerification" class="text-emerald-600" />
@@ -366,6 +396,14 @@
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.poGenerator" class="text-emerald-600" />
                   <span>PO Supplier Generator</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.smsReceipts" class="text-emerald-600" />
+                  <span>SMS Customer Receipts</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                  <input type="checkbox" v-model="form.features.multiBranch" class="text-emerald-600" />
+                  <span>Multi-Branch Chain Sync</span>
                 </label>
               </div>
             </div>
@@ -410,12 +448,16 @@ const form = reactive({
   price: 49,
   durationDays: 30,
   maxTerminals: 1,
+  maxBranches: 1,
   maxUsers: 5,
   maxProducts: 500,
   features: {
     posRegister: true,
+    fefoExpiry: true,
     rxVerification: true,
-    poGenerator: false
+    poGenerator: false,
+    smsReceipts: false,
+    multiBranch: false
   }
 });
 
@@ -443,12 +485,16 @@ const openCreateModal = () => {
   form.price = 49;
   form.durationDays = 30;
   form.maxTerminals = 1;
+  form.maxBranches = 1;
   form.maxUsers = 5;
   form.maxProducts = 500;
   form.features = {
     posRegister: true,
+    fefoExpiry: true,
     rxVerification: true,
-    poGenerator: false
+    poGenerator: false,
+    smsReceipts: false,
+    multiBranch: false
   };
   showCreateModal.value = true;
 };
@@ -461,10 +507,13 @@ const createPlan = async () => {
       name: form.name,
       price: Number(form.price),
       priceMonthly: Number(form.price),
+      price_monthly: Number(form.price),
       duration_days: Number(form.durationDays),
       durationDays: Number(form.durationDays),
       max_terminals: Number(form.maxTerminals),
       maxTerminals: Number(form.maxTerminals),
+      max_branches: Number(form.maxBranches),
+      maxBranches: Number(form.maxBranches),
       max_users: Number(form.maxUsers),
       maxUsers: Number(form.maxUsers),
       max_products: Number(form.maxProducts),
@@ -486,6 +535,7 @@ const openEditModal = (plan: SubscriptionPlan) => {
   form.price = plan.price ?? (plan as any).priceMonthly ?? (plan as any).price_monthly ?? 49;
   form.durationDays = (plan as any).duration_days || (plan as any).durationDays || 30;
   form.maxTerminals = (plan as any).max_terminals || (plan as any).maxTerminals || (plan as any).terminalsLimit || 1;
+  form.maxBranches = (plan as any).max_branches || (plan as any).maxBranches || (plan as any).branchesLimit || 1;
   form.maxUsers = (plan as any).max_users || (plan as any).maxUsers || 5;
   form.maxProducts = (plan as any).max_products || (plan as any).maxProducts || 500;
   
@@ -495,8 +545,11 @@ const openEditModal = (plan: SubscriptionPlan) => {
   }
   form.features = {
     posRegister: feat?.posRegister !== undefined ? Boolean(feat.posRegister) : true,
+    fefoExpiry: (feat as any)?.fefoExpiry !== undefined ? Boolean((feat as any).fefoExpiry) : true,
     rxVerification: feat?.rxVerification !== undefined ? Boolean(feat.rxVerification) : false,
-    poGenerator: feat?.poGenerator !== undefined ? Boolean(feat.poGenerator) : false
+    poGenerator: feat?.poGenerator !== undefined ? Boolean(feat.poGenerator) : false,
+    smsReceipts: (feat as any)?.smsReceipts !== undefined ? Boolean((feat as any).smsReceipts) : false,
+    multiBranch: (feat as any)?.multiBranch !== undefined ? Boolean((feat as any).multiBranch) : false
   };
 };
 
@@ -508,10 +561,13 @@ const savePlan = async () => {
       name: form.name,
       price: Number(form.price),
       priceMonthly: Number(form.price),
+      price_monthly: Number(form.price),
       duration_days: Number(form.durationDays),
       durationDays: Number(form.durationDays),
       max_terminals: Number(form.maxTerminals),
       maxTerminals: Number(form.maxTerminals),
+      max_branches: Number(form.maxBranches),
+      maxBranches: Number(form.maxBranches),
       max_users: Number(form.maxUsers),
       maxUsers: Number(form.maxUsers),
       max_products: Number(form.maxProducts),
@@ -537,3 +593,4 @@ const confirmDeletePlan = async (plan: SubscriptionPlan) => {
   }
 };
 </script>
+

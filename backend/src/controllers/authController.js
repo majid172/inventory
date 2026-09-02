@@ -150,6 +150,31 @@ const registerTenant = async (req, res) => {
         [tenantId, bOwnerName, bEmail, passwordHash]
       );
       userId = userResult.insertId;
+
+      // =========================================================================
+      // AUTO-PROVISIONING: Insert Default Branch & Default POS Terminal
+      // =========================================================================
+      try {
+        // 1. Create Default "Main Branch"
+        const [branchRes] = await db.query(
+          `INSERT INTO branches (tenant_id, name, code, address, phone, is_main, status)
+           VALUES (?, ?, 'BR-01', ?, ?, 1, 'active')`,
+          [tenantId, `${bStoreName} - Main Branch`, address || '', phone || '']
+        );
+        const defaultBranchId = branchRes.insertId;
+
+        // 2. Assign User to Main Branch
+        await db.query(`UPDATE users SET branch_id = ? WHERE id = ?`, [defaultBranchId, userId]);
+
+        // 3. Register First POS Terminal ("Counter-01")
+        await db.query(
+          `INSERT INTO pos_terminals (tenant_id, branch_id, terminal_code, device_name, status)
+           VALUES (?, ?, 'POS-01', 'Counter-01 (Main POS)', 'active')`,
+          [tenantId, defaultBranchId]
+        );
+      } catch (provErr) {
+        console.warn('⚠️ Auto-provisioning branch/terminal notice:', provErr.message);
+      }
     }
 
     // 3. Get Plan Details & Extend / Insert Subscription
@@ -465,9 +490,82 @@ const changePassword = async (req, res) => {
 
 const getStaff = async (req, res) => {
   try {
-    const tid = req.tenantId || 1;
-    const [rows] = await db.query('SELECT id, name, email, role, status, created_at FROM users WHERE tenant_id = ? ORDER BY id DESC', [tid]);
-    return res.json({ success: true, staff: rows, data: rows });
+    const tid = req.tenantId || (req.user && req.user.tenantId && req.user.tenantId !== 'SYSTEM' ? req.user.tenantId : 1);
+    let rows = [];
+    try {
+      const [r] = await db.query(
+        "SELECT id, name, email, role, status, created_at FROM users WHERE tenant_id = ? AND LOWER(role) NOT IN ('super_admin', 'superadmin') ORDER BY id DESC",
+        [tid]
+      );
+      rows = r;
+    } catch (e1) {
+      try {
+        const [r] = await db.query(
+          "SELECT id, name, email, role, created_at FROM users WHERE tenant_id = ? AND LOWER(role) NOT IN ('super_admin', 'superadmin') ORDER BY id DESC",
+          [tid]
+        );
+        rows = r;
+      } catch (e2) {
+        console.error('getStaff query error:', e2.message);
+        rows = [];
+      }
+    }
+
+
+    // Fetch tenant active subscription plan info and max_users limit from database
+    let maxUsers = 2;
+    let planName = 'Starter';
+    let planId = 1;
+
+    try {
+      // 1. Check active subscription first
+      const [[sub]] = await db.query(
+        `SELECT sp.id, sp.name as plan_name, sp.max_users
+         FROM tenant_subscriptions ts
+         JOIN subscription_plans sp ON ts.plan_id = sp.id
+         WHERE ts.tenant_id = ? AND ts.status IN ('active', 'trial')
+         ORDER BY ts.id DESC LIMIT 1`,
+        [tid]
+      );
+      if (sub && sub.max_users) {
+        maxUsers = Number(sub.max_users);
+        planName = sub.plan_name;
+        planId = sub.id;
+      } else {
+        // 2. Fallback to tenants table
+        const [[tRow]] = await db.query(
+          `SELECT sp.id, sp.name as plan_name, sp.max_users
+           FROM tenants t
+           LEFT JOIN subscription_plans sp ON (t.plan_id = sp.id OR t.plan_tier = sp.id OR LOWER(t.plan_tier) = LOWER(sp.name))
+           WHERE t.id = ? LIMIT 1`,
+          [tid]
+        );
+        if (tRow && tRow.max_users) {
+          maxUsers = Number(tRow.max_users);
+          planName = tRow.plan_name || 'Starter';
+          planId = tRow.id || 1;
+        }
+      }
+    } catch (planErr) {
+      console.warn('getStaff plan limit lookup warning:', planErr.message);
+    }
+
+    const totalStaff = rows.length;
+    const canAddStaff = totalStaff < maxUsers;
+
+    return res.json({
+      success: true,
+      staff: rows,
+      data: rows,
+      meta: {
+        totalStaff,
+        maxUsers,
+        planName,
+        planId,
+        canAddStaff,
+        remainingSlots: Math.max(0, maxUsers - totalStaff)
+      }
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -517,6 +615,29 @@ const updateStaff = async (req, res) => {
   }
 };
 
+const deleteStaff = async (req, res) => {
+  try {
+    const tid = req.tenantId || 1;
+    const userId = req.params.id;
+
+    const [[targetUser]] = await db.query('SELECT id, role, email FROM users WHERE id = ? AND tenant_id = ?', [userId, tid]);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    if (targetUser.id === req.user?.id || targetUser.role === 'TENANT_OWNER' || targetUser.role === 'STORE_ADMIN') {
+      const [adminCountRows] = await db.query('SELECT COUNT(*) as count FROM users WHERE tenant_id = ? AND role IN ("STORE_ADMIN", "TENANT_OWNER")', [tid]);
+      if (adminCountRows[0].count <= 1) {
+        return res.status(400).json({ success: false, message: 'Cannot delete the only Store Admin account.' });
+      }
+    }
+
+    await db.query('DELETE FROM users WHERE id = ? AND tenant_id = ?', [userId, tid]);
+    return res.json({ success: true, message: 'Staff member deleted successfully.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   registerTenant,
   login,
@@ -527,5 +648,7 @@ module.exports = {
   changePassword,
   getStaff,
   createStaff,
-  updateStaff
+  updateStaff,
+  deleteStaff
 };
+

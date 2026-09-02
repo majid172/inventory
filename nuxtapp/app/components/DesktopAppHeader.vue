@@ -48,7 +48,7 @@
         </button>
         <div class="absolute left-0 top-full mt-0 w-52 bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 shadow-md py-1 hidden group-hover:block z-50 text-xs">
           <NuxtLink to="/pos" class="block px-3 py-1.5 hover:bg-[#107c41] hover:text-white text-slate-800 dark:text-gray-200">💻 Open POS Cashier (F10)</NuxtLink>
-          <NuxtLink to="/admin" class="block px-3 py-1.5 hover:bg-[#107c41] hover:text-white text-slate-800 dark:text-gray-200">📊 Admin ERP Home (F11)</NuxtLink>
+          <NuxtLink v-if="!isCashier" to="/admin" class="block px-3 py-1.5 hover:bg-[#107c41] hover:text-white text-slate-800 dark:text-gray-200">📊 Admin ERP Home (F11)</NuxtLink>
           <NuxtLink v-if="isSuperAdmin" to="/super-admin" class="block px-3 py-1.5 hover:bg-[#107c41] hover:text-white text-emerald-700 dark:text-emerald-300">👑 Super Admin Console</NuxtLink>
           <div class="my-1 border-t border-slate-200 dark:border-gray-800"></div>
           <button @click="reloadApp" class="w-full text-left px-3 py-1.5 hover:bg-[#107c41] hover:text-white text-slate-800 dark:text-gray-200 cursor-pointer">🔄 Refresh / Re-sync DB</button>
@@ -56,8 +56,8 @@
         </div>
       </div>
 
-      <!-- Modules Menu -->
-      <div class="relative group">
+      <!-- Modules Menu (Hidden for Cashiers) -->
+      <div v-if="!isCashier" class="relative group">
         <button class="px-2 py-0.5 hover:bg-slate-200 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white cursor-pointer font-normal">
           <span class="underline">M</span>odules
         </button>
@@ -82,10 +82,19 @@
         </div>
       </div>
 
-      <!-- Help Menu -->
-      <button class="px-2 py-0.5 hover:bg-slate-200 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white cursor-pointer font-normal">
-        <span class="underline">H</span>elp
-      </button>
+      <!-- Role Indicator Tag -->
+      <div class="ml-auto flex items-center gap-1 text-[10px] font-mono px-2 text-slate-500 dark:text-gray-400">
+        <span :class="[
+          'px-1.5 py-0.2 border uppercase font-sans text-[9px]',
+          isSuperAdmin 
+            ? 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950 dark:text-purple-300'
+            : isCashier
+              ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
+              : 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300'
+        ]">
+          {{ isSuperAdmin ? 'SUPER ADMIN' : isCashier ? 'POS CASHIER' : 'STORE MANAGER' }}
+        </span>
+      </div>
     </div>
 
     <!-- 3. Desktop Application Toolbar Ribbon with Quick Action Buttons -->
@@ -100,42 +109,48 @@
           <span>POS Register (F10)</span>
         </NuxtLink>
 
-        <NuxtLink 
-          to="/admin"
-          class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 px-2.5 py-1 text-slate-800 dark:text-gray-200 flex items-center gap-1.5 shadow-xs font-normal text-[11px] cursor-pointer"
-        >
-          <span>📊</span>
-          <span>Admin Home (F11)</span>
-        </NuxtLink>
+        <!-- Admin Links (Hidden for Cashiers) -->
+        <template v-if="!isCashier">
+          <NuxtLink 
+            to="/admin"
+            class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 px-2.5 py-1 text-slate-800 dark:text-gray-200 flex items-center gap-1.5 shadow-xs font-normal text-[11px] cursor-pointer"
+          >
+            <span>📊</span>
+            <span>Admin Home (F11)</span>
+          </NuxtLink>
 
-        <div class="h-4 w-[1px] bg-slate-300 dark:bg-gray-700 mx-1"></div>
+          <div class="h-4 w-[1px] bg-slate-300 dark:bg-gray-700 mx-1"></div>
 
-        <NuxtLink 
-          to="/admin/categories"
-          :class="[
-            'px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1',
-            route.path === '/admin/categories'
-              ? 'bg-[#107c41] text-white border-[#107c41]'
-              : 'bg-white dark:bg-gray-800 hover:bg-slate-100 border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300'
-          ]"
-        >
-          <span>📁 Categories</span>
-        </NuxtLink>
+          <NuxtLink 
+            to="/admin/categories"
+            :class="[
+              'px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1',
+              route.path === '/admin/categories'
+                ? 'bg-[#107c41] text-white border-[#107c41]'
+                : 'bg-white dark:bg-gray-800 hover:bg-slate-100 border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300'
+            ]"
+          >
+            <span>📁 Categories</span>
+          </NuxtLink>
 
-        <NuxtLink 
-          to="/admin/products"
-          :class="[
-            'px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1',
-            route.path === '/admin/products'
-              ? 'bg-[#107c41] text-white border-[#107c41]'
-              : 'bg-white dark:bg-gray-800 hover:bg-slate-100 border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300'
-          ]"
-        >
-          <span>💊 Products</span>
-        </NuxtLink>
+          <NuxtLink 
+            to="/admin/products"
+            :class="[
+              'px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1',
+              route.path === '/admin/products'
+                ? 'bg-[#107c41] text-white border-[#107c41]'
+                : 'bg-white dark:bg-gray-800 hover:bg-slate-100 border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300'
+            ]"
+          >
+            <span>💊 Products</span>
+          </NuxtLink>
+        </template>
+        <template v-else>
+          <span class="text-[11px] text-slate-500 font-mono px-2 py-0.5 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700">
+            🟢 Active Terminal #01 (Cashier Checkout Mode)
+          </span>
+        </template>
       </div>
-
-
     </div>
 
     <!-- PIN Modal -->
@@ -181,6 +196,21 @@ const newPin = ref('');
 
 const isLoggedIn = computed(() => authIsLoggedIn.value);
 const isSuperAdmin = computed(() => authIsSuperAdmin.value);
+const isCashier = computed(() => {
+  if (isSuperAdmin.value) return false;
+  if (process.client) {
+    const saved = localStorage.getItem('auth_user');
+    if (saved) {
+      try {
+        const u = JSON.parse(saved);
+        const r = (u.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+        return r === 'CASHIER' || r === 'POSUSER';
+      } catch (e) {}
+    }
+  }
+  const r = (user.value?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+  return r === 'CASHIER' || r === 'POSUSER';
+});
 
 const activeTenantStoreName = computed(() => {
   if (process.client) {

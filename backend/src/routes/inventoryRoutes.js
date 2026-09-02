@@ -9,7 +9,8 @@ const {
   getBatches,
   getMySubscription,
   getSalesReport, getStockReport, getExpiryReport,
-  getProfitLossReport, getExpiryLossReport
+  getProfitLossReport, getExpiryLossReport,
+  getTerminals, registerTerminal, deleteTerminal
 } = require('../controllers/inventoryController');
 const {
   verifyTokenMiddleware, requireTenantAccess, requireActiveSubscription,
@@ -51,12 +52,18 @@ router.get('/batches', getBatches);
 router.post('/stock-in', requireRole('STORE_ADMIN', 'PHARMACIST'), stockIn);
 router.post('/stock-out', requireRole('STORE_ADMIN', 'PHARMACIST'), stockOut);
 
-// Reports
-router.get('/reports/sales', getSalesReport);
-router.get('/reports/stock', getStockReport);
-router.get('/reports/expiry', getExpiryReport);
-router.get('/reports/profit-loss', getProfitLossReport);
-router.get('/reports/expiry-loss', getExpiryLossReport);
+// Reports (Admin & Pharmacist only)
+router.get('/reports/sales', requireRole('STORE_ADMIN', 'PHARMACIST'), getSalesReport);
+router.get('/reports/stock', requireRole('STORE_ADMIN', 'PHARMACIST'), getStockReport);
+router.get('/reports/expiry', requireRole('STORE_ADMIN', 'PHARMACIST'), getExpiryReport);
+router.get('/reports/profit-loss', requireRole('STORE_ADMIN'), getProfitLossReport);
+router.get('/reports/expiry-loss', requireRole('STORE_ADMIN', 'PHARMACIST'), getExpiryLossReport);
+
+// POS Terminals (Plan Limit Checked)
+router.get('/terminals', getTerminals);
+router.post('/terminals', enforcePlanLimit('terminals'), registerTerminal);
+router.delete('/terminals/:id', requireRole('STORE_ADMIN'), deleteTerminal);
 
 module.exports = router;
+
 

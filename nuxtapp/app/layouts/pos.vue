@@ -38,12 +38,26 @@ const cartStore = useCartStore();
 const productStore = useProductStore();
 
 const handleKeyDown = (e: KeyboardEvent) => {
+  let isCashier = false;
+  if (process.client) {
+    const saved = localStorage.getItem('auth_user');
+    if (saved) {
+      try {
+        const u = JSON.parse(saved);
+        const r = (u.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+        isCashier = r === 'CASHIER' || r === 'POSUSER';
+      } catch (err) {}
+    }
+  }
+
   if (e.key === 'F10') {
     e.preventDefault();
     router.push('/pos');
   } else if (e.key === 'F11') {
     e.preventDefault();
-    router.push('/admin');
+    if (!isCashier) {
+      router.push('/admin');
+    }
   } else if (e.key === 'F4') {
     e.preventDefault();
     if (cartStore.cartItems.length > 0) {

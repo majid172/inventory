@@ -19,6 +19,8 @@ const salesRoutes       = require('./routes/salesRoutes');
 const superAdminRoutes  = require('./routes/superAdminRoutes');
 const plansRoutes       = require('./routes/plansRoutes');
 const settingsRoutes    = require('./routes/settingsRoutes');
+const terminalRoutes    = require('./routes/terminalRoutes');
+const branchRoutes      = require('./routes/branchRoutes');
 
 // Legacy routes (kept for backward compat)
 const productRoutes     = require('./routes/productRoutes');
@@ -47,6 +49,8 @@ app.use('/api/plans',       plansRoutes);       // Public: plan listing
 app.use('/api/settings',    settingsRoutes);    // Global & Tenant settings
 app.use('/api/inventory',   inventoryRoutes);   // Tenant: inventory, products, categories, reports
 app.use('/api/sales',       salesRoutes);       // Tenant: POS, sales history
+app.use('/api/terminals',   terminalRoutes);   // Tenant: POS Terminals / PC Counters
+app.use('/api/branches',    branchRoutes);      // Tenant: Pharmacy Outlets / Branches
 app.use('/api/super-admin', superAdminRoutes);  // Super Admin panel
 
 // Legacy API mounts (maintained for existing frontend pages)

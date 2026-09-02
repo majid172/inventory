@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
+import axios from 'axios';
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'Store Admin' | 'Chief Pharmacist' | 'POS Cashier';
-  status: 'Active' | 'Suspended';
+  role: 'Store Admin' | 'Chief Pharmacist' | 'POS Cashier' | string;
+  status: 'Active' | 'Suspended' | string;
   lastActive: string;
   terminalAccess: boolean;
 }
@@ -14,74 +15,130 @@ export const useUserStore = defineStore('users', {
   state: () => ({
     users: [] as User[],
     isLoading: false,
+    error: null as string | null,
+    planMeta: {
+      planName: 'Starter',
+      maxUsers: 2,
+      totalStaff: 0,
+      canAddStaff: true,
+      remainingSlots: 2
+    }
   }),
   actions: {
     async fetchUsers() {
       this.isLoading = true;
-      // Mock API call delay
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      this.users = [
-        {
-          id: 'USR_001',
-          name: 'Sarah Connor',
-          email: 'sarah.admin@pharmacare.com',
-          role: 'Store Admin',
-          status: 'Active',
-          lastActive: 'Just now',
-          terminalAccess: true,
-        },
-        {
-          id: 'USR_002',
-          name: 'Dr. Robert Ford',
-          email: 'robert.f@pharmacare.com',
-          role: 'Chief Pharmacist',
-          status: 'Active',
-          lastActive: '2 hours ago',
-          terminalAccess: true,
-        },
-        {
-          id: 'USR_003',
-          name: 'John Doe',
-          email: 'john.cashier@pharmacare.com',
-          role: 'POS Cashier',
-          status: 'Active',
-          lastActive: '5 mins ago',
-          terminalAccess: true,
-        },
-        {
-          id: 'USR_004',
-          name: 'Alice Smith',
-          email: 'alice.c@pharmacare.com',
-          role: 'POS Cashier',
-          status: 'Suspended',
-          lastActive: '3 days ago',
-          terminalAccess: false,
+      this.error = null;
+      try {
+        const res = await axios.get('/auth/staff');
+        const staffArray = Array.isArray(res.data?.staff) ? res.data.staff : Array.isArray(res.data?.data) ? res.data.data : [];
+        if (res.data && res.data.success && staffArray.length >= 0) {
+          this.users = staffArray.map((u: any) => {
+            const rawRole = (u.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+            const displayRole = rawRole === 'STOREADMIN' || rawRole === 'TENANTOWNER' ? 'Store Admin' :
+              rawRole === 'PHARMACIST' ? 'Chief Pharmacist' : 'POS Cashier';
+            return {
+              id: String(u.id),
+              name: u.name,
+              email: u.email,
+              role: displayRole,
+              status: u.status === 'suspended' ? 'Suspended' : 'Active',
+              lastActive: u.last_active || (u.created_at ? new Date(u.created_at).toLocaleDateString() : 'Never'),
+              terminalAccess: displayRole === 'POS Cashier' || displayRole === 'Store Admin'
+            };
+          });
+
+
+          if (res.data.meta) {
+            this.planMeta = {
+              planName: res.data.meta.planName || 'Starter',
+              maxUsers: Number(res.data.meta.maxUsers || 2),
+              totalStaff: this.users.length,
+              canAddStaff: Boolean(res.data.meta.canAddStaff),
+              remainingSlots: Number(res.data.meta.remainingSlots ?? Math.max(0, (res.data.meta.maxUsers || 2) - this.users.length))
+            };
+          } else {
+            this.planMeta.totalStaff = this.users.length;
+            this.planMeta.canAddStaff = this.users.length < this.planMeta.maxUsers;
+            this.planMeta.remainingSlots = Math.max(0, this.planMeta.maxUsers - this.users.length);
+          }
+        } else {
+          this.users = [];
         }
-      ];
-      this.isLoading = false;
+      } catch (err: any) {
+        this.error = err.response?.data?.message || err.message || 'Failed to fetch staff from server';
+        console.error('API fetch staff error:', this.error);
+        this.users = [];
+      } finally {
+        this.isLoading = false;
+      }
     },
     
-    async createUser(userData: Omit<User, 'id' | 'lastActive'>) {
-      const newUser: User = {
-        ...userData,
-        id: `USR_${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-        lastActive: 'Never',
-      };
-      this.users.unshift(newUser);
+    async createUser(userData: { name: string; email: string; role: string; password?: string }) {
+      this.isLoading = true;
+      try {
+        const rawRole = userData.role.toLowerCase().includes('admin') ? 'STORE_ADMIN' :
+          userData.role.toLowerCase().includes('pharmacist') ? 'PHARMACIST' : 'CASHIER';
+
+        const res = await axios.post('/auth/staff', {
+          name: userData.name,
+          email: userData.email,
+          password: userData.password || '123456',
+          role: rawRole
+        });
+
+        if (res.data && res.data.success) {
+          await this.fetchUsers();
+          return res.data.staff;
+        }
+      } catch (err: any) {
+        const msg = err.response?.data?.message || err.message || 'Failed to create user';
+        console.error('createUser error:', msg);
+        throw new Error(msg);
+      } finally {
+        this.isLoading = false;
+      }
     },
     
     async updateUser(id: string, updates: Partial<User>) {
-      const index = this.users.findIndex(u => u.id === id);
-      if (index !== -1) {
-        this.users[index] = { ...this.users[index], ...updates };
+      try {
+        let rawRole = undefined;
+        if (updates.role) {
+          rawRole = updates.role.toLowerCase().includes('admin') ? 'STORE_ADMIN' :
+            updates.role.toLowerCase().includes('pharmacist') ? 'PHARMACIST' : 'CASHIER';
+        }
+        await axios.patch(`/auth/staff/${id}`, {
+          name: updates.name,
+          role: rawRole,
+          status: updates.status ? updates.status.toLowerCase() : undefined
+        });
+        await this.fetchUsers();
+      } catch (err: any) {
+        console.error('updateUser error:', err);
       }
     },
     
     async toggleUserStatus(id: string) {
       const user = this.users.find(u => u.id === id);
       if (user) {
+        const newStatus = user.status === 'Active' ? 'suspended' : 'active';
+        await axios.patch(`/auth/staff/${id}`, { status: newStatus }).catch(() => {});
         user.status = user.status === 'Active' ? 'Suspended' : 'Active';
+      }
+    },
+
+    async deleteUser(id: string) {
+      this.isLoading = true;
+      try {
+        const res = await axios.delete(`/auth/staff/${id}`);
+        if (res.data && res.data.success) {
+          await this.fetchUsers();
+        }
+      } catch (err: any) {
+        const msg = err.response?.data?.message || err.message || 'Failed to delete staff';
+        console.error('deleteUser error:', msg);
+        throw new Error(msg);
+      } finally {
+        this.isLoading = false;
       }
     }
   }

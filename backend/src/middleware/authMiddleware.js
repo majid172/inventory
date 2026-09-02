@@ -19,7 +19,7 @@ const verifyTokenMiddleware = (req, res, next) => {
   }
 
   if (!token) {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV === 'development' && process.env.DEV_ALLOW_MOCK_AUTH === 'true') {
       req.user = { id: 1, email: 'admin@yourapp.com', role: 'SUPER_ADMIN', tenantId: 'SYSTEM' };
       req.tenantId = null;
       return next();
@@ -32,7 +32,7 @@ const verifyTokenMiddleware = (req, res, next) => {
 
   const decoded = verifyToken(token);
   if (!decoded) {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV === 'development' && process.env.DEV_ALLOW_MOCK_AUTH === 'true') {
       req.user = { id: 1, email: 'admin@yourapp.com', role: 'SUPER_ADMIN', tenantId: 'SYSTEM' };
       req.tenantId = null;
       return next();
@@ -146,15 +146,32 @@ const requireActiveSubscription = async (req, res, next) => {
 };
 
 // ---------------------------------------------------------------------------
-// 5. requireRole — RBAC permission check
-//    Usage: requireRole('STORE_ADMIN', 'PHARMACIST')
+// 5. requireRole — RBAC permission check (supports normalized uppercase roles)
+//    Usage: requireRole('STORE_ADMIN', 'PHARMACIST', 'OWNER')
 // ---------------------------------------------------------------------------
-const requireRole = (...roles) => (req, res, next) => {
-  if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
-  if (!roles.includes(req.user.role)) {
+const normalizeRoleString = (role) => {
+  if (!role) return 'CASHIER';
+  const r = role.toString().toUpperCase().replace(/[_\s-]+/g, '');
+  if (r === 'SUPERADMIN') return 'SUPER_ADMIN';
+  if (r === 'TENANTOWNER' || r === 'OWNER' || r === 'ADMIN' || r === 'STOREADMIN' || r === 'MANAGER') return 'STORE_ADMIN';
+  if (r === 'PHARMACIST') return 'PHARMACIST';
+  return 'CASHIER';
+};
+
+const requireRole = (...allowedRoles) => (req, res, next) => {
+  if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized. Please sign in.' });
+  
+  const userRole = normalizeRoleString(req.user.role);
+  const normalizedAllowed = allowedRoles.map(r => normalizeRoleString(r));
+
+  // Super Admin always has full access
+  if (userRole === 'SUPER_ADMIN') return next();
+
+  if (!normalizedAllowed.includes(userRole)) {
     return res.status(403).json({
       success: false,
-      message: `Access denied. Required role: ${roles.join(' or ')}.`
+      code: 'ACCESS_FORBIDDEN',
+      message: `Access denied. Your role (${userRole}) does not have permission to access this resource.`
     });
   }
   next();
@@ -162,35 +179,56 @@ const requireRole = (...roles) => (req, res, next) => {
 
 // ---------------------------------------------------------------------------
 // 6. enforcePlanLimit — Check tenant usage vs plan limits before create ops
-//    resource: 'users' | 'products' | 'branches'
+//    resource: 'users' | 'products' | 'branches' | 'terminals'
 // ---------------------------------------------------------------------------
 const enforcePlanLimit = (resource) => async (req, res, next) => {
   if (!req.user || req.user.role === 'SUPER_ADMIN') return next();
-  if (!req.tenantId) return next();
+  const tid = req.tenantId || req.user?.tenantId || 1;
 
   try {
-    const [tenantRows] = await db.query(
-      `SELECT t.plan_id, sp.max_users, sp.max_products, sp.max_branches
-       FROM tenants t
-       JOIN subscription_plans sp ON t.plan_id = sp.id
-       WHERE t.id = ?`,
-      [req.tenantId]
-    );
+    let plan = null;
+    try {
+      const [subRows] = await db.query(
+        `SELECT sp.id, sp.max_users, sp.max_products, sp.max_branches, sp.max_terminals, sp.name as plan_name
+         FROM tenant_subscriptions ts
+         JOIN subscription_plans sp ON ts.plan_id = sp.id
+         WHERE ts.tenant_id = ? AND ts.status IN ('active', 'trial')
+         ORDER BY ts.id DESC LIMIT 1`,
+        [tid]
+      );
+      if (subRows && subRows.length > 0) {
+        plan = subRows[0];
+      }
+    } catch (e) {}
 
-    if (!tenantRows || tenantRows.length === 0) return next();
-    const plan = tenantRows[0];
+    if (!plan) {
+      const [tenantRows] = await db.query(
+        `SELECT sp.id, sp.max_users, sp.max_products, sp.max_branches, sp.max_terminals, sp.name as plan_name
+         FROM tenants t
+         LEFT JOIN subscription_plans sp ON (t.plan_id = sp.id OR t.plan_tier = sp.id OR LOWER(t.plan_tier) = LOWER(sp.name))
+         WHERE t.id = ? LIMIT 1`,
+        [tid]
+      );
+      if (tenantRows && tenantRows.length > 0) {
+        plan = tenantRows[0];
+      }
+    }
+
+    if (!plan) return next();
     const limit = plan[`max_${resource}`];
-    if (!limit || limit >= 99999) return next(); // Unlimited
+    if (limit === undefined || limit === null || limit >= 99999) return next(); // Unlimited
 
     let countQuery = '';
-    let countParams = [req.tenantId];
+    let countParams = [tid];
 
     if (resource === 'users') {
-      countQuery = "SELECT COUNT(*) AS cnt FROM users WHERE tenant_id = ? AND role != 'SUPER_ADMIN' AND is_active = 1";
+      countQuery = "SELECT COUNT(*) AS cnt FROM users WHERE tenant_id = ? AND role != 'SUPER_ADMIN'";
     } else if (resource === 'products') {
-      countQuery = 'SELECT COUNT(*) AS cnt FROM products WHERE tenant_id = ? AND is_active = 1';
+      countQuery = 'SELECT COUNT(*) AS cnt FROM products WHERE tenant_id = ?';
     } else if (resource === 'branches') {
-      countQuery = 'SELECT branches_count AS cnt FROM tenants WHERE id = ?';
+      countQuery = 'SELECT COUNT(*) AS cnt FROM branches WHERE tenant_id = ?';
+    } else if (resource === 'terminals') {
+      countQuery = "SELECT COUNT(*) AS cnt FROM pos_terminals WHERE tenant_id = ? AND status = 'active'";
     }
 
     if (!countQuery) return next();
@@ -199,13 +237,15 @@ const enforcePlanLimit = (resource) => async (req, res, next) => {
     const current = parseInt(countRows[0]?.cnt || 0, 10);
 
     if (current >= limit) {
+      const planTitle = plan.plan_name || 'Starter';
       return res.status(403).json({
         success: false,
         code: 'PLAN_LIMIT_REACHED',
-        message: `Plan limit reached: your ${plan.plan_id} plan allows up to ${limit} ${resource}. Please upgrade.`,
+        message: `Plan limit reached: your ${planTitle} plan allows up to ${limit} ${resource}. Please upgrade your subscription tier to add more.`,
         current,
         limit,
-        resource
+        resource,
+        planName: planTitle
       });
     }
 
@@ -222,5 +262,7 @@ module.exports = {
   requireTenantAccess,
   requireActiveSubscription,
   requireRole,
-  enforcePlanLimit
+  enforcePlanLimit,
+  normalizeRoleString
 };
+

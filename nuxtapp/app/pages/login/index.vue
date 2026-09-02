@@ -192,10 +192,12 @@ const handleSignIn = async () => {
         }
       }
 
+      const normRole = (user.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+
       setTimeout(() => {
-        if (user.role === 'SUPER_ADMIN' || user.role === 'superadmin' || identifier.value.includes('pharma') || identifier.value.includes('super')) {
+        if (normRole === 'SUPERADMIN' || identifier.value.includes('superadmin')) {
           router.push('/super-admin');
-        } else if (user.role === 'CASHIER') {
+        } else if (normRole === 'CASHIER' || normRole === 'POSUSER') {
           router.push('/pos');
         } else {
           router.push('/admin');
