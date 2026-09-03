@@ -158,6 +158,7 @@
                 <th class="py-1.5 px-3 w-10 text-center border-r border-slate-200 dark:border-gray-800 font-normal">#
                 </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">INVOICE NO</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">BRANCH</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">CUSTOMER
                 </th>
                 <!-- <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">DOCTOR / RX REF</th> -->
@@ -213,6 +214,13 @@
                     <span class="font-bold">{{ order.invoice_no || ('INV-' + String(order.id).padStart(5, '0'))
                       }}</span>
                   </div>
+                </td>
+
+                <!-- Branch Name / Code -->
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">
+                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300">
+                    📍 {{ order.branch_name || 'Main Branch' }}
+                  </span>
                 </td>
 
                 <!-- Patient / Customer -->
@@ -505,8 +513,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useSalesOrders, type SaleInvoice, type SaleItemDetail } from '~/composables/useSalesOrders';
+import { useActiveBranch } from '~/composables/useActiveBranch';
 import { useSettingsStore } from '~/stores/settings';
 
 const settingsStore = useSettingsStore();
@@ -524,6 +533,15 @@ const {
   fetchSaleDetails,
   exportToCSV
 } = useSalesOrders();
+
+const {
+  branches,
+  selectedBranchId,
+  selectedBranch,
+  isBranchScoped,
+  userBranchName,
+  fetchBranches
+} = useActiveBranch();
 
 const selectedRow = ref<number | null>(null);
 const searchQuery = ref('');
@@ -619,12 +637,18 @@ const loadSales = () => {
   fetchSales({
     search: searchQuery.value.trim() || undefined,
     method: selectedMethodFilter.value !== 'all' ? selectedMethodFilter.value : undefined,
+    branch_id: selectedBranchId.value,
     startDate,
     endDate,
     page: currentPage.value,
     limit: pageSize.value
   });
 };
+
+watch(() => selectedBranchId.value, () => {
+  currentPage.value = 1;
+  loadSales();
+});
 
 const setDateFilter = (preset: string) => {
   selectedDatePreset.value = preset;

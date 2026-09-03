@@ -266,7 +266,25 @@ export const useCartStore = defineStore('cart', {
 
       // Send to backend API
       try {
+        let activeBranchId: number | null = null;
+        if (process.client) {
+          const savedUser = localStorage.getItem('auth_user');
+          if (savedUser) {
+            try {
+              const u = JSON.parse(savedUser);
+              activeBranchId = u.branch_id || u.branchId || null;
+            } catch (e) {}
+          }
+          if (!activeBranchId) {
+            const savedBranch = localStorage.getItem('selected_branch_id');
+            if (savedBranch && savedBranch !== 'all' && !isNaN(Number(savedBranch))) {
+              activeBranchId = Number(savedBranch);
+            }
+          }
+        }
+
         const payload = {
+          branch_id: activeBranchId || undefined,
           customer_phone: patientPhoneVal || 'Walk-in Patient',
           subtotal: subtotalVal,
           discount: discountVal,

@@ -5,10 +5,13 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'Store Admin' | 'Chief Pharmacist' | 'POS Cashier' | string;
+  role: 'Store Admin' | 'Branch Manager' | 'POS Cashier' | string;
   status: 'Active' | 'Suspended' | string;
   lastActive: string;
   terminalAccess: boolean;
+  branch_id?: number | null;
+  branch_name?: string | null;
+  branch_code?: string | null;
 }
 
 export const useUserStore = defineStore('users', {
@@ -25,17 +28,18 @@ export const useUserStore = defineStore('users', {
     }
   }),
   actions: {
-    async fetchUsers() {
+    async fetchUsers(branchId?: number | 'all') {
       this.isLoading = true;
       this.error = null;
       try {
-        const res = await axios.get('/auth/staff');
+        const url = branchId && branchId !== 'all' ? `/auth/staff?branch_id=${branchId}` : '/auth/staff';
+        const res = await axios.get(url);
         const staffArray = Array.isArray(res.data?.staff) ? res.data.staff : Array.isArray(res.data?.data) ? res.data.data : [];
         if (res.data && res.data.success && staffArray.length >= 0) {
           this.users = staffArray.map((u: any) => {
             const rawRole = (u.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
             const displayRole = rawRole === 'STOREADMIN' || rawRole === 'TENANTOWNER' ? 'Store Admin' :
-              rawRole === 'PHARMACIST' ? 'Chief Pharmacist' : 'POS Cashier';
+              rawRole === 'BRANCHMANAGER' || rawRole === 'MANAGER' ? 'Branch Manager' : 'POS Cashier';
             return {
               id: String(u.id),
               name: u.name,
@@ -43,7 +47,10 @@ export const useUserStore = defineStore('users', {
               role: displayRole,
               status: u.status === 'suspended' ? 'Suspended' : 'Active',
               lastActive: u.last_active || (u.created_at ? new Date(u.created_at).toLocaleDateString() : 'Never'),
-              terminalAccess: displayRole === 'POS Cashier' || displayRole === 'Store Admin'
+              terminalAccess: displayRole === 'POS Cashier' || displayRole === 'Store Admin' || displayRole === 'Branch Manager',
+              branch_id: u.branch_id ? Number(u.branch_id) : null,
+              branch_name: u.branch_name || null,
+              branch_code: u.branch_code || null
             };
           });
 
@@ -73,17 +80,19 @@ export const useUserStore = defineStore('users', {
       }
     },
     
-    async createUser(userData: { name: string; email: string; role: string; password?: string }) {
+    async createUser(userData: { name: string; email: string; role: string; password?: string; branch_id?: number | null }) {
       this.isLoading = true;
       try {
-        const rawRole = userData.role.toLowerCase().includes('admin') ? 'STORE_ADMIN' :
-          userData.role.toLowerCase().includes('pharmacist') ? 'PHARMACIST' : 'CASHIER';
+        const roleLower = userData.role.toLowerCase();
+        const rawRole = roleLower.includes('admin') ? 'STORE_ADMIN' :
+          roleLower.includes('branch') || roleLower.includes('manager') ? 'BRANCH_MANAGER' : 'CASHIER';
 
         const res = await axios.post('/auth/staff', {
           name: userData.name,
           email: userData.email,
           password: userData.password || '123456',
-          role: rawRole
+          role: rawRole,
+          branch_id: userData.branch_id || null
         });
 
         if (res.data && res.data.success) {
@@ -99,17 +108,20 @@ export const useUserStore = defineStore('users', {
       }
     },
     
-    async updateUser(id: string, updates: Partial<User>) {
+    async updateUser(id: string, updates: Partial<User> & { password?: string }) {
       try {
         let rawRole = undefined;
         if (updates.role) {
-          rawRole = updates.role.toLowerCase().includes('admin') ? 'STORE_ADMIN' :
-            updates.role.toLowerCase().includes('pharmacist') ? 'PHARMACIST' : 'CASHIER';
+          const roleLower = updates.role.toLowerCase();
+          rawRole = roleLower.includes('admin') ? 'STORE_ADMIN' :
+            roleLower.includes('branch') || roleLower.includes('manager') ? 'BRANCH_MANAGER' : 'CASHIER';
         }
         await axios.patch(`/auth/staff/${id}`, {
           name: updates.name,
           role: rawRole,
-          status: updates.status ? updates.status.toLowerCase() : undefined
+          status: updates.status ? updates.status.toLowerCase() : undefined,
+          branch_id: updates.branch_id !== undefined ? updates.branch_id : undefined,
+          password: updates.password
         });
         await this.fetchUsers();
       } catch (err: any) {

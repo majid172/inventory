@@ -4,9 +4,13 @@ import axios from 'axios';
 export interface AuthUser {
   id: string;
   tenantId: string;
+  branch_id?: number | null;
+  branchId?: number | null;
+  branch_name?: string | null;
+  branch_code?: string | null;
   name: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'STORE_ADMIN' | 'PHARMACIST' | 'CASHIER';
+  role: 'SUPER_ADMIN' | 'STORE_ADMIN' | 'BRANCH_MANAGER' | 'PHARMACIST' | 'CASHIER' | string;
 }
 
 const tokenState = ref<string | null>(null);
@@ -184,6 +188,22 @@ export function useAuth() {
     return userState.value?.role === 'SUPER_ADMIN';
   });
 
+  const isStoreAdmin = computed(() => {
+    if (process.client && localStorage.getItem('is_super_admin') === 'true') return true;
+    const role = (userState.value?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+    return role === 'STOREADMIN' || role === 'TENANTOWNER' || role === 'SUPERADMIN';
+  });
+
+  const isBranchManager = computed(() => {
+    const role = (userState.value?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+    return role === 'BRANCHMANAGER' || role === 'MANAGER';
+  });
+
+  const isCashier = computed(() => {
+    const role = (userState.value?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+    return role === 'CASHIER';
+  });
+
   const onboardNewTenant = async (payload: { storeName: string; slug: string; ownerName: string; email: string; phone?: string; password?: string; planTier: string; gateway?: string; trx_no?: string }) => {
     isLoadingState.value = true;
     try {
@@ -210,12 +230,27 @@ export function useAuth() {
     }
   };
 
+  const userBranchId = computed(() => {
+    const u = userState.value as any;
+    return u?.branch_id || u?.branchId || null;
+  });
+
+  const userBranchName = computed(() => {
+    const u = userState.value as any;
+    return u?.branch_name || null;
+  });
+
   return {
     token: tokenState,
     user: userState,
     isLoading: isLoadingState,
     isLoggedIn,
     isSuperAdmin,
+    isStoreAdmin,
+    isBranchManager,
+    isCashier,
+    userBranchId,
+    userBranchName,
     initAuthFromStorage,
     setAuthSession,
     loginStoreUser,

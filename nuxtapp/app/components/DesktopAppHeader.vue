@@ -83,24 +83,26 @@
       </div>
 
       <!-- Role Indicator Tag -->
-      <div class="ml-auto flex items-center gap-1 text-[10px] font-mono px-2 text-slate-500 dark:text-gray-400">
+      <div class="ml-auto flex items-center gap-1.5 text-[10px] font-mono px-2 text-slate-500 dark:text-gray-400">
         <span :class="[
           'px-1.5 py-0.2 border uppercase font-sans text-[9px]',
           isSuperAdmin 
             ? 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950 dark:text-purple-300'
-            : isCashier
-              ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
-              : 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300'
+            : isBranchManager
+              ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
+              : isCashier
+                ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
+                : 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300'
         ]">
-          {{ isSuperAdmin ? 'SUPER ADMIN' : isCashier ? 'POS CASHIER' : 'STORE MANAGER' }}
+          {{ isSuperAdmin ? 'SUPER ADMIN' : isBranchManager ? 'BRANCH MANAGER' : isCashier ? 'POS CASHIER' : 'STORE OWNER' }}
         </span>
       </div>
     </div>
 
-    <!-- 3. Desktop Application Toolbar Ribbon with Quick Action Buttons -->
+    <!-- 3. Desktop Application Toolbar Ribbon with Quick Action Buttons & Global Branch Switcher -->
     <div class="px-2 py-1 bg-[#f8fafc] dark:bg-gray-900/90 border-b border-slate-300 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
       <!-- Left: Fast Navigation Buttons -->
-      <div v-if="isLoggedIn" class="flex items-center gap-1">
+      <div v-if="isLoggedIn" class="flex items-center gap-1 flex-wrap">
         <NuxtLink 
           to="/pos"
           class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 px-2.5 py-1 text-slate-800 dark:text-gray-200 flex items-center gap-1.5 shadow-xs font-normal text-[11px] cursor-pointer"
@@ -144,12 +146,47 @@
           >
             <span>💊 Products</span>
           </NuxtLink>
+
+          <NuxtLink 
+            to="/admin/orders"
+            :class="[
+              'px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1',
+              route.path === '/admin/orders'
+                ? 'bg-[#107c41] text-white border-[#107c41]'
+                : 'bg-white dark:bg-gray-800 hover:bg-slate-100 border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300'
+            ]"
+          >
+            <span>📑 Sales Invoices</span>
+          </NuxtLink>
         </template>
-        <template v-else>
-          <span class="text-[11px] text-slate-500 font-mono px-2 py-0.5 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700">
-            🟢 Active Terminal #01 (Cashier Checkout Mode)
+      </div>
+
+      <!-- Right: Global Branch Context Indicator / Switcher -->
+      <div v-if="isLoggedIn && !isSuperAdmin" class="flex items-center gap-2">
+        <!-- Store Owner / Admin: Branch Switcher Dropdown -->
+        <div v-if="!isBranchScoped" class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 px-2 py-0.5 shadow-2xs">
+          <span class="text-xs">🏢</span>
+          <span class="text-[10px] text-slate-500 dark:text-gray-400 font-mono uppercase">Branch:</span>
+          <select 
+            :value="selectedBranchId" 
+            @change="(e: any) => handleBranchSelect(e.target.value)"
+            class="bg-transparent text-[11px] font-medium text-slate-800 dark:text-gray-200 focus:outline-none cursor-pointer py-0.5"
+          >
+            <option value="all">🏢 All Branches (Consolidated)</option>
+            <option v-for="b in branches" :key="b.id" :value="b.id">
+              📍 {{ b.name }} ({{ b.code }})
+            </option>
+          </select>
+        </div>
+
+        <!-- Branch Manager / Cashier: Locked Branch Name Tag -->
+        <div v-else class="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/60 px-2.5 py-0.5 shadow-2xs text-emerald-800 dark:text-emerald-300 text-[11px]">
+          <span>📍</span>
+          <span class="font-medium">{{ userBranchName || selectedBranch?.name || 'My Branch' }}</span>
+          <span class="text-[9px] font-mono bg-emerald-200/80 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 px-1 py-0.2">
+            {{ isBranchManager ? 'Branch Manager' : 'Cashier' }}
           </span>
-        </template>
+        </div>
       </div>
     </div>
 
@@ -163,8 +200,22 @@
         <form @submit.prevent="handleChangePin" class="space-y-3 text-xs font-sans">
           <div>
             <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">New 4-Digit Staff PIN *</label>
-            <input v-model="newPin" type="password" maxLength="4" placeholder="••••" required 
-              class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-3 py-1.5 font-mono text-center text-sm font-normal text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+            <div class="relative">
+              <input v-model="newPin" :type="showPin ? 'text' : 'password'" maxLength="4" placeholder="••••" required 
+                class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 pl-3 pr-8 py-1.5 font-mono text-center text-sm font-normal text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+              <button type="button" @click="showPin = !showPin"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 cursor-pointer p-0.5 focus:outline-none"
+                tabindex="-1"
+                :title="showPin ? 'Hide PIN' : 'Show PIN'">
+                <svg v-if="!showPin" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <svg v-else class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-gray-800">
             <button type="button" @click="showPinModal = false" class="px-3 py-1 bg-slate-100 text-slate-700 border border-slate-300 font-normal text-xs">Cancel</button>
@@ -181,36 +232,52 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ThemeToggle from '~/components/ThemeToggle.vue';
 import { useAuth } from '~/composables/useAuth';
+import { useActiveBranch } from '~/composables/useActiveBranch';
 import { useSettingsStore } from '~/stores/settings';
 
 const route = useRoute();
 const router = useRouter();
 const settingsStore = useSettingsStore();
-const { user, isLoggedIn: authIsLoggedIn, isSuperAdmin: authIsSuperAdmin, changePin, logout, initAuthFromStorage, fetchCurrentUser } = useAuth();
+const { 
+  user, 
+  isLoggedIn: authIsLoggedIn, 
+  isSuperAdmin: authIsSuperAdmin, 
+  isBranchManager: authIsBranchManager,
+  changePin, 
+  logout, 
+  initAuthFromStorage, 
+  fetchCurrentUser 
+} = useAuth();
+
+const { 
+  branches, 
+  selectedBranchId, 
+  selectedBranch, 
+  isBranchScoped, 
+  userBranchName, 
+  fetchBranches, 
+  setSelectedBranch 
+} = useActiveBranch();
 
 const formattedTime = ref('');
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const showPinModal = ref(false);
 const newPin = ref('');
+const showPin = ref(false);
 
 const isLoggedIn = computed(() => authIsLoggedIn.value);
 const isSuperAdmin = computed(() => authIsSuperAdmin.value);
+const isBranchManager = computed(() => authIsBranchManager.value);
 const isCashier = computed(() => {
   if (isSuperAdmin.value) return false;
-  if (process.client) {
-    const saved = localStorage.getItem('auth_user');
-    if (saved) {
-      try {
-        const u = JSON.parse(saved);
-        const r = (u.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
-        return r === 'CASHIER' || r === 'POSUSER';
-      } catch (e) {}
-    }
-  }
   const r = (user.value?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
   return r === 'CASHIER' || r === 'POSUSER';
 });
+
+const handleBranchSelect = (val: string) => {
+  setSelectedBranch(val === 'all' ? 'all' : Number(val));
+};
 
 const activeTenantStoreName = computed(() => {
   if (process.client) {
@@ -276,6 +343,7 @@ const handleChangePin = async () => {
 onMounted(async () => {
   initAuthFromStorage();
   await fetchCurrentUser();
+  await fetchBranches();
   updateClock();
   timer = setInterval(updateClock, 1000);
 });

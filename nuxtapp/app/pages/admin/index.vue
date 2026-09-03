@@ -29,6 +29,15 @@
           </div>
 
           <div class="flex items-center gap-2 text-xs font-normal">
+            <!-- Active Scoped Branch Indicator -->
+            <div class="flex items-center gap-1.5 px-2 py-0.5 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-[11px]">
+              <span class="text-xs">🏢</span>
+              <span class="text-slate-500 dark:text-gray-400 font-mono text-[10px] uppercase">Scope:</span>
+              <span class="font-medium text-emerald-700 dark:text-emerald-400">
+                {{ selectedBranchId === 'all' ? 'All Branches' : (selectedBranch?.name || userBranchName || ('Branch #' + selectedBranchId)) }}
+              </span>
+            </div>
+
             <span class="text-slate-500">Live Status:</span>
             <span class="text-emerald-700 dark:text-emerald-400 font-mono flex items-center gap-1">
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -506,17 +515,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useSettingsStore } from '~/stores/settings';
 import { useProductStore } from '~/stores/products';
 import { useDashboard, type RecentSaleItem } from '~/composables/useDashboard';
+import { useActiveBranch } from '~/composables/useActiveBranch';
 
 const loading = ref(false);
 const settingsStore = useSettingsStore();
 const productStore = useProductStore();
 const { products, rxProductsCount } = storeToRefs(productStore);
 const { dashboard, loading: dashLoading, fetchDashboard } = useDashboard();
+const { selectedBranchId, selectedBranch, isBranchScoped, userBranchName } = useActiveBranch();
 
 const selectedRow = ref<string | null>(null);
 const viewInvoiceModal = ref(false);
@@ -547,14 +558,18 @@ const refreshData = async () => {
   loading.value = true;
   await Promise.all([
     productStore.fetchProducts(),
-    fetchDashboard()
+    fetchDashboard(selectedBranchId.value)
   ]);
   loading.value = false;
 };
 
+watch(() => selectedBranchId.value, () => {
+  refreshData();
+});
+
 onMounted(() => {
   productStore.fetchProducts();
-  fetchDashboard();
+  fetchDashboard(selectedBranchId.value);
 });
 
 const hoveredDayIdx = ref<number | null>(null);

@@ -37,7 +37,7 @@ const getBranches = async (req, res) => {
     const tenantId = req.tenantId || 1;
     const limits = await getTenantPlanLimits(tenantId);
 
-    const [branches] = await db.query(
+    let [branches] = await db.query(
       `SELECT b.*, 
         COUNT(DISTINCT t.id) as terminals_count,
         COUNT(DISTINCT u.id) as staff_count
@@ -49,6 +49,34 @@ const getBranches = async (req, res) => {
        ORDER BY b.is_main DESC, b.id ASC`,
       [tenantId]
     );
+
+    if (branches.length === 0) {
+      try {
+        const [insertRes] = await db.query(
+          `INSERT INTO branches (tenant_id, name, code, is_main, status) VALUES (?, 'Main Branch', 'HQ', 1, 'active')`,
+          [tenantId]
+        );
+        // Link any unassigned users/terminals to this main branch
+        await db.query(`UPDATE users SET branch_id = ? WHERE tenant_id = ? AND branch_id IS NULL`, [insertRes.insertId, tenantId]);
+        await db.query(`UPDATE pos_terminals SET branch_id = ? WHERE tenant_id = ? AND branch_id IS NULL`, [insertRes.insertId, tenantId]);
+
+        const [recheck] = await db.query(
+          `SELECT b.*, 
+            COUNT(DISTINCT t.id) as terminals_count,
+            COUNT(DISTINCT u.id) as staff_count
+           FROM branches b
+           LEFT JOIN pos_terminals t ON t.branch_id = b.id AND t.status = 'active'
+           LEFT JOIN users u ON u.branch_id = b.id AND u.status = 'active'
+           WHERE b.tenant_id = ?
+           GROUP BY b.id
+           ORDER BY b.is_main DESC, b.id ASC`,
+          [tenantId]
+        );
+        branches = recheck;
+      } catch (autoErr) {
+        console.warn('Auto-create main branch error:', autoErr.message);
+      }
+    }
 
     const activeCount = branches.filter(b => b.status === 'active').length;
 

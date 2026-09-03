@@ -720,7 +720,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import { useSettingsStore } from '~/stores/settings';
 import { useAuth } from '~/composables/useAuth';
@@ -728,6 +728,7 @@ import { usePagination } from '~/composables/usePagination';
 import PaginationControls from '~/components/PaginationControls.vue';
 
 const route = useRoute();
+const router = useRouter();
 const settingsStore = useSettingsStore();
 const auth = useAuth();
 
@@ -1193,6 +1194,12 @@ const submitUpgrade = async () => {
 };
 
 onMounted(async () => {
+  const { isBranchManager, isCashier } = auth;
+  if (isBranchManager.value || isCashier.value) {
+    router.replace('/admin');
+    return;
+  }
+
   await Promise.all([
     settingsStore.fetchSystemSettings(),
     settingsStore.fetchTenantSettings(),

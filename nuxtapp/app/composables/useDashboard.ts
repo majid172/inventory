@@ -114,12 +114,13 @@ export function useDashboard() {
     return headers;
   };
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = async (branchId?: number | 'all') => {
     loading.value = true;
     error.value = null;
     try {
       const headers = getHeaders();
-      const res = await axios.get('/inventory/dashboard', { headers });
+      const url = branchId && branchId !== 'all' ? `/inventory/dashboard?branch_id=${branchId}` : '/inventory/dashboard';
+      const res = await axios.get(url, { headers });
 
       if (res.data && res.data.success && res.data.dashboard) {
         const d = res.data.dashboard;

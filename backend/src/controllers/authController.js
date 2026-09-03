@@ -10,20 +10,25 @@ const normalizeRole = (role) => {
   if (!role) return 'cashier';
   const r = role.toString().toLowerCase().replace(/[_\s-]+/g, '');
   if (r === 'superadmin') return 'superadmin';
-  if (r === 'tenantowner' || r === 'owner' || r === 'admin') return 'tenant_owner';
+  if (r === 'tenantowner' || r === 'owner' || r === 'admin' || r === 'storeadmin') return 'tenant_owner';
+  if (r === 'branchmanager' || r === 'manager') return 'branch_manager';
   if (r === 'pharmacist') return 'pharmacist';
   return 'cashier';
 };
 
-const formatUser = (u, tenant = null, subscription = null) => ({
+const formatUser = (u, tenant = null, subscription = null, branch = null) => ({
   id: u.id?.toString(),
   tenantId: u.tenant_id?.toString() || null,
+  branch_id: u.branch_id ? Number(u.branch_id) : null,
+  branchId: u.branch_id ? Number(u.branch_id) : null,
+  branch_name: branch ? branch.name : u.branch_name || null,
+  branch_code: branch ? branch.code : u.branch_code || null,
   name: u.name,
   email: u.email,
   role: u.role,
   status: u.status,
-  storeName: tenant ? tenant.name : null,
-  domain: tenant ? tenant.domain : null,
+  storeName: tenant ? (tenant.name || tenant.store_name) : null,
+  domain: tenant ? (tenant.domain || tenant.slug) : null,
   planId: subscription ? subscription.plan_id : null,
   subscriptionStatus: subscription ? subscription.status : null,
   subscriptionEnd: subscription ? subscription.end_date : null
@@ -360,19 +365,33 @@ const login = async (req, res) => {
         }
       }
     }
-    const rolePayload = normRole === 'superadmin' ? 'SUPER_ADMIN' : (normRole === 'tenant_owner' ? 'STORE_ADMIN' : (user.role || 'STORE_ADMIN'));
+    let branch = null;
+    if (user.branch_id) {
+      try {
+        const [[bRow]] = await db.query('SELECT id, name, code FROM branches WHERE id = ?', [user.branch_id]);
+        branch = bRow || null;
+      } catch (e) {}
+    }
+
+    const rolePayload = normRole === 'superadmin' 
+      ? 'SUPER_ADMIN' 
+      : (normRole === 'tenant_owner' ? 'STORE_ADMIN' 
+      : (normRole === 'branch_manager' ? 'BRANCH_MANAGER' 
+      : (user.role || 'CASHIER')));
 
     const token = signToken({
       id: user.id,
       email: user.email,
       role: rolePayload,
-      tenantId: user.tenant_id || 'SYSTEM'
+      tenantId: user.tenant_id || 'SYSTEM',
+      branchId: user.branch_id || null,
+      branch_id: user.branch_id || null
     });
 
     return res.json({
       success: true,
       token,
-      user: formatUser(user, tenant, subscription),
+      user: formatUser(user, tenant, subscription, branch),
       tenant
     });
   } catch (err) {
@@ -440,6 +459,7 @@ const getProfile = async (req, res) => {
 
     let tenant = null;
     let subscription = null;
+    let branch = null;
 
     if (user.tenant_id) {
       const [[t]] = await db.query('SELECT * FROM tenants WHERE id = ?', [user.tenant_id]);
@@ -451,9 +471,16 @@ const getProfile = async (req, res) => {
       subscription = s;
     }
 
+    if (user.branch_id) {
+      try {
+        const [[bRow]] = await db.query('SELECT id, name, code FROM branches WHERE id = ?', [user.branch_id]);
+        branch = bRow || null;
+      } catch (e) {}
+    }
+
     return res.json({
       success: true,
-      user: formatUser(user, tenant, subscription),
+      user: formatUser(user, tenant, subscription, branch),
       tenant
     });
   } catch (err) {
@@ -491,26 +518,55 @@ const changePassword = async (req, res) => {
 const getStaff = async (req, res) => {
   try {
     const tid = req.tenantId || (req.user && req.user.tenantId && req.user.tenantId !== 'SYSTEM' ? req.user.tenantId : 1);
+    const userRole = (req.user?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+    const userBranchId = req.user?.branch_id || req.user?.branchId || req.branchId;
+    const filterBranchId = req.query.branch_id;
+
+    console.log(`[getStaff] tid=${tid} userRole=${userRole} userBranch=${userBranchId} filterBranch=${filterBranchId}`);
+
+    let whereSql = "WHERE (u.tenant_id = ? OR u.tenant_id IS NULL) AND LOWER(COALESCE(u.role, '')) NOT IN ('super_admin', 'superadmin')";
+    const params = [tid];
+
+    // Branch manager / Cashier is strictly restricted to their own assigned branch
+    if (userRole === 'BRANCHMANAGER' || userRole === 'MANAGER' || userRole === 'CASHIER') {
+      if (userBranchId) {
+        whereSql += " AND u.branch_id = ?";
+        params.push(userBranchId);
+      }
+    } else if (filterBranchId && filterBranchId !== 'all') {
+      whereSql += " AND (u.branch_id = ? OR u.branch_id IS NULL OR LOWER(u.role) IN ('store_admin', 'tenant_owner', 'storeadmin', 'owner'))";
+      params.push(filterBranchId);
+    }
+
     let rows = [];
     try {
       const [r] = await db.query(
-        "SELECT id, name, email, role, status, created_at FROM users WHERE tenant_id = ? AND LOWER(role) NOT IN ('super_admin', 'superadmin') ORDER BY id DESC",
-        [tid]
+        `SELECT u.id, u.name, u.email, u.role, u.status, u.branch_id, u.created_at,
+                COALESCE(b.name, 'Main Branch') AS branch_name, 
+                COALESCE(b.code, 'HQ') AS branch_code
+         FROM users u
+         LEFT JOIN branches b ON b.id = u.branch_id
+         ${whereSql}
+         ORDER BY u.id DESC`,
+        params
       );
       rows = r;
     } catch (e1) {
+      console.warn('[getStaff] primary query error, trying fallback:', e1.message);
       try {
         const [r] = await db.query(
-          "SELECT id, name, email, role, created_at FROM users WHERE tenant_id = ? AND LOWER(role) NOT IN ('super_admin', 'superadmin') ORDER BY id DESC",
-          [tid]
+          `SELECT u.id, u.name, u.email, u.role, u.status, u.branch_id, u.created_at
+           FROM users u
+           ${whereSql}
+           ORDER BY u.id DESC`,
+          params
         );
         rows = r;
       } catch (e2) {
-        console.error('getStaff query error:', e2.message);
+        console.error('[getStaff] fallback query error:', e2.message);
         rows = [];
       }
     }
-
 
     // Fetch tenant active subscription plan info and max_users limit from database
     let maxUsers = 2;
@@ -574,22 +630,78 @@ const getStaff = async (req, res) => {
 const createStaff = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    const { name, email, password, role = 'pharmacist' } = req.body;
+    const userRole = (req.user?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+    const userBranchId = req.user?.branch_id || req.user?.branchId || req.branchId;
+    let { name, email, password, role = 'CASHIER', branch_id = null } = req.body;
+
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
+    }
+
+    // Branch manager creates staff inside their assigned branch
+    if (userRole === 'BRANCHMANAGER' || userRole === 'MANAGER') {
+      branch_id = userBranchId;
     }
 
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
 
-    const [r] = await db.query(
-      'INSERT INTO users (tenant_id, name, email, password_hash, role, status) VALUES (?, ?, ?, ?, ?, "active")',
-      [tid, name, email.trim().toLowerCase(), hash, role]
-    );
+    let insertId = null;
+    try {
+      const [r] = await db.query(
+        'INSERT INTO users (tenant_id, branch_id, name, email, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?, "active")',
+        [tid, branch_id || null, name, email.trim().toLowerCase(), hash, role]
+      );
+      insertId = r.insertId;
+    } catch (dbErr) {
+      // Auto-fix column definition if role was truncated (e.g. was short enum/varchar) or status/branch_id missing
+      console.warn('[createStaff] Initial insert failed, ensuring table columns and retrying:', dbErr.message);
+      try {
+        await db.query('ALTER TABLE `users` MODIFY COLUMN `role` VARCHAR(50) NOT NULL DEFAULT "CASHIER"');
+      } catch (e) {}
+      try {
+        await db.query('ALTER TABLE `users` ADD COLUMN `status` VARCHAR(50) NOT NULL DEFAULT "active"');
+      } catch (e) {}
+      try {
+        await db.query('ALTER TABLE `users` ADD COLUMN `branch_id` INT DEFAULT NULL AFTER `tenant_id`');
+      } catch (e) {}
 
-    const [[created]] = await db.query('SELECT id, name, email, role, status, created_at FROM users WHERE id = ?', [r.insertId]);
+      // Retry insert
+      try {
+        const [r2] = await db.query(
+          'INSERT INTO users (tenant_id, branch_id, name, email, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?, "active")',
+          [tid, branch_id || null, name, email.trim().toLowerCase(), hash, role]
+        );
+        insertId = r2.insertId;
+      } catch (retryErr) {
+        // Fallback without branch_id/status if still failing
+        const [r3] = await db.query(
+          'INSERT INTO users (tenant_id, name, email, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+          [tid, name, email.trim().toLowerCase(), hash, role]
+        );
+        insertId = r3.insertId;
+      }
+    }
+
+    let created = { id: insertId, name, email, role, branch_id, status: 'active' };
+    try {
+      const [[cRow]] = await db.query(
+        `SELECT u.id, u.name, u.email, u.role, u.status, u.branch_id, u.created_at,
+                COALESCE(b.name, 'Main Branch') AS branch_name, 
+                COALESCE(b.code, 'HQ') AS branch_code
+         FROM users u
+         LEFT JOIN branches b ON b.id = u.branch_id
+         WHERE u.id = ?`,
+        [insertId]
+      );
+      if (cRow) created = cRow;
+    } catch (fetchErr) {
+      console.warn('[createStaff] fetch created staff warning:', fetchErr.message);
+    }
+
     return res.status(201).json({ success: true, message: 'Staff created.', staff: created, user: created });
   } catch (err) {
+    console.error('[createStaff] fatal error:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -597,18 +709,42 @@ const createStaff = async (req, res) => {
 const updateStaff = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    const { name, role, status } = req.body;
+    const { name, role, status, branch_id, password } = req.body;
     const updates = [];
     const params = [];
     if (name) { updates.push('name = ?'); params.push(name); }
     if (role) { updates.push('role = ?'); params.push(role); }
     if (status) { updates.push('status = ?'); params.push(status); }
-
+    if (branch_id !== undefined) { updates.push('branch_id = ?'); params.push(branch_id || null); }
+    if (password && password.trim().length > 0) {
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(password.trim(), salt);
+      updates.push('password_hash = ?');
+      params.push(hash);
+    }
     if (updates.length > 0) {
       params.push(req.params.id, tid);
-      await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ? AND tenant_id = ?`, params);
+      try {
+        await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ? AND tenant_id = ?`, params);
+      } catch (updateErr) {
+        // Fix column schema if role was truncated
+        try {
+          await db.query('ALTER TABLE `users` MODIFY COLUMN `role` VARCHAR(50) NOT NULL DEFAULT "CASHIER"');
+          await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ? AND tenant_id = ?`, params);
+        } catch (retryUpdateErr) {
+          console.error('[updateStaff] retry failed:', retryUpdateErr.message);
+        }
+      }
     }
-    const [[updated]] = await db.query('SELECT id, name, email, role, status, created_at FROM users WHERE id = ?', [req.params.id]);
+    const [[updated]] = await db.query(
+      `SELECT u.id, u.name, u.email, u.role, u.status, u.branch_id, u.created_at,
+              COALESCE(b.name, 'Main Branch') AS branch_name, 
+              COALESCE(b.code, 'HQ') AS branch_code
+       FROM users u
+       LEFT JOIN branches b ON b.id = u.branch_id
+       WHERE u.id = ?`,
+      [req.params.id]
+    );
     return res.json({ success: true, message: 'Staff updated.', staff: updated });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });

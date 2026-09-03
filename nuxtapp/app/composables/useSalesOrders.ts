@@ -21,6 +21,9 @@ export interface SaleInvoice {
   id: number;
   invoice_no: string;
   tenant_id: number;
+  branch_id?: number | null;
+  branch_name?: string;
+  branch_code?: string;
   customer_id?: number | null;
   customer_name?: string;
   customer_phone?: string;
@@ -103,6 +106,7 @@ export function useSalesOrders() {
     method?: string;
     startDate?: string;
     endDate?: string;
+    branch_id?: number | 'all' | string;
     page?: number;
     limit?: number;
   } = {}) => {
@@ -119,6 +123,7 @@ export function useSalesOrders() {
       if (filters.method && filters.method !== 'all') params.append('method', filters.method);
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
+      if (filters.branch_id && filters.branch_id !== 'all') params.append('branch_id', String(filters.branch_id));
 
       const res = await axios.get(`/sales?${params.toString()}`);
       if (res.data && res.data.success) {

@@ -3,19 +3,33 @@ const db = require('../config/db');
 
 const getDashboard = async (req, res) => {
   try {
-    // req.tenantId is already sanitized & set by verifyTokenMiddleware.
-    // Fallback chain: JWT token tenantId → x-tenant-id header → 1
     const tid = req.tenantId || 1;
+    const userRole = (req.user?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+    const userBranchId = req.user?.branch_id || req.user?.branchId || req.branchId;
+    const filterBranchId = req.query.branch_id || req.headers['x-branch-id'];
+
+    let branchFilterSql = '';
+    const branchParams = [];
+
+    if (userRole === 'BRANCHMANAGER' || userRole === 'MANAGER' || userRole === 'CASHIER') {
+      if (userBranchId) {
+        branchFilterSql = ' AND branch_id = ?';
+        branchParams.push(userBranchId);
+      }
+    } else if (filterBranchId && filterBranchId !== 'all') {
+      branchFilterSql = ' AND branch_id = ?';
+      branchParams.push(filterBranchId);
+    }
 
     // Debug log to trace which tenant is being queried
-    console.log(`[getDashboard] tenantId=${tid} user=${req.user?.id} role=${req.user?.role}`);
+    console.log(`[getDashboard] tenantId=${tid} user=${req.user?.id} role=${req.user?.role} branch=${userBranchId || filterBranchId}`);
 
     let todaySale = { today_revenue: 0, today_sales: 0 };
     try {
       const [[resToday]] = await db.query(
         `SELECT COALESCE(SUM(total), 0) AS today_revenue, COUNT(*) AS today_sales
-         FROM sales WHERE tenant_id = ? AND (DATE(created_at) = CURDATE() OR DATE(created_at) = CURRENT_DATE())`,
-        [tid]
+         FROM sales WHERE tenant_id = ? ${branchFilterSql} AND (DATE(created_at) = CURDATE() OR DATE(created_at) = CURRENT_DATE())`,
+        [tid, ...branchParams]
       );
       if (resToday) todaySale = resToday;
     } catch (e) {
@@ -26,8 +40,8 @@ const getDashboard = async (req, res) => {
     try {
       const [[resMonth]] = await db.query(
         `SELECT COALESCE(SUM(total), 0) AS month_revenue, COUNT(*) AS month_sales
-         FROM sales WHERE tenant_id = ? AND MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())`,
-        [tid]
+         FROM sales WHERE tenant_id = ? ${branchFilterSql} AND MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())`,
+        [tid, ...branchParams]
       );
       if (resMonth) monthSale = resMonth;
     } catch (e) {
@@ -79,10 +93,10 @@ const getDashboard = async (req, res) => {
            COALESCE(SUM(total), 0) AS daily_revenue,
            COUNT(*) AS daily_invoices
          FROM sales
-         WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+         WHERE tenant_id = ? ${branchFilterSql} AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
          GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d'), DATE_FORMAT(created_at, '%a')
          ORDER BY sale_date ASC`,
-        [tid]
+        [tid, ...branchParams]
       );
       if (rows) trendRows = rows;
     } catch (e) {
@@ -119,10 +133,10 @@ const getDashboard = async (req, res) => {
            COALESCE(SUM(total), 0) AS daily_revenue,
            COUNT(*) AS daily_invoices
          FROM sales
-         WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+         WHERE tenant_id = ? ${branchFilterSql} AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
          GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d'), DATE_FORMAT(created_at, '%d %b')
          ORDER BY sale_date ASC`,
-        [tid]
+        [tid, ...branchParams]
       );
       if (rows) trend30Rows = rows;
     } catch (e) {
@@ -158,10 +172,10 @@ const getDashboard = async (req, res) => {
            COALESCE(SUM(total), 0) AS monthly_revenue,
            COUNT(*) AS monthly_invoices
          FROM sales
-         WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+         WHERE tenant_id = ? ${branchFilterSql} AND created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
          GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%b')
          ORDER BY month_key ASC`,
-        [tid]
+        [tid, ...branchParams]
       );
       if (rows) monthlyRows = rows;
     } catch (e) {
@@ -197,11 +211,11 @@ const getDashboard = async (req, res) => {
          FROM sale_items si
          JOIN sales s ON si.sale_id = s.id
          LEFT JOIN products p ON si.product_id = p.id
-         WHERE s.tenant_id = ?
+         WHERE s.tenant_id = ? ${branchFilterSql ? 'AND s.branch_id = ?' : ''}
          GROUP BY COALESCE(p.name, si.product_name, 'Medicine')
          ORDER BY units_sold DESC
          LIMIT 5`,
-        [tid]
+        [tid, ...branchParams]
       );
       if (rows) topMedicines = rows;
     } catch (e) {
@@ -226,17 +240,21 @@ const getDashboard = async (req, res) => {
            COALESCE(s.discount, 0) AS discount,
            COALESCE(s.paid_amount, s.total) AS paid_amount,
            COALESCE(s.due_amount, 0) AS due_amount,
-           'Pharmacist' AS cashier_name,
+           COALESCE(u.name, 'Pharmacist') AS cashier_name,
+           b.name AS branch_name,
+           b.code AS branch_code,
            (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) AS items_count,
            (SELECT GROUP_CONCAT(CONCAT(si.quantity, 'x ', COALESCE(p2.name, si.product_name, 'Medicine')) SEPARATOR ', ')
             FROM sale_items si
             LEFT JOIN products p2 ON si.product_id = p2.id
             WHERE si.sale_id = s.id) AS items_summary
          FROM sales s
-         WHERE s.tenant_id = ?
+         LEFT JOIN users u ON u.id = s.sold_by
+         LEFT JOIN branches b ON b.id = s.branch_id
+         WHERE s.tenant_id = ? ${branchFilterSql ? 'AND s.branch_id = ?' : ''}
          ORDER BY s.id DESC
          LIMIT 5`,
-        [tid]
+        [tid, ...branchParams]
       );
       if (rows) recentSales = rows;
     } catch (e) {
@@ -667,7 +685,32 @@ const updateSupplier = async (req, res) => {
 const getSalesReport = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    const [rows] = await db.query('SELECT * FROM sales WHERE tenant_id = ? ORDER BY id DESC LIMIT 100', [tid]);
+    const userRole = (req.user?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+    const userBranchId = req.user?.branch_id || req.user?.branchId || req.branchId;
+    const filterBranchId = req.query.branch_id || req.headers['x-branch-id'];
+
+    let whereSql = 'WHERE s.tenant_id = ?';
+    const params = [tid];
+
+    if (userRole === 'BRANCHMANAGER' || userRole === 'MANAGER' || userRole === 'CASHIER') {
+      if (userBranchId) {
+        whereSql += ' AND s.branch_id = ?';
+        params.push(userBranchId);
+      }
+    } else if (filterBranchId && filterBranchId !== 'all') {
+      whereSql += ' AND s.branch_id = ?';
+      params.push(filterBranchId);
+    }
+
+    const [rows] = await db.query(
+      `SELECT s.*, b.name AS branch_name, b.code AS branch_code, u.name AS cashier_name
+       FROM sales s
+       LEFT JOIN branches b ON b.id = s.branch_id
+       LEFT JOIN users u ON u.id = s.sold_by
+       ${whereSql}
+       ORDER BY s.id DESC LIMIT 100`,
+      params
+    );
     return res.json({ success: true, report: rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -844,9 +887,8 @@ const getProfitLossReport = async (req, res) => {
          COALESCE(SUM(si.quantity), 0) AS total_units_sold,
          COALESCE(SUM(
            si.quantity * COALESCE(
-             ib.purchase_price, 
-             ib.unit_cost_price, 
-             p.purchase_price, 
+             ib.purchase_price,
+             p.purchase_price,
              p.retail_price * 0.70, 
              si.unit_price * 0.70, 
              0
@@ -877,7 +919,6 @@ const getProfitLossReport = async (req, res) => {
          COALESCE(SUM(
            si.quantity * COALESCE(
              ib.purchase_price, 
-             ib.unit_cost_price,
              p.purchase_price, 
              p.retail_price * 0.70, 
              si.unit_price * 0.70,
@@ -887,7 +928,6 @@ const getProfitLossReport = async (req, res) => {
          (COALESCE(SUM(s.total), 0) - COALESCE(SUM(
            si.quantity * COALESCE(
              ib.purchase_price, 
-             ib.unit_cost_price,
              p.purchase_price, 
              p.retail_price * 0.70, 
              si.unit_price * 0.70,
@@ -916,7 +956,6 @@ const getProfitLossReport = async (req, res) => {
          COALESCE(SUM(
            si.quantity * COALESCE(
              ib.purchase_price, 
-             ib.unit_cost_price,
              p.purchase_price, 
              p.retail_price * 0.70, 
              si.unit_price * 0.70,
@@ -926,7 +965,6 @@ const getProfitLossReport = async (req, res) => {
          (COALESCE(SUM(si.subtotal), 0) - COALESCE(SUM(
            si.quantity * COALESCE(
              ib.purchase_price, 
-             ib.unit_cost_price,
              p.purchase_price, 
              p.retail_price * 0.70, 
              si.unit_price * 0.70,
@@ -935,7 +973,7 @@ const getProfitLossReport = async (req, res) => {
          ), 0)) AS profit,
          CASE 
            WHEN SUM(si.subtotal) > 0 THEN 
-             ((SUM(si.subtotal) - SUM(si.quantity * COALESCE(ib.purchase_price, ib.unit_cost_price, p.purchase_price, p.retail_price * 0.70, si.unit_price * 0.70, 0))) / SUM(si.subtotal)) * 100
+             ((SUM(si.subtotal) - SUM(si.quantity * COALESCE(ib.purchase_price, p.purchase_price, p.retail_price * 0.70, si.unit_price * 0.70, 0))) / SUM(si.subtotal)) * 100
            ELSE 0
          END AS margin_pct
        FROM sale_items si
@@ -959,7 +997,6 @@ const getProfitLossReport = async (req, res) => {
          COALESCE(SUM(
            si.quantity * COALESCE(
              ib.purchase_price, 
-             ib.unit_cost_price,
              p.purchase_price, 
              p.retail_price * 0.70, 
              si.unit_price * 0.70,
@@ -969,7 +1006,6 @@ const getProfitLossReport = async (req, res) => {
          (COALESCE(SUM(si.subtotal), 0) - COALESCE(SUM(
            si.quantity * COALESCE(
              ib.purchase_price, 
-             ib.unit_cost_price,
              p.purchase_price, 
              p.retail_price * 0.70, 
              si.unit_price * 0.70,
@@ -999,7 +1035,6 @@ const getProfitLossReport = async (req, res) => {
          COALESCE(SUM(
            si.quantity * COALESCE(
              ib.purchase_price, 
-             ib.unit_cost_price,
              p.purchase_price, 
              p.retail_price * 0.70, 
              si.unit_price * 0.70,
@@ -1009,7 +1044,6 @@ const getProfitLossReport = async (req, res) => {
          (s.total - COALESCE(SUM(
            si.quantity * COALESCE(
              ib.purchase_price, 
-             ib.unit_cost_price,
              p.purchase_price, 
              p.retail_price * 0.70, 
              si.unit_price * 0.70,

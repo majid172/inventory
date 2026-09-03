@@ -49,6 +49,15 @@ const verifyTokenMiddleware = (req, res, next) => {
   const parsedHeaderTid = req.headers['x-tenant-id'] && !isNaN(parseInt(req.headers['x-tenant-id'], 10)) ? parseInt(req.headers['x-tenant-id'], 10) : null;
   req.tenantId = parsedTokenTid || parsedHeaderTid || 1;
 
+  // Attach branchId shortcut (from token claim or x-branch-id header)
+  const parsedTokenBid = (decoded.branchId || decoded.branch_id) && !isNaN(parseInt(decoded.branchId || decoded.branch_id, 10))
+    ? parseInt(decoded.branchId || decoded.branch_id, 10)
+    : null;
+  const parsedHeaderBid = req.headers['x-branch-id'] && !isNaN(parseInt(req.headers['x-branch-id'], 10))
+    ? parseInt(req.headers['x-branch-id'], 10)
+    : null;
+  req.branchId = parsedTokenBid || parsedHeaderBid || null;
+
   next();
 };
 
@@ -89,7 +98,11 @@ const requireTenantAccess = (req, res, next) => {
 
 // ---------------------------------------------------------------------------
 // 4. requireActiveSubscription — Block write ops on expired/suspended tenants
+//    Uses tenant_subscriptions.end_date (real DB schema — tenants table has
+//    NO subscription_end or grace_period_days columns).
 // ---------------------------------------------------------------------------
+const GRACE_PERIOD_DAYS = 7; // Fixed grace period after subscription expires
+
 const requireActiveSubscription = async (req, res, next) => {
   if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
   const role = (req.user?.role || '').toUpperCase();
@@ -97,17 +110,15 @@ const requireActiveSubscription = async (req, res, next) => {
   if (!req.tenantId) return res.status(403).json({ success: false, message: 'No tenant context' });
 
   try {
-    const [rows] = await db.query(
-      'SELECT status, subscription_end, grace_period_days FROM tenants WHERE id = ?',
+    // 1. Check tenant exists and its account status
+    const [[tenant]] = await db.query(
+      'SELECT id, status FROM tenants WHERE id = ?',
       [req.tenantId]
     );
-    if (!rows || rows.length === 0) {
+
+    if (!tenant) {
       return res.status(404).json({ success: false, message: 'Tenant not found.' });
     }
-
-    const tenant = rows[0];
-    const now = new Date();
-    const subEnd = tenant.subscription_end ? new Date(tenant.subscription_end) : null;
 
     if (tenant.status === 'suspended') {
       return res.status(403).json({
@@ -117,31 +128,91 @@ const requireActiveSubscription = async (req, res, next) => {
       });
     }
 
-    // Grace period check: expired but within grace window → read-only mode
-    if (tenant.status === 'expired' || (subEnd && subEnd < now && tenant.status !== 'trial')) {
-      const graceDays = tenant.grace_period_days || 7;
-      const graceCutoff = subEnd ? new Date(subEnd.getTime() + graceDays * 86400000) : now;
-      if (now > graceCutoff) {
-        return res.status(403).json({
-          success: false,
-          code: 'SUBSCRIPTION_EXPIRED',
-          message: 'Subscription expired. Please renew to continue using the platform.'
-        });
-      }
-      // Within grace — allow GETs, block POSTs/PUTs/DELETEs
+    // 2. Get the latest subscription from tenant_subscriptions
+    const [[sub]] = await db.query(
+      `SELECT id, status, end_date
+       FROM tenant_subscriptions
+       WHERE tenant_id = ?
+       ORDER BY id DESC
+       LIMIT 1`,
+      [req.tenantId]
+    );
+
+    // No subscription record at all — deny writes, allow reads
+    if (!sub) {
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
         return res.status(403).json({
           success: false,
-          code: 'GRACE_PERIOD_READONLY',
-          message: 'Subscription expired. Account is in read-only mode during grace period. Please renew.'
+          code: 'NO_SUBSCRIPTION',
+          message: 'No active subscription found. Please subscribe to a plan.'
         });
       }
+      return next();
     }
 
+    const now = new Date();
+    const subStatus = (sub.status || '').toLowerCase();
+    const subEnd = sub.end_date ? new Date(sub.end_date) : null;
+
+    // 3. Active subscription — allow everything
+    if (subStatus === 'active' && subEnd && subEnd >= now) {
+      return next();
+    }
+
+    // 4. Cancelled subscription — deny
+    if (subStatus === 'cancelled') {
+      return res.status(403).json({
+        success: false,
+        code: 'SUBSCRIPTION_CANCELLED',
+        message: 'Your subscription has been cancelled. Please renew to continue.'
+      });
+    }
+
+    // 5. Expired subscription — apply grace period logic
+    if (subStatus === 'expired' || (subEnd && subEnd < now)) {
+      const graceCutoff = subEnd
+        ? new Date(subEnd.getTime() + GRACE_PERIOD_DAYS * 86400000)
+        : now;
+
+      if (now > graceCutoff) {
+        // Beyond grace period — block all access
+        return res.status(403).json({
+          success: false,
+          code: 'SUBSCRIPTION_EXPIRED',
+          message: `Subscription expired on ${subEnd ? subEnd.toDateString() : 'an earlier date'}. Please renew to continue using the platform.`
+        });
+      }
+
+      // Within grace period — allow reads, block writes
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        const daysLeft = Math.ceil((graceCutoff - now) / 86400000);
+        return res.status(403).json({
+          success: false,
+          code: 'GRACE_PERIOD_READONLY',
+          message: `Subscription expired. Account is in read-only mode. You have ${daysLeft} day(s) left in the grace period to renew.`
+        });
+      }
+
+      return next();
+    }
+
+    // 6. Pending payment — allow reads, block writes
+    if (subStatus === 'pending_payment') {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        return res.status(403).json({
+          success: false,
+          code: 'PAYMENT_PENDING',
+          message: 'Your subscription payment is pending. Please complete payment to unlock full access.'
+        });
+      }
+      return next();
+    }
+
+    // 7. Any other status (e.g. unknown) — allow through (fail open)
     next();
   } catch (err) {
     console.error('Subscription check error:', err.message);
-    next(); // Fail open so a DB error doesn't block legitimate users
+    next(); // Fail open so a DB error does not block legitimate users
   }
 };
 
@@ -153,7 +224,8 @@ const normalizeRoleString = (role) => {
   if (!role) return 'CASHIER';
   const r = role.toString().toUpperCase().replace(/[_\s-]+/g, '');
   if (r === 'SUPERADMIN') return 'SUPER_ADMIN';
-  if (r === 'TENANTOWNER' || r === 'OWNER' || r === 'ADMIN' || r === 'STOREADMIN' || r === 'MANAGER') return 'STORE_ADMIN';
+  if (r === 'BRANCHMANAGER' || r === 'BRANCH_MANAGER' || r === 'MANAGER') return 'BRANCH_MANAGER';
+  if (r === 'TENANTOWNER' || r === 'OWNER' || r === 'ADMIN' || r === 'STOREADMIN') return 'STORE_ADMIN';
   if (r === 'PHARMACIST') return 'PHARMACIST';
   return 'CASHIER';
 };
@@ -202,16 +274,21 @@ const enforcePlanLimit = (resource) => async (req, res, next) => {
     } catch (e) {}
 
     if (!plan) {
-      const [tenantRows] = await db.query(
-        `SELECT sp.id, sp.max_users, sp.max_products, sp.max_branches, sp.max_terminals, sp.name as plan_name
-         FROM tenants t
-         LEFT JOIN subscription_plans sp ON (t.plan_id = sp.id OR t.plan_tier = sp.id OR LOWER(t.plan_tier) = LOWER(sp.name))
-         WHERE t.id = ? LIMIT 1`,
-        [tid]
-      );
-      if (tenantRows && tenantRows.length > 0) {
-        plan = tenantRows[0];
-      }
+      // Fallback: get any subscription for this tenant (expired is better than nothing)
+      // NOTE: tenants table has no plan_id or plan_tier columns — always use tenant_subscriptions
+      try {
+        const [fallbackRows] = await db.query(
+          `SELECT sp.id, sp.max_users, sp.max_products, sp.max_branches, sp.max_terminals, sp.name as plan_name
+           FROM tenant_subscriptions ts
+           JOIN subscription_plans sp ON ts.plan_id = sp.id
+           WHERE ts.tenant_id = ?
+           ORDER BY ts.id DESC LIMIT 1`,
+          [tid]
+        );
+        if (fallbackRows && fallbackRows.length > 0) {
+          plan = fallbackRows[0];
+        }
+      } catch (e) {}
     }
 
     if (!plan) return next();

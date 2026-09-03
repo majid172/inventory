@@ -120,11 +120,27 @@ async function initBillingDB() {
     } catch (e) {}
 
     try {
+      await db.query(`ALTER TABLE \`users\` MODIFY COLUMN \`role\` VARCHAR(50) NOT NULL DEFAULT 'CASHIER'`);
+    } catch (e) {}
+
+    try {
+      await db.query(`ALTER TABLE \`users\` MODIFY COLUMN \`status\` VARCHAR(50) NOT NULL DEFAULT 'active'`);
+    } catch (e) {}
+
+    try {
       await db.query(`ALTER TABLE \`users\` ADD COLUMN \`branch_id\` INT DEFAULT NULL AFTER \`tenant_id\``);
     } catch (e) {}
 
     try {
       await db.query(`ALTER TABLE \`sales\` ADD COLUMN \`branch_id\` INT DEFAULT NULL AFTER \`tenant_id\`, ADD COLUMN \`terminal_id\` INT DEFAULT NULL AFTER \`branch_id\``);
+    } catch (e) {}
+
+    try {
+      await db.query(`ALTER TABLE \`inventory_batches\` ADD COLUMN \`branch_id\` INT DEFAULT NULL AFTER \`tenant_id\``);
+    } catch (e) {}
+
+    try {
+      await db.query(`ALTER TABLE \`purchase_orders\` ADD COLUMN \`branch_id\` INT DEFAULT NULL AFTER \`tenant_id\``);
     } catch (e) {}
 
     console.log('✅ Billing, Plans, Branches, Terminals & Payments database tables verified / initialized in MySQL!');

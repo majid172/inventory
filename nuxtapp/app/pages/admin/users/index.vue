@@ -10,7 +10,7 @@
             <strong>Plan Limit Reached:</strong> Your <strong>{{ userStore.planMeta.planName }}</strong> plan allows up to <strong>{{ userStore.planMeta.maxUsers }}</strong> staff accounts ({{ userStore.users.length }} currently enrolled).
           </span>
         </div>
-        <NuxtLink to="/admin/billing"
+        <NuxtLink v-if="!isBranchScoped" to="/admin/billing"
           class="bg-[#107c41] hover:bg-[#0e6b37] text-white px-2.5 py-1 text-[11px] font-normal flex items-center gap-1 shadow-xs transition-all">
           <span>⚡ Upgrade Plan</span>
         </NuxtLink>
@@ -57,12 +57,21 @@
 
           <!-- Right: Filters & Search Box -->
           <div class="flex items-center gap-2 flex-wrap">
+            <!-- Branch Filter (Store Admin only) -->
+            <select v-if="!isBranchScoped" :value="selectedBranchId" @change="(e: any) => setSelectedBranch(e.target.value === 'all' ? 'all' : Number(e.target.value))"
+              class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 text-xs text-slate-700 dark:text-gray-200 font-normal focus:outline-none focus:border-[#107c41] cursor-pointer">
+              <option value="all">🏢 All Branches</option>
+              <option v-for="b in branches" :key="b.id" :value="b.id">
+                📍 {{ b.name }}
+              </option>
+            </select>
+
             <!-- Role Filter -->
             <select v-model="roleFilter"
               class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 text-xs text-slate-700 dark:text-gray-200 font-normal focus:outline-none focus:border-[#107c41] cursor-pointer">
               <option value="All">All Roles</option>
               <option value="Store Admin">Store Admin</option>
-              <option value="Chief Pharmacist">Chief Pharmacist</option>
+              <option value="Branch Manager">Branch Manager</option>
               <option value="POS Cashier">POS Cashier</option>
             </select>
 
@@ -146,18 +155,28 @@
                   {{ user.email }}
                 </td>
 
-                <!-- Role -->
+                <!-- Role & Branch -->
                 <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">
-                  <span :class="[
-                    'px-2 py-0.5 text-[10px] border font-normal inline-block',
-                    user.role === 'Store Admin'
-                      ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800'
-                      : user.role === 'Chief Pharmacist'
-                      ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
-                  ]">
-                    {{ user.role }}
-                  </span>
+                  <div class="flex flex-col gap-1">
+                    <span :class="[
+                      'px-2 py-0.5 text-[10px] border font-normal inline-block w-fit',
+                      user.role === 'Store Admin'
+                        ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800'
+                        : user.role === 'Branch Manager'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
+                        : user.role === 'Chief Pharmacist'
+                        ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                    ]">
+                      {{ user.role }}
+                    </span>
+                    <span class="text-[9px] text-slate-600 dark:text-gray-300 font-medium font-mono" v-if="user.branch_name || user.branch_id">
+                      📍 {{ user.branch_name ? user.branch_name + (user.branch_code ? ' (' + user.branch_code + ')' : '') : ('Branch #' + user.branch_id) }}
+                    </span>
+                    <span class="text-[9px] text-slate-400 font-mono italic" v-else>
+                      🏢 All Branches (Headquarters)
+                    </span>
+                  </div>
                 </td>
 
                 <!-- POS Terminal Access -->
@@ -261,13 +280,24 @@
                 <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">System Role *</label>
                 <select v-model="userForm.role" required
                   class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-200 font-normal focus:outline-none focus:border-[#107c41] text-xs cursor-pointer">
-                  <option value="Store Admin">Store Admin (Full Control)</option>
-                  <option value="Chief Pharmacist">Chief Pharmacist</option>
+                  <option value="Store Admin">Store Admin (Full Control / Owner)</option>
+                  <option value="Branch Manager">Branch Manager (Branch Restricted)</option>
                   <option value="POS Cashier">POS Cashier (Sales Only)</option>
                 </select>
               </div>
+              
+              <div>
+                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Assign Branch</label>
+                <select v-model="userForm.branch_id"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-200 font-normal focus:outline-none focus:border-[#107c41] text-xs cursor-pointer">
+                  <option :value="null">All Branches (Main Admin)</option>
+                  <option v-for="b in branches" :key="b.id" :value="b.id">
+                    {{ b.name }} ({{ b.code }})
+                  </option>
+                </select>
+              </div>
 
-              <div class="flex flex-col justify-end">
+              <div class="flex flex-col justify-end md:col-span-2">
                 <label class="flex items-center gap-2 cursor-pointer font-normal text-slate-700 dark:text-gray-300 py-1.5">
                   <input type="checkbox" v-model="userForm.terminalAccess"
                     class="w-4 h-4 border-slate-300 dark:border-gray-700 text-[#107c41] focus:ring-0 cursor-pointer" />
@@ -278,8 +308,22 @@
 
             <div v-if="!isEditing">
               <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Password / 4-Digit PIN *</label>
-              <input v-model="userForm.password" type="password" required placeholder="e.g. 123456"
-                class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-200 font-mono focus:outline-none focus:border-[#107c41] text-xs" />
+              <div class="relative">
+                <input v-model="userForm.password" :type="showStaffPassword ? 'text' : 'password'" required placeholder="e.g. 123456"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 pl-2.5 pr-8 py-1.5 text-slate-800 dark:text-gray-200 font-mono focus:outline-none focus:border-[#107c41] text-xs" />
+                <button type="button" @click="showStaffPassword = !showStaffPassword"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 cursor-pointer p-0.5 focus:outline-none"
+                  tabindex="-1"
+                  :title="showStaffPassword ? 'Hide password' : 'Show password'">
+                  <svg v-if="!showStaffPassword" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <svg v-else class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <!-- Window Footer Actions -->
@@ -306,8 +350,12 @@ import { useUserStore } from '~/stores/users';
 import PharmacyLoader from '~/components/PharmacyLoader.vue';
 import PaginationControls from '~/components/PaginationControls.vue';
 import { usePagination } from '~/composables/usePagination';
+import { useActiveBranch } from '~/composables/useActiveBranch';
+import { useNuxtApp } from '#app';
 
+const { $api } = useNuxtApp();
 const userStore = useUserStore();
+const { branches, selectedBranchId, isBranchScoped, fetchBranches, setSelectedBranch } = useActiveBranch();
 
 const searchQuery = ref('');
 const roleFilter = ref('All');
@@ -317,21 +365,28 @@ const selectedRow = ref<string | null>(null);
 const showUserModal = ref(false);
 const isEditing = ref(false);
 const editingUserId = ref<string | null>(null);
+const showStaffPassword = ref(false);
 
 const userForm = reactive({
   name: '',
   email: '',
   role: 'POS Cashier',
   terminalAccess: true,
-  password: '123456'
+  password: '123456',
+  branch_id: null as number | null
 });
 
 const fetchStaff = () => {
-  userStore.fetchUsers();
+  userStore.fetchUsers(selectedBranchId.value);
 };
+
+watch(() => selectedBranchId.value, () => {
+  fetchStaff();
+});
 
 onMounted(() => {
   fetchStaff();
+  fetchBranches();
   window.addEventListener('keydown', handleKeyShortcuts);
 });
 
@@ -391,6 +446,7 @@ const openAddModal = () => {
   userForm.role = 'POS Cashier';
   userForm.terminalAccess = true;
   userForm.password = '123456';
+  userForm.branch_id = null;
   showUserModal.value = true;
 };
 
@@ -401,6 +457,7 @@ const openEditModal = (user: any) => {
   userForm.email = user.email;
   userForm.role = user.role;
   userForm.terminalAccess = user.terminalAccess;
+  userForm.branch_id = user.branch_id || null;
   showUserModal.value = true;
 };
 
@@ -415,14 +472,16 @@ const saveUser = async () => {
         name: userForm.name,
         email: userForm.email,
         role: userForm.role,
-        terminalAccess: userForm.terminalAccess
+        terminalAccess: userForm.terminalAccess,
+        branch_id: userForm.branch_id
       });
     } else {
       await userStore.createUser({
         name: userForm.name,
         email: userForm.email,
         role: userForm.role,
-        password: userForm.password
+        password: userForm.password,
+        branch_id: userForm.branch_id
       });
     }
     closeModal();

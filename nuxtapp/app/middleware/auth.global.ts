@@ -20,6 +20,7 @@ export default defineNuxtRouteMiddleware((to, _from) => {
   const rawRole = (authUser?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
   const isSuperAdmin = localStorage.getItem('is_super_admin') === 'true' || rawRole === 'SUPERADMIN';
   const isCashier = !isSuperAdmin && (rawRole === 'CASHIER' || rawRole === 'POSUSER');
+  const isBranchManager = !isSuperAdmin && (rawRole === 'BRANCHMANAGER' || rawRole === 'MANAGER');
 
   // ──────────────────────────────────────────────────────────────────────────
   // 1. Super Admin route guard (/super-admin/**)
@@ -44,6 +45,16 @@ export default defineNuxtRouteMiddleware((to, _from) => {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
+  // 2b. Branch Manager Isolation: Cannot access Billing, Branches, or Store Settings
+  // ──────────────────────────────────────────────────────────────────────────
+  if (isLoggedIn && isBranchManager) {
+    if (to.path === '/admin/billing' || to.path === '/admin/branches' || to.path === '/admin/settings') {
+      console.warn(`[RBAC] Branch Manager restricted from ${to.path}. Redirecting to /admin`);
+      return navigateTo('/admin');
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
   // 3. Protected tenant routes: /admin/** and /pos
   // ──────────────────────────────────────────────────────────────────────────
   if (to.path.startsWith('/pos') || (to.path.startsWith('/admin') && !to.path.startsWith('/super-admin'))) {
@@ -53,7 +64,7 @@ export default defineNuxtRouteMiddleware((to, _from) => {
     }
 
     // 3b. Subscription Gatekeeper
-    // Allow billing page through always so tenant can renew
+    // Allow billing page through always so tenant owner can renew
     const isBillingPage = to.path === '/admin/billing';
 
     if (!isBillingPage) {
@@ -63,8 +74,8 @@ export default defineNuxtRouteMiddleware((to, _from) => {
       const info = getSubscriptionInfo();
 
       if (info.isExpired) {
-        // If cashier, block with alert; if owner, redirect to billing
-        if (isCashier) {
+        // If cashier or branch manager, block with alert; if owner, redirect to billing
+        if (isCashier || isBranchManager) {
           return navigateTo('/login?reason=subscription_expired');
         }
         return navigateTo('/admin/billing?locked=1&reason=' + info.status);

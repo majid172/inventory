@@ -46,16 +46,29 @@ const processSale = async (req, res) => {
     const finalTrxNo = transaction_no || null;
     const finalNotes = notes || null;
 
-    // 1. Insert into sales table (Matched 100% with MySQL sales table)
+    let targetBranchId = req.user?.branch_id || req.user?.branchId || req.branchId || req.body.branch_id || null;
+    let terminalId = req.body.terminal_id || null;
+
+    if (!targetBranchId) {
+      try {
+        const [[mainBranch]] = await connection.query(
+          `SELECT id FROM branches WHERE tenant_id = ? ORDER BY is_main DESC, id ASC LIMIT 1`,
+          [tid]
+        );
+        if (mainBranch) targetBranchId = mainBranch.id;
+      } catch (e) {}
+    }
+
+    // 1. Insert into sales table with branch_id & terminal_id
     const [saleResult] = await connection.query(
       `INSERT INTO sales (
-         tenant_id, invoice_no, customer_phone, 
+         tenant_id, branch_id, terminal_id, invoice_no, customer_phone, 
          subtotal, discount, tax, total, paid_amount, due_amount, 
          payment_method, transaction_no, status, notes, sold_by
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?)`,
       [
-        tid, invoiceNo, phoneVal,
+        tid, targetBranchId, terminalId, invoiceNo, phoneVal,
         subtotalVal, discountVal, taxVal, totalVal, paidVal, dueVal,
         payment_method, finalTrxNo, finalNotes, userId
       ]
@@ -115,7 +128,13 @@ const processSale = async (req, res) => {
 
     await connection.commit();
 
-    const [[createdSale]] = await db.query(`SELECT * FROM sales WHERE id = ?`, [saleId]);
+    const [[createdSale]] = await db.query(
+      `SELECT s.*, b.name AS branch_name, b.code AS branch_code
+       FROM sales s
+       LEFT JOIN branches b ON b.id = s.branch_id
+       WHERE s.id = ?`,
+      [saleId]
+    );
     const [saleItemsList] = await db.query(
       `SELECT si.*, 
               COALESCE(p.name, si.product_name, 'Medicine') AS product_name 
@@ -148,11 +167,25 @@ const processSale = async (req, res) => {
 const getSales = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
+    const userRole = (req.user?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+    const userBranchId = req.user?.branch_id || req.user?.branchId || req.branchId;
+    const filterBranchId = req.query.branch_id || req.headers['x-branch-id'];
     const { page = 1, limit = 50, search, method, startDate, endDate } = req.query;
     const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
     let whereClause = 'WHERE s.tenant_id = ?';
     const params = [tid];
+
+    // Branch manager / Cashier is strictly restricted to their own assigned branch
+    if (userRole === 'BRANCHMANAGER' || userRole === 'MANAGER' || userRole === 'CASHIER') {
+      if (userBranchId) {
+        whereClause += ' AND s.branch_id = ?';
+        params.push(userBranchId);
+      }
+    } else if (filterBranchId && filterBranchId !== 'all') {
+      whereClause += ' AND s.branch_id = ?';
+      params.push(filterBranchId);
+    }
 
     if (search) {
       whereClause += ' AND (s.invoice_no LIKE ? OR s.customer_phone LIKE ? OR s.notes LIKE ?)';
@@ -180,13 +213,15 @@ const getSales = async (req, res) => {
     );
     const totalCount = countRow ? countRow.total : 0;
 
-    // Sales Records with item summary
+    // Sales Records with item summary and branch information
     const queryParams = [...params, parseInt(limit, 10), offset];
     const [rows] = await db.query(
       `SELECT s.*, 
               s.customer_phone,
               s.customer_phone AS customer_name,
               u.name AS cashier_name,
+              b.name AS branch_name,
+              b.code AS branch_code,
               (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) AS items_count,
               (SELECT GROUP_CONCAT(CONCAT(si.quantity, 'x ', COALESCE(p.name, si.product_name, 'Medicine')) SEPARATOR ', ')
                FROM sale_items si
@@ -194,14 +229,15 @@ const getSales = async (req, res) => {
                WHERE si.sale_id = s.id) AS items_summary
        FROM sales s
        LEFT JOIN users u ON (s.sold_by = u.id)
+       LEFT JOIN branches b ON (s.branch_id = b.id)
        ${whereClause}
        ORDER BY s.id DESC LIMIT ? OFFSET ?`,
       queryParams
     );
 
-    // Dynamic KPI Aggregates
+    // Dynamic KPI Aggregates (Scoped strictly to branch selection)
     let stats = {
-      total_invoices: rows.length,
+      total_invoices: totalCount,
       total_revenue: 0,
       today_revenue: 0,
       today_invoices: 0,
@@ -213,14 +249,14 @@ const getSales = async (req, res) => {
       const [[aggStats]] = await db.query(
         `SELECT 
            COUNT(*) AS total_invoices,
-           COALESCE(SUM(total), 0) AS total_revenue,
-           COALESCE(SUM(CASE WHEN DATE(created_at) = CURRENT_DATE THEN total ELSE 0 END), 0) AS today_revenue,
-           COALESCE(SUM(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 ELSE 0 END), 0) AS today_invoices,
-           COALESCE(SUM(CASE WHEN LOWER(payment_method) = 'cash' THEN 1 ELSE 0 END), 0) AS cash_count,
-           COALESCE(SUM(CASE WHEN LOWER(payment_method) != 'cash' THEN 1 ELSE 0 END), 0) AS digital_count
-         FROM sales
-         WHERE tenant_id = ?`,
-        [tid]
+           COALESCE(SUM(s.total), 0) AS total_revenue,
+           COALESCE(SUM(CASE WHEN DATE(s.created_at) = CURRENT_DATE THEN s.total ELSE 0 END), 0) AS today_revenue,
+           COALESCE(SUM(CASE WHEN DATE(s.created_at) = CURRENT_DATE THEN 1 ELSE 0 END), 0) AS today_invoices,
+           COALESCE(SUM(CASE WHEN LOWER(s.payment_method) = 'cash' THEN 1 ELSE 0 END), 0) AS cash_count,
+           COALESCE(SUM(CASE WHEN LOWER(s.payment_method) != 'cash' THEN 1 ELSE 0 END), 0) AS digital_count
+         FROM sales s
+         ${whereClause}`,
+        params
       );
       if (aggStats) stats = aggStats;
     } catch (e) {}
@@ -245,18 +281,31 @@ const getSales = async (req, res) => {
 const getSaleById = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
+    const userRole = (req.user?.role || '').toString().toUpperCase().replace(/[_\s-]+/g, '');
+    const userBranchId = req.user?.branch_id || req.user?.branchId || req.branchId;
+
     const [[sale]] = await db.query(
       `SELECT s.*,
               s.customer_phone,
               s.customer_phone AS customer_name,
-              u.name AS cashier_name
+              u.name AS cashier_name,
+              b.name AS branch_name,
+              b.code AS branch_code
        FROM sales s
        LEFT JOIN users u ON (s.sold_by = u.id)
+       LEFT JOIN branches b ON (s.branch_id = b.id)
        WHERE s.id = ? AND s.tenant_id = ?`,
       [req.params.id, tid]
     );
 
     if (!sale) return res.status(404).json({ success: false, message: 'Sale invoice record not found.' });
+
+    // Enforce branch manager isolation on single invoice lookup
+    if ((userRole === 'BRANCHMANAGER' || userRole === 'MANAGER' || userRole === 'CASHIER') && userBranchId) {
+      if (sale.branch_id && Number(sale.branch_id) !== Number(userBranchId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: You can only view invoices from your assigned branch.' });
+      }
+    }
 
     const [items] = await db.query(
       `SELECT si.*, 
