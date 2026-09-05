@@ -4,7 +4,7 @@ const {
   getAnalytics, getTenants, getTenantById, createTenant, updateTenant, deleteTenant,
   getPlans, createPlan, updatePlan, deletePlan,
   getMasterDrugs, createMasterDrug, updateMasterDrug, deleteMasterDrug,
-  getAllPayments, getAuditLogs,
+  getAllPayments, approvePayment, rejectPayment, getAuditLogs,
   getUsers, createUser, updateUser, deleteUser,
   getPlatformSettings, updatePlatformSettings, executeDatabaseBackup, executeOptimizeDatabase, executeClearCache
 } = require('../controllers/superAdminController');
@@ -49,8 +49,10 @@ router.post('/master-drugs', requireSuperAdmin, createMasterDrug);
 router.put('/master-drugs/:id', requireSuperAdmin, updateMasterDrug);
 router.delete('/master-drugs/:id', requireSuperAdmin, deleteMasterDrug);
 
-// Payments & invoices (Dynamically filtered in controller by user role & tenant_id)
+// Payments & invoices
 router.get('/payments', getAllPayments);
+router.put('/billings/:id/approve', requireSuperAdmin, approvePayment);
+router.put('/billings/:id/reject', requireSuperAdmin, rejectPayment);
 
 // System audit logs
 router.get('/logs', requireSuperAdmin, getAuditLogs);

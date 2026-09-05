@@ -183,8 +183,11 @@ const registerTenant = async (req, res) => {
     }
 
     // 3. Get Plan Details & Extend / Insert Subscription
-    const isFreeTrial = req.body.gateway === 'free_trial' || req.body.billingType === 'trial' || !req.body.trx_no;
-    const subStatus = isFreeTrial ? 'trial' : 'active';
+    const isFreeTrial = req.body.gateway === 'free_trial' || req.body.billingType === 'trial';
+    const isPendingPayment = !isFreeTrial && Boolean(req.body.trx_no || req.body.trxNo);
+    const subStatus = isFreeTrial ? 'trial' : (isPendingPayment ? 'pending' : 'active');
+    const billingStatus = isFreeTrial ? 'success' : (isPendingPayment ? 'pending' : 'success');
+
     const [[planRow]] = await db.query(
       'SELECT * FROM subscription_plans WHERE id = ? OR LOWER(name) LIKE ? LIMIT 1',
       [bPlanId, `%${planTier || 'pro'}%`]
@@ -201,9 +204,11 @@ const registerTenant = async (req, res) => {
     const startDate = new Date().toISOString().split('T')[0];
     const endDate = new Date(Date.now() + durationDays * 86400000).toISOString().split('T')[0];
 
-    // Set older active/trial subscriptions for this tenant to expired
+    // Mark previous pending/expired subscriptions if replacing
     try {
-      await db.query(`UPDATE tenant_subscriptions SET status = 'expired' WHERE tenant_id = ?`, [tenantId]);
+      if (!isPendingPayment) {
+        await db.query(`UPDATE tenant_subscriptions SET status = 'expired' WHERE tenant_id = ? AND status = 'active'`, [tenantId]);
+      }
     } catch (e) {}
 
     const [subResult] = await db.query(
@@ -224,8 +229,8 @@ const registerTenant = async (req, res) => {
     try {
       await db.query(
         `INSERT INTO billings (tenant_id, tenant_subscription_id, invoice_no, trx_no, amount, currency, gateway, gateway_ref, plan_name, billing_cycle, status, paid_at)
-         VALUES (?, ?, ?, ?, ?, 'BDT', ?, ?, ?, ?, 'success', ?)`,
-        [tenantId, subscriptionId, bInvoiceNo, bTrxNo, planPrice, bGateway, bTrxNo, bPlanName, bBillingCycle, bPaidAt]
+         VALUES (?, ?, ?, ?, ?, 'BDT', ?, ?, ?, ?, ?, ?)`,
+        [tenantId, subscriptionId, bInvoiceNo, bTrxNo, planPrice, bGateway, bTrxNo, bPlanName, bBillingCycle, billingStatus, bPaidAt]
       );
     } catch (bErr) {
       console.warn('Warning inserting into billings table:', bErr.message);
@@ -234,8 +239,8 @@ const registerTenant = async (req, res) => {
     try {
       await db.query(
         `INSERT INTO payments (tenant_id, subscription_id, amount, payment_method, transaction_id, status)
-         VALUES (?, ?, ?, ?, ?, 'success')`,
-        [tenantId, subscriptionId, planPrice, bGateway, bTrxNo]
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [tenantId, subscriptionId, planPrice, bGateway, bTrxNo, billingStatus]
       );
     } catch (pErr) {
       console.warn('Warning inserting into payments table:', pErr.message);
@@ -251,14 +256,19 @@ const registerTenant = async (req, res) => {
       tenantId: tenantId
     });
 
+    const responseMsg = isPendingPayment
+      ? `Subscription payment (Trx ID: ${bTrxNo}) submitted successfully! Your account will be reactivated upon SuperAdmin verification.`
+      : (isRenewal 
+        ? 'Subscription plan renewed successfully! Store access reactivated.' 
+        : 'Pharmacy store registered & provisioned successfully.');
+
     return res.status(isRenewal ? 200 : 201).json({
       success: true,
       isRenewal,
-      message: isRenewal 
-        ? 'Subscription plan renewed successfully! Store access reactivated.' 
-        : 'Pharmacy store registered & provisioned successfully.',
+      isPending: isPendingPayment,
+      message: responseMsg,
       token,
-      user: formatUser(user, tenant, { plan_id: bPlanId, status: 'active', end_date: endDate }),
+      user: formatUser(user, tenant, { plan_id: bPlanId, status: subStatus, end_date: endDate }),
       tenant
     });
   } catch (err) {

@@ -217,12 +217,24 @@
                 </td>
 
                 <!-- Actions -->
-                <td class="py-2 px-3 text-center w-24" @click.stop>
-                  <button @click="openInvoiceModal(row)"
-                    class="px-2.5 py-1 text-[11px] font-medium text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/50 hover:bg-sky-100 dark:hover:bg-sky-900/60 rounded transition-colors"
-                    title="View Invoice Receipt">
-                    View Receipt
-                  </button>
+                <td class="py-2 px-3 text-center" @click.stop>
+                  <div class="flex items-center justify-center gap-1.5">
+                    <button v-if="row.status === 'pending'" @click="handleApprovePayment(row.id)"
+                      class="px-2 py-0.5 text-[10px] font-medium text-white bg-[#107c41] hover:bg-[#0e6b37] border border-[#0e6b37] cursor-pointer shadow-2xs transition-colors"
+                      title="Verify & Approve Payment">
+                      ✓ Approve
+                    </button>
+                    <button v-if="row.status === 'pending'" @click="handleRejectPayment(row.id)"
+                      class="px-2 py-0.5 text-[10px] font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 cursor-pointer shadow-2xs transition-colors"
+                      title="Reject Payment Request">
+                      ✕ Reject
+                    </button>
+                    <button @click="openInvoiceModal(row)"
+                      class="px-2 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/50 hover:bg-sky-100 dark:hover:bg-sky-900/60 border border-sky-200 dark:border-sky-800 cursor-pointer shadow-2xs transition-colors"
+                      title="View Invoice Receipt">
+                      Details
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -493,5 +505,51 @@ const formatDate = (dateStr?: string) => {
 const openInvoiceModal = (payment: PaymentRecord) => {
   selectedPayment.value = payment;
   showInvoiceModal.value = true;
+};
+
+const handleApprovePayment = async (id: number) => {
+  if (!confirm('Are you sure you want to verify and approve this subscription payment? Store access will be reactivated.')) return;
+  loading.value = true;
+  try {
+    const res = await fetch(`http://localhost:5000/api/super-admin/billings/${id}/approve`, {
+      method: 'PUT',
+      headers: getHeaders()
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      alert(data.message || 'Payment approved successfully!');
+      await fetchPayments();
+    } else {
+      alert(data.message || 'Failed to approve payment.');
+    }
+  } catch (err: any) {
+    console.error('Approve payment error:', err);
+    alert('Network error approving payment.');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleRejectPayment = async (id: number) => {
+  if (!confirm('Are you sure you want to reject this payment request?')) return;
+  loading.value = true;
+  try {
+    const res = await fetch(`http://localhost:5000/api/super-admin/billings/${id}/reject`, {
+      method: 'PUT',
+      headers: getHeaders()
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      alert(data.message || 'Payment request rejected.');
+      await fetchPayments();
+    } else {
+      alert(data.message || 'Failed to reject payment.');
+    }
+  } catch (err: any) {
+    console.error('Reject payment error:', err);
+    alert('Network error rejecting payment.');
+  } finally {
+    loading.value = false;
+  }
 };
 </script>

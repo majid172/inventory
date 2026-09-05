@@ -217,9 +217,13 @@ const handleRenew = async () => {
     const data = await res.json();
 
     if (res.ok && data.success) {
-      renewSuccess.value = data.message || 'Subscription renewed successfully! Redirecting to workspace...';
+      renewSuccess.value = data.message || 'Subscription renewal submitted successfully!';
 
-      if (data.token && data.user) {
+      if (data.isPending) {
+        setTimeout(() => {
+          router.push(`/login?email=${encodeURIComponent(email.value.trim())}&pending=true`);
+        }, 2200);
+      } else if (data.token && data.user) {
         setAuthSession(data.token, data.user);
         setTimeout(() => {
           router.push('/admin');

@@ -1060,9 +1060,80 @@ const executeClearCache = async (req, res) => {
       success: true,
       message: 'Application cache, session store, and API query buffers flushed successfully.'
     });
+const approvePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [[billing]] = await db.query('SELECT * FROM billings WHERE id = ?', [id]);
+    if (!billing) {
+      return res.status(404).json({ success: false, message: 'Billing record not found.' });
+    }
+
+    const tenantId = billing.tenant_id;
+    const subId = billing.tenant_subscription_id;
+
+    await db.query(`UPDATE billings SET status = 'success' WHERE id = ?`, [id]);
+    try {
+      await db.query(`UPDATE payments SET status = 'success' WHERE transaction_id = ? OR subscription_id = ?`, [billing.trx_no, subId]);
+    } catch (e) {}
+
+    await db.query(`UPDATE tenants SET status = 'active' WHERE id = ?`, [tenantId]);
+    await db.query(`UPDATE users SET status = 'active' WHERE tenant_id = ?`, [tenantId]);
+
+    if (subId) {
+      const [[sub]] = await db.query('SELECT * FROM tenant_subscriptions WHERE id = ?', [subId]);
+      const startDate = new Date().toISOString().split('T')[0];
+      let durationDays = 30;
+      if (sub && sub.plan_id) {
+        const [[plan]] = await db.query('SELECT duration_days FROM subscription_plans WHERE id = ?', [sub.plan_id]);
+        if (plan && plan.duration_days) durationDays = plan.duration_days;
+      }
+      const endDate = new Date(Date.now() + durationDays * 86400000).toISOString().split('T')[0];
+
+      await db.query(
+        `UPDATE tenant_subscriptions SET status = 'active', start_date = ?, end_date = ? WHERE id = ?`,
+        [startDate, endDate, subId]
+      );
+    } else {
+      await db.query(
+        `UPDATE tenant_subscriptions SET status = 'active' WHERE tenant_id = ? ORDER BY id DESC LIMIT 1`,
+        [tenantId]
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: `Payment (Trx ID: ${billing.trx_no || id}) approved successfully! Store subscription activated.`
+    });
   } catch (err) {
-    console.error('executeClearCache error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error('approvePayment error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const rejectPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [[billing]] = await db.query('SELECT * FROM billings WHERE id = ?', [id]);
+    if (!billing) {
+      return res.status(404).json({ success: false, message: 'Billing record not found.' });
+    }
+
+    await db.query(`UPDATE billings SET status = 'rejected' WHERE id = ?`, [id]);
+    try {
+      await db.query(`UPDATE payments SET status = 'rejected' WHERE transaction_id = ? OR subscription_id = ?`, [billing.trx_no, billing.tenant_subscription_id]);
+    } catch (e) {}
+
+    if (billing.tenant_subscription_id) {
+      await db.query(`UPDATE tenant_subscriptions SET status = 'rejected' WHERE id = ?`, [billing.tenant_subscription_id]);
+    }
+
+    return res.json({
+      success: true,
+      message: `Payment request (Trx ID: ${billing.trx_no || id}) rejected.`
+    });
+  } catch (err) {
+    console.error('rejectPayment error:', err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -1082,6 +1153,8 @@ module.exports = {
   updateMasterDrug,
   deleteMasterDrug,
   getAllPayments,
+  approvePayment,
+  rejectPayment,
   getAuditLogs,
   getUsers,
   createUser,

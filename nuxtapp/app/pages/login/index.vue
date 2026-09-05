@@ -167,7 +167,9 @@ onMounted(() => {
   if (route.query.email) {
     identifier.value = String(route.query.email);
   }
-  if (route.query.renewed === 'true') {
+  if (route.query.pending === 'true') {
+    authSuccess.value = '⏳ Subscription renewal submitted! Your payment is currently under review by SuperAdmin for verification.';
+  } else if (route.query.renewed === 'true') {
     authSuccess.value = '🎉 Subscription plan renewed successfully! You can now sign in.';
   }
   if (route.query.reason == 'subscription_expired') {
