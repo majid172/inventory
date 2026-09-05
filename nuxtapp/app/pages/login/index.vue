@@ -52,7 +52,7 @@
           <div v-if="isSubscriptionExpired"
             class="pt-2 mt-1 border-t border-amber-200 dark:border-amber-800/60 flex items-center justify-between">
             <span class="text-[10px] text-amber-700 dark:text-amber-300">Need to renew your store subscription?</span>
-            <NuxtLink to="/subscribe"
+            <NuxtLink :to="{ path: '/renew', query: { email: identifier } }"
               class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-bold shadow-xs">
               Renew Plan →
             </NuxtLink>
@@ -125,6 +125,12 @@
             <span>{{ loading ? 'Signing In...' : 'Sign In' }}</span>
           </button>
         </form>
+
+        <div class="text-center border-t border-slate-200 dark:border-gray-800 pt-3">
+          <NuxtLink :to="{ path: '/renew', query: { email: identifier } }" class="text-slate-500 dark:text-gray-400 hover:text-[#107c41] dark:hover:text-emerald-400 text-[11px]">
+            Need to renew your store subscription? Renew Here →
+          </NuxtLink>
+        </div>
       </div>
     </main>
 
@@ -158,6 +164,12 @@ const isSubscriptionExpired = ref(false);
 const authSuccess = ref('');
 
 onMounted(() => {
+  if (route.query.email) {
+    identifier.value = String(route.query.email);
+  }
+  if (route.query.renewed === 'true') {
+    authSuccess.value = '🎉 Subscription plan renewed successfully! You can now sign in.';
+  }
   if (route.query.reason == 'subscription_expired') {
     authError.value = '⚠️ Subscription Expired! Your store plan has ended. Please renew to regain access.';
     isSubscriptionExpired.value = true;

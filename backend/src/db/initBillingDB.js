@@ -32,24 +32,47 @@ async function initBillingDB() {
     // 2. Create `billings` table if not exists (Aligned with phpMyAdmin structure)
     await db.query(`
       CREATE TABLE IF NOT EXISTS \`billings\` (
-        \`id\`              INT             NOT NULL AUTO_INCREMENT,
-        \`tenant_id\`       INT             NOT NULL,
-        \`invoice_no\`      VARCHAR(100)    NOT NULL,
-        \`trx_no\`          VARCHAR(100)    DEFAULT NULL,
-        \`amount\`          DECIMAL(10,2)   NOT NULL,
-        \`currency\`        VARCHAR(10)     NOT NULL DEFAULT 'BDT',
-        \`gateway\`         VARCHAR(50)     NOT NULL DEFAULT 'bkash',
-        \`gateway_ref\`     VARCHAR(255)    DEFAULT NULL,
-        \`plan_name\`       VARCHAR(100)    DEFAULT 'Pro Tier',
-        \`billing_cycle\`   VARCHAR(20)     NOT NULL DEFAULT 'monthly',
-        \`status\`          VARCHAR(50)     NOT NULL DEFAULT 'success',
-        \`paid_at\`         DATETIME        DEFAULT NULL,
-        \`created_at\`      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+        \`id\`                      INT             NOT NULL AUTO_INCREMENT,
+        \`tenant_id\`               INT             NOT NULL,
+        \`tenant_subscription_id\`  INT             DEFAULT NULL,
+        \`invoice_no\`              VARCHAR(100)    NOT NULL,
+        \`trx_no\`                  VARCHAR(100)    DEFAULT NULL,
+        \`amount\`                  DECIMAL(10,2)   NOT NULL,
+        \`currency\`                VARCHAR(10)     NOT NULL DEFAULT 'BDT',
+        \`gateway\`                 VARCHAR(50)     NOT NULL DEFAULT 'bkash',
+        \`gateway_ref\`             VARCHAR(255)    DEFAULT NULL,
+        \`plan_name\`               VARCHAR(100)    DEFAULT 'Pro Tier',
+        \`billing_cycle\`           VARCHAR(20)     NOT NULL DEFAULT 'monthly',
+        \`status\`                  VARCHAR(50)     NOT NULL DEFAULT 'success',
+        \`paid_at\`                 DATETIME        DEFAULT NULL,
+        \`created_at\`              TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (\`id\`),
         INDEX \`idx_billings_tenant\` (\`tenant_id\`),
+        INDEX \`idx_billings_sub\` (\`tenant_subscription_id\`),
         INDEX \`idx_billings_status\` (\`status\`)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
     `);
+
+    // Ensure `tenant_subscription_id` column exists if table was created previously
+    try {
+      await db.query(`ALTER TABLE \`billings\` ADD COLUMN \`tenant_subscription_id\` INT DEFAULT NULL AFTER \`tenant_id\``);
+    } catch (e) {}
+
+    // Smart backfill each billing record with its matching tenant_subscription by timestamp proximity
+    try {
+      await db.query(`
+        UPDATE billings b
+        SET b.tenant_subscription_id = (
+          SELECT ts.id
+          FROM tenant_subscriptions ts
+          WHERE ts.tenant_id = b.tenant_id
+          ORDER BY ABS(TIMESTAMPDIFF(SECOND, ts.created_at, b.created_at)) ASC, ts.id DESC
+          LIMIT 1
+        );
+      `);
+    } catch (e) {
+      console.warn('Warning updating tenant_subscription_id backfill:', e.message);
+    }
 
     // 3. Ensure `subscription_plans` table has all limit columns
     await db.query(`

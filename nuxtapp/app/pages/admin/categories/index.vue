@@ -130,14 +130,8 @@
         </div>
 
         <!-- Pagination Footer -->
-        <PaginationControls 
-          :current-page="currentPage" 
-          :total-pages="totalPages" 
-          :total-items="filteredCategories.length" 
-          :items-per-page="itemsPerPage"
-          @prev="prevPage" 
-          @next="nextPage" 
-        />
+        <PaginationControls :current-page="currentPage" :total-pages="totalPages"
+          :total-items="filteredCategories.length" :items-per-page="itemsPerPage" @prev="prevPage" @next="nextPage" />
       </div>
 
       <!-- ===================================================================== -->
@@ -172,7 +166,8 @@
                 </label>
                 <span class="text-[10px] text-slate-400 font-normal">varchar(100)</span>
               </div>
-              <input type="text" v-model="newCatName" required placeholder="e.g. Ophthalmology & Eye Care" list="defaultCategoriesList"
+              <input type="text" v-model="newCatName" required placeholder="e.g. Ophthalmology & Eye Care"
+                list="defaultCategoriesList"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal placeholder-slate-400 focus:outline-none focus:border-emerald-500 text-xs" />
               <datalist id="defaultCategoriesList">
                 <option value="Antibiotics"></option>

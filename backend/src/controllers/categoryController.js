@@ -25,9 +25,7 @@ const resolveTenantId = async (req) => {
   return 1;
 };
 
-// ---------------------------------------------------------------------------
-// GET /api/categories — Strictly return categories for the current tenant
-// ---------------------------------------------------------------------------
+
 const getCategories = async (req, res, next) => {
   try {
     const tid = await resolveTenantId(req);

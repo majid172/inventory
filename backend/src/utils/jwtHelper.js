@@ -18,7 +18,7 @@ const base64UrlDecode = (str) => {
   return Buffer.from(base64, 'base64').toString('utf8');
 };
 
-const signToken = (payload, expiresInSeconds = 86400 * 7) => {
+const signToken = (payload, expiresInSeconds = 86400 * 1) => {
   const header = { alg: 'HS256', typ: 'JWT' };
   const exp = Math.floor(Date.now() / 1000) + expiresInSeconds;
   const fullPayload = { ...payload, iat: Math.floor(Date.now() / 1000), exp };

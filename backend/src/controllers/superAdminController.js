@@ -670,7 +670,7 @@ const getAllPayments = async (req, res) => {
                ts.start_date, ts.end_date
         FROM billings b
         LEFT JOIN tenants t ON b.tenant_id = t.id
-        LEFT JOIN tenant_subscriptions ts ON (ts.tenant_id = b.tenant_id AND ts.id = (SELECT MAX(id) FROM tenant_subscriptions WHERE tenant_id = b.tenant_id))
+        LEFT JOIN tenant_subscriptions ts ON (ts.id = b.tenant_subscription_id OR (b.tenant_subscription_id IS NULL AND ts.tenant_id = b.tenant_id AND ts.id = (SELECT MAX(id) FROM tenant_subscriptions WHERE tenant_id = b.tenant_id)))
       `;
       let params = [];
 

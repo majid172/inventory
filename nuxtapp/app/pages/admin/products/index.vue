@@ -58,8 +58,9 @@
                 </th>
                 <!-- <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Rx Flag
                 </th> -->
-               <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Batch & Exp</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Status</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Batch & Exp</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Status
+                </th>
                 <th class="py-1.5 px-3 text-center w-24 font-normal">Actions</th>
               </tr>
             </thead>
@@ -102,7 +103,8 @@
                 <!-- Form & Strength -->
                 <td
                   class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-600 dark:text-gray-400">
-                  {{ row.dosageForm || 'Tablet' }}<span v-if="row.strength && row.strength !== '-'"> ({{ row.strength }})</span>
+                  {{ row.dosageForm || 'Tablet' }}<span v-if="row.strength && row.strength !== '-'"> ({{ row.strength
+                    }})</span>
                 </td>
 
                 <!-- Category -->
@@ -119,14 +121,16 @@
 
                 <!-- Price / Cost -->
                 <td class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal">
-                  <div class="text-slate-800 dark:text-gray-200 font-normal">{{ settingsStore.currencySymbol }}{{ Number(row.price || 0).toFixed(2) }}
+                  <div class="text-slate-800 dark:text-gray-200 font-normal">{{ settingsStore.currencySymbol }}{{
+                    Number(row.price || 0).toFixed(2) }}
                   </div>
-                
+
                 </td>
                 <td class="py-1.5 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-normal">
-                  <div class="text-slate-800 dark:text-gray-200 font-normal">{{ settingsStore.currencySymbol }}{{ Number(row.cost || 0).toFixed(2) }}
+                  <div class="text-slate-800 dark:text-gray-200 font-normal">{{ settingsStore.currencySymbol }}{{
+                    Number(row.cost || 0).toFixed(2) }}
                   </div>
-                 
+
                 </td>
 
                 <!-- Stock Qty -->
@@ -157,11 +161,11 @@
                   </span>
                 </td> -->
                 <!-- Active / Inactive Status -->
-                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal"> 
+                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">
                   <span
                     :class="row.is_active == 1 ? 'text-emerald-700 dark:text-emerald-400 font-medium' : 'text-rose-600 font-medium'">
                     {{ row.is_active == 1 ? 'Active' : 'Inactive' }}
-                  </span> 
+                  </span>
                 </td>
 
                 <!-- Actions -->
@@ -185,14 +189,8 @@
         </div>
 
         <!-- Pagination Footer -->
-        <PaginationControls 
-          :current-page="currentPage" 
-          :total-pages="totalPages" 
-          :total-items="filteredProducts.length" 
-          :items-per-page="itemsPerPage"
-          @prev="prevPage" 
-          @next="nextPage" 
-        />
+        <PaginationControls :current-page="currentPage" :total-pages="totalPages" :total-items="filteredProducts.length"
+          :items-per-page="itemsPerPage" @prev="prevPage" @next="nextPage" />
       </div>
 
       <!-- ===================================================================== -->
@@ -235,15 +233,18 @@
             </div>
 
             <!-- Master Drug Auto-Fill Notification Badge -->
-            <div v-if="selectedMasterDrug" class="p-2.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded flex items-center justify-between text-xs">
+            <div v-if="selectedMasterDrug"
+              class="p-2.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded flex items-center justify-between text-xs">
               <div class="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
                 <span class="text-sm">⚡</span>
                 <div>
                   <span class="font-bold">Auto-filled from Master Catalog:</span>
-                  <span class="ml-1 font-mono text-[11px]">{{ selectedMasterDrug.brandName }} ({{ selectedMasterDrug.strength || 'N/A' }}) - {{ selectedMasterDrug.genericName }}</span>
+                  <span class="ml-1 font-mono text-[11px]">{{ selectedMasterDrug.brandName }} ({{
+                    selectedMasterDrug.strength || 'N/A' }}) - {{ selectedMasterDrug.genericName }}</span>
                 </div>
               </div>
-              <button type="button" @click="clearMasterDrug" class="text-xs text-red-600 hover:text-red-800 dark:text-red-400 font-bold underline cursor-pointer">
+              <button type="button" @click="clearMasterDrug"
+                class="text-xs text-red-600 hover:text-red-800 dark:text-red-400 font-bold underline cursor-pointer">
                 Clear / Manual
               </button>
             </div>
@@ -251,44 +252,40 @@
             <div :class="newProd.productType === 'medicine' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'">
               <!-- Medicine Name with Smart Master Drug Autocomplete -->
               <div class="relative">
-                <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                <label
+                  class="block font-normal text-slate-700 dark:text-gray-300 mb-1 flex items-center justify-between">
                   <span>{{ newProd.productType === 'medicine' ? 'Brand / Medicine Name *' : 'Product Name *' }}</span>
-                  <span v-if="newProd.productType === 'medicine'" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">⚡ Auto-Complete Powered</span>
+                  <span v-if="newProd.productType === 'medicine'"
+                    class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">⚡ Auto-Complete Powered</span>
                 </label>
-                <input 
-                  type="text" 
-                  v-model="newProd.name" 
-                  @input="handleMedicineInput" 
-                  @focus="handleMedicineInput"
+                <input type="text" v-model="newProd.name" @input="handleMedicineInput" @focus="handleMedicineInput"
                   required
                   :placeholder="newProd.productType === 'medicine' ? 'Type 2+ letters e.g. Napa, Ace, Seclo...' : 'e.g. Savlon Antiseptic 500ml'"
-                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" 
-                />
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
 
                 <!-- Master Drug Autocomplete Dropdown Panel -->
-                <div 
-                  v-if="showMasterDrugDropdown && masterDrugSearchResults.length > 0"
-                  class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-gray-800"
-                >
-                  <div class="px-2.5 py-1 bg-slate-100 dark:bg-gray-900 text-[10px] uppercase font-bold text-slate-500 flex justify-between">
+                <div v-if="showMasterDrugDropdown && masterDrugSearchResults.length > 0"
+                  class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-gray-800">
+                  <div
+                    class="px-2.5 py-1 bg-slate-100 dark:bg-gray-900 text-[10px] uppercase font-bold text-slate-500 flex justify-between">
                     <span>SELECT FROM MASTER CATALOG (AUTO-FILL)</span>
                     <span>{{ masterDrugSearchResults.length }} matches</span>
                   </div>
-                  <div 
-                    v-for="item in masterDrugSearchResults" 
-                    :key="item.id" 
-                    @mousedown.prevent="selectMasterDrug(item)"
-                    @click="selectMasterDrug(item)"
-                    class="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 cursor-pointer transition-colors"
-                  >
+                  <div v-for="item in masterDrugSearchResults" :key="item.id"
+                    @mousedown.prevent="selectMasterDrug(item)" @click="selectMasterDrug(item)"
+                    class="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 cursor-pointer transition-colors">
                     <div class="flex items-center justify-between">
-                      <span class="font-bold text-slate-900 dark:text-white text-xs">{{ item.brandName || item.brand_name }}</span>
-                      <span class="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border rounded">
-                        {{ item.dosageForm || item.dosage_form || 'Tablet' }} {{ item.strength ? `• ${item.strength}` : '' }}
+                      <span class="font-bold text-slate-900 dark:text-white text-xs">{{ item.brandName ||
+                        item.brand_name }}</span>
+                      <span
+                        class="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border rounded">
+                        {{ item.dosageForm || item.dosage_form || 'Tablet' }} {{ item.strength ? `• ${item.strength}` :
+                        '' }}
                       </span>
                     </div>
                     <div class="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 flex justify-between">
-                      <span>Generic: <strong class="text-slate-700 dark:text-gray-300">{{ item.genericName || item.generic_name }}</strong></span>
+                      <span>Generic: <strong class="text-slate-700 dark:text-gray-300">{{ item.genericName ||
+                          item.generic_name }}</strong></span>
                       <span v-if="item.manufacturer" class="italic">{{ item.manufacturer }}</span>
                     </div>
                   </div>
@@ -307,7 +304,9 @@
                 <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
                 <select v-model="newProd.dosageForm"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
-                  <option v-if="newProd.dosageForm && !['Tablet', 'Capsule', 'Syrup', 'Injection', 'Ointment', 'Eye Drops'].includes(newProd.dosageForm)" :value="newProd.dosageForm">{{ newProd.dosageForm }}</option>
+                  <option
+                    v-if="newProd.dosageForm && !['Tablet', 'Capsule', 'Syrup', 'Injection', 'Ointment', 'Eye Drops'].includes(newProd.dosageForm)"
+                    :value="newProd.dosageForm">{{ newProd.dosageForm }}</option>
                   <option value="Tablet">Tablet</option>
                   <option value="Capsule">Capsule</option>
                   <option value="Syrup">Syrup</option>
@@ -474,7 +473,9 @@
                 <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
                 <select v-model="editProd.dosageForm"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
-                  <option v-if="editProd.dosageForm && !['Tablet', 'Capsule', 'Syrup', 'Injection', 'Ointment', 'Eye Drops'].includes(editProd.dosageForm)" :value="editProd.dosageForm">{{ editProd.dosageForm }}</option>
+                  <option
+                    v-if="editProd.dosageForm && !['Tablet', 'Capsule', 'Syrup', 'Injection', 'Ointment', 'Eye Drops'].includes(editProd.dosageForm)"
+                    :value="editProd.dosageForm">{{ editProd.dosageForm }}</option>
                   <option value="Tablet">Tablet</option>
                   <option value="Capsule">Capsule</option>
                   <option value="Syrup">Syrup</option>

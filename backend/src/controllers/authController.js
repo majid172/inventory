@@ -73,18 +73,18 @@ const registerTenant = async (req, res) => {
     const bEmail = (email || '').trim().toLowerCase();
     const bPlanId = parseInt(planId, 10) || (planTier === 'enterprise' ? 3 : planTier === 'starter' ? 1 : 2);
 
-    if (!bStoreName || !bEmail) {
+    if (!bEmail) {
       return res.status(400).json({
         success: false,
-        message: 'Store name and email address are required.'
+        message: 'Email address is required.'
       });
     }
 
-    const bDomain = domain || bStoreName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const bDomain = bStoreName ? bStoreName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : '';
 
     // Check if user or tenant already exists in MySQL
     const [existingUsers] = await db.query('SELECT * FROM users WHERE LOWER(email) = ?', [bEmail]);
-    const [existingTenants] = await db.query('SELECT * FROM tenants WHERE LOWER(domain) = ? OR LOWER(name) = ?', [bDomain, bStoreName.toLowerCase()]);
+    const [existingTenants] = bDomain ? await db.query('SELECT * FROM tenants WHERE LOWER(domain) = ? OR LOWER(name) = ?', [bDomain, bStoreName.toLowerCase()]) : [[]];
 
     let tenantId;
     let userId;
@@ -126,9 +126,9 @@ const registerTenant = async (req, res) => {
         userId = uRes.insertId;
       }
     } else {
-      // =========================================================================
-      // REGISTRATION MODE: New Tenant Store -> Insert Tenant & User
-      // =========================================================================
+      if (!bStoreName) {
+        return res.status(400).json({ success: false, message: 'Store name is required for new pharmacy store registration.' });
+      }
       if (!password) {
         return res.status(400).json({ success: false, message: 'Password is required for new pharmacy store registration.' });
       }
@@ -196,7 +196,7 @@ const registerTenant = async (req, res) => {
       : 14;
 
     const durationDays = isFreeTrial ? dynamicTrialDays : (planRow?.duration_days || (req.body.billingCycle === 'yearly' ? 365 : 30));
-    const planPrice = isFreeTrial ? 0.00 : (planRow?.price || (planTier === 'enterprise' ? 399.00 : planTier === 'starter' ? 49.00 : 149.00));
+    const planPrice = isFreeTrial ? 0.00 : (planRow?.price || (planTier === 'enterprise' ? 399.00 : planTier === 'starter' ? 0.00 : 0.00));
 
     const startDate = new Date().toISOString().split('T')[0];
     const endDate = new Date(Date.now() + durationDays * 86400000).toISOString().split('T')[0];
@@ -223,9 +223,9 @@ const registerTenant = async (req, res) => {
 
     try {
       await db.query(
-        `INSERT INTO billings (tenant_id, invoice_no, trx_no, amount, currency, gateway, gateway_ref, plan_name, billing_cycle, status, paid_at)
-         VALUES (?, ?, ?, ?, 'BDT', ?, ?, ?, ?, 'success', ?)`,
-        [tenantId, bInvoiceNo, bTrxNo, planPrice, bGateway, bTrxNo, bPlanName, bBillingCycle, bPaidAt]
+        `INSERT INTO billings (tenant_id, tenant_subscription_id, invoice_no, trx_no, amount, currency, gateway, gateway_ref, plan_name, billing_cycle, status, paid_at)
+         VALUES (?, ?, ?, ?, ?, 'BDT', ?, ?, ?, ?, 'success', ?)`,
+        [tenantId, subscriptionId, bInvoiceNo, bTrxNo, planPrice, bGateway, bTrxNo, bPlanName, bBillingCycle, bPaidAt]
       );
     } catch (bErr) {
       console.warn('Warning inserting into billings table:', bErr.message);
