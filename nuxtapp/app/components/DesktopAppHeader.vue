@@ -1,48 +1,48 @@
 <template>
   <header class="select-none flex flex-col shrink-0 border-b border-slate-300 dark:border-gray-800 bg-[#e4e8ec] dark:bg-gray-950 shadow-xs z-30">
-    <!-- 1. Ultra-Authentic Desktop Window Titlebar (28px height) -->
-    <div class="h-7 bg-[#2e4358] dark:bg-gray-900 px-2 flex items-center justify-between text-white text-[11px] font-sans">
+    <!-- 1. Ultra-Authentic Desktop Window Titlebar (28px height responsive) -->
+    <div class="min-h-[28px] bg-[#2e4358] dark:bg-gray-900 px-2.5 py-1 flex items-center justify-between gap-2 text-white text-[11px] font-sans">
       <!-- Left: Application Icon & Title -->
-      <div class="flex items-center gap-1.5">
-        <span class="text-xs">💊</span>
-        <span class="font-normal tracking-wide text-slate-100">
+      <div class="flex items-center gap-1.5 min-w-0 flex-1">
+        <span class="text-xs shrink-0">💊</span>
+        <span class="font-normal tracking-wide text-slate-100 truncate min-w-0">
           {{ settingsStore.systemSettings.platformName }} ERP — {{ isSuperAdmin ? 'Platform Management Console' : (activeTenantStoreName || 'Pharmacy Management System') }}
         </span>
-        <span class="text-[10px] text-emerald-400 bg-emerald-950/80 border border-emerald-600/40 px-1.5 py-0.2">
+        <span class="text-[10px] text-emerald-400 bg-emerald-950/80 border border-emerald-600/40 px-1.5 py-0.2 shrink-0 hidden md:inline-block">
           v2.6 Enterprise [MySQL 8.4]
         </span>
       </div>
 
-      <!-- Right: User Session & Time (Moved from Toolbar) -->
-      <div class="flex items-center gap-1.5">
-        <div class="text-[10px] font-mono text-slate-300 bg-transparent px-2 py-0.5 border border-transparent rounded cursor-default flex items-center gap-1">
+      <!-- Right: User Session & Time -->
+      <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+        <div class="text-[10px] font-mono text-slate-300 bg-transparent px-1.5 py-0.5 border border-transparent rounded cursor-default flex items-center gap-1 shrink-0">
           <span>🕒</span>
-          <span>{{ formattedTime }}</span>
+          <span class="hidden sm:inline">{{ formattedTime }}</span>
         </div>
-        <ThemeToggle />
+        <ThemeToggle class="shrink-0" />
         <button 
           v-if="isLoggedIn"
           @click="handleLogout"
-          class="bg-transparent hover:bg-slate-500/30 text-slate-200 px-2.5 py-0.5 text-[10px] font-normal cursor-pointer rounded transition-colors flex items-center gap-1"
+          class="bg-transparent hover:bg-slate-500/30 text-slate-200 px-2 py-0.5 text-[10px] font-normal cursor-pointer rounded transition-colors flex items-center gap-1 shrink-0"
         >
           <span>🚪</span>
-          <span>Sign Out</span>
+          <span class="hidden sm:inline">Sign Out</span>
         </button>
         <NuxtLink
           v-else
           to="/login"
-          class="bg-transparent hover:bg-slate-500/30 text-slate-200 px-2.5 py-0.5 text-[10px] font-normal cursor-pointer rounded transition-colors flex items-center gap-1"
+          class="bg-transparent hover:bg-slate-500/30 text-slate-200 px-2 py-0.5 text-[10px] font-normal cursor-pointer rounded transition-colors flex items-center gap-1 shrink-0"
         >
           <span>🔑</span>
-          <span>Sign In</span>
+          <span class="hidden sm:inline">Sign In</span>
         </NuxtLink>
       </div>
     </div>
 
     <!-- 2. Classic Desktop Menu Bar (File, Edit, View, Operations, Tools, Help) -->
-    <div v-if="isLoggedIn" class="h-6 bg-[#f0f3f6] dark:bg-gray-950 border-b border-slate-300 dark:border-gray-800 px-1 flex items-center gap-1 text-[11px] font-sans text-slate-700 dark:text-gray-300">
+    <div v-if="isLoggedIn" class="min-h-6 h-auto py-0.5 bg-[#f0f3f6] dark:bg-gray-950 border-b border-slate-300 dark:border-gray-800 px-1 flex items-center gap-1 text-[11px] font-sans text-slate-700 dark:text-gray-300 overflow-x-auto scrollbar-none">
       <!-- File Menu -->
-      <div class="relative group">
+      <div class="relative group shrink-0">
         <button class="px-2 py-0.5 hover:bg-slate-200 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white cursor-pointer font-normal">
           <span class="underline">F</span>ile
         </button>
@@ -57,7 +57,7 @@
       </div>
 
       <!-- Modules Menu (Hidden for Cashiers) -->
-      <div v-if="!isCashier" class="relative group">
+      <div v-if="!isCashier" class="relative group shrink-0">
         <button class="px-2 py-0.5 hover:bg-slate-200 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white cursor-pointer font-normal">
           <span class="underline">M</span>odules
         </button>
@@ -71,7 +71,7 @@
       </div>
 
       <!-- Tools Menu -->
-      <div class="relative group">
+      <div class="relative group shrink-0">
         <button class="px-2 py-0.5 hover:bg-slate-200 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white cursor-pointer font-normal">
           <span class="underline">T</span>ools
         </button>
@@ -83,7 +83,7 @@
       </div>
 
       <!-- Role Indicator Tag -->
-      <div class="ml-auto flex items-center gap-1.5 text-[10px] font-mono px-2 text-slate-500 dark:text-gray-400">
+      <div class="ml-auto flex items-center gap-1.5 text-[10px] font-mono px-2 text-slate-500 dark:text-gray-400 shrink-0">
         <span :class="[
           'px-1.5 py-0.2 border uppercase font-sans text-[9px]',
           isSuperAdmin 
@@ -100,7 +100,7 @@
     </div>
 
     <!-- 3. Desktop Application Toolbar Ribbon with Quick Action Buttons & Global Branch Switcher -->
-    <div class="px-2 py-1 bg-[#f8fafc] dark:bg-gray-900/90 border-b border-slate-300 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
+    <div class="px-2 py-1 bg-[#f8fafc] dark:bg-gray-900/90 border-b border-slate-300 dark:border-gray-800 flex items-center justify-between gap-2 text-xs font-sans overflow-x-auto scrollbar-none">
       <!-- Left: Fast Navigation Buttons -->
       <div v-if="isLoggedIn" class="flex items-center gap-1 flex-wrap">
         <NuxtLink 

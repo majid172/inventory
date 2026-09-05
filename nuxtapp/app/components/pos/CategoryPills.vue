@@ -1,7 +1,7 @@
 <template>
-  <div class="bg-[#f0f3f6] dark:bg-gray-950 border-b border-slate-300 dark:border-gray-800 px-2.5 py-1 flex items-center justify-between gap-3 select-none text-xs font-sans">
+  <div class="bg-[#f0f3f6] dark:bg-gray-950 border-b border-slate-300 dark:border-gray-800 px-2.5 py-1.5 flex flex-wrap md:flex-nowrap items-center justify-between gap-2 select-none text-xs font-sans">
     <!-- Left: Category Pills List -->
-    <div class="flex items-center gap-1 shrink-0 overflow-x-auto scrollbar-none">
+    <div class="flex items-center gap-1 shrink-0 overflow-x-auto scrollbar-none max-w-full">
       <span class="font-normal text-[11px] text-slate-600 dark:text-gray-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
         <span>📁</span> CATEGORY:
       </span>
@@ -30,8 +30,8 @@
       </button>
     </div>
 
-    <!-- Center: Search Input Bar (Moved to exact arrow position!) -->
-    <div class="flex-1 max-w-md mx-2">
+    <!-- Center: Search Input Bar -->
+    <div class="w-full md:w-auto flex-1 max-w-md my-1 md:my-0 order-3 md:order-2">
       <div class="relative w-full">
         <input 
           type="text" 
@@ -52,7 +52,7 @@
     </div>
 
     <!-- Right: Parked Orders & Store Plan Badge -->
-    <div class="shrink-0 flex items-center gap-2">
+    <div class="shrink-0 flex items-center gap-2 order-2 md:order-3">
       <button 
         @click="showHeldOrdersModal = true"
         class="flex items-center gap-1 bg-white dark:bg-gray-900 hover:bg-slate-100 border border-slate-300 dark:border-gray-700 px-2 py-0.5 text-xs font-normal text-amber-700 dark:text-amber-400 transition-all cursor-pointer shadow-xs"

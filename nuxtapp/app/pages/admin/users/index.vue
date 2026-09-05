@@ -7,7 +7,9 @@
         <div class="flex items-center gap-2">
           <span class="text-sm">⚠️</span>
           <span>
-            <strong>Plan Limit Reached:</strong> Your <strong>{{ userStore.planMeta.planName }}</strong> plan allows up to <strong>{{ userStore.planMeta.maxUsers }}</strong> staff accounts ({{ userStore.users.length }} currently enrolled).
+            <strong>Plan Limit Reached:</strong> Your <strong>{{ userStore.planMeta.planName }}</strong> plan allows up
+            to <strong>{{ userStore.planMeta.maxUsers }}</strong> staff accounts ({{ userStore.users.length }} currently
+            enrolled).
           </span>
         </div>
         <NuxtLink v-if="!isBranchScoped" to="/admin/billing"
@@ -23,14 +25,14 @@
           class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
           <!-- Left: Action buttons & Plan Meter -->
           <div class="flex items-center gap-2 flex-wrap">
-            <button @click="handleAddStaffClick"
-              :class="[
-                'font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer',
-                isPlanLimitReached
-                  ? 'bg-slate-300 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700'
-                  : 'bg-[#107c41] hover:bg-[#0e6b37] text-white active:scale-95'
-              ]">
-              <span class="text-sm font-bold">+</span> Add Staff Member <span class="text-[10px] opacity-80 font-mono ml-0.5">[F2]</span>
+            <button @click="handleAddStaffClick" :class="[
+              'font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer',
+              isPlanLimitReached
+                ? 'bg-slate-300 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700'
+                : 'bg-[#107c41] hover:bg-[#0e6b37] text-white active:scale-95'
+            ]">
+              <span class="text-sm font-bold">+</span> Add Staff Member <span
+                class="text-[10px] opacity-80 font-mono ml-0.5">[F2]</span>
             </button>
 
             <button @click="fetchStaff" :disabled="userStore.isLoading"
@@ -45,20 +47,26 @@
             </button>
 
             <!-- Plan & Database Limits Meter Badge -->
-            <div class="flex items-center gap-2 ml-1 pl-2.5 border-l border-slate-200 dark:border-gray-700 text-[11px] text-slate-600 dark:text-gray-400">
-              <span class="px-1.5 py-0.5 bg-slate-200 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 font-mono text-[10px] text-slate-700 dark:text-gray-300 uppercase">
+            <div
+              class="flex items-center gap-2 ml-1 pl-2.5 border-l border-slate-200 dark:border-gray-700 text-[11px] text-slate-600 dark:text-gray-400">
+              <span
+                class="px-1.5 py-0.5 bg-slate-200 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 font-mono text-[10px] text-slate-700 dark:text-gray-300 uppercase">
                 Plan: {{ userStore.planMeta.planName }}
               </span>
-              <span>Capacity: <strong :class="isPlanLimitReached ? 'text-rose-600 dark:text-rose-400 font-mono font-bold' : 'text-slate-800 dark:text-gray-200 font-mono'">{{ userStore.users.length }} / {{ userStore.planMeta.maxUsers }}</strong> Users</span>
+              <span>Capacity: <strong
+                  :class="isPlanLimitReached ? 'text-rose-600 dark:text-rose-400 font-mono font-bold' : 'text-slate-800 dark:text-gray-200 font-mono'">{{
+                    userStore.users.length }} / {{ userStore.planMeta.maxUsers }}</strong> Users</span>
               <span class="text-slate-300 dark:text-gray-700 hidden sm:inline">|</span>
-              <span class="hidden sm:inline">Active: <strong class="text-emerald-700 dark:text-emerald-400 font-mono">{{ activeUsersCount }}</strong></span>
+              <span class="hidden sm:inline">Active: <strong class="text-emerald-700 dark:text-emerald-400 font-mono">{{
+                activeUsersCount }}</strong></span>
             </div>
           </div>
 
           <!-- Right: Filters & Search Box -->
           <div class="flex items-center gap-2 flex-wrap">
             <!-- Branch Filter (Store Admin only) -->
-            <select v-if="!isBranchScoped" :value="selectedBranchId" @change="(e: any) => setSelectedBranch(e.target.value === 'all' ? 'all' : Number(e.target.value))"
+            <select v-if="!isBranchScoped" :value="selectedBranchId"
+              @change="(e: any) => setSelectedBranch(e.target.value === 'all' ? 'all' : Number(e.target.value))"
               class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 text-xs text-slate-700 dark:text-gray-200 font-normal focus:outline-none focus:border-[#107c41] cursor-pointer">
               <option value="all">🏢 All Branches</option>
               <option v-for="b in branches" :key="b.id" :value="b.id">
@@ -97,15 +105,21 @@
 
         <!-- Desktop Grid Table Viewport -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
+          <table
+            class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
             <thead>
-              <tr class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
-                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal">SL.</th>
+              <tr
+                class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
+                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal">SL.
+                </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Staff Name</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Email Address</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">System Role</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">POS Terminal</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Status</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Branch</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">POS
+                  Terminal</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Status
+                </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Last Active</th>
                 <th class="py-1.5 px-3 text-center w-36 font-normal">Actions</th>
               </tr>
@@ -114,36 +128,37 @@
             <tbody>
               <!-- Loader State -->
               <tr v-if="userStore.isLoading">
-                <td colspan="8" class="py-12">
+                <td colspan="9" class="py-12">
                   <PharmacyLoader text="Loading Staff Directory..." />
                 </td>
               </tr>
 
               <!-- Empty State -->
               <tr v-else-if="filteredUsers.length === 0">
-                <td colspan="8" class="py-8 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
+                <td colspan="9" class="py-8 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
                   No staff members found matching your search criteria.
                 </td>
               </tr>
 
               <!-- Data Rows -->
-              <tr v-for="(user, idx) in paginatedData" :key="user.id"
-                @click="selectedRow = user.id"
-                :class="[
-                  'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
-                  selectedRow === user.id
-                    ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
-                    : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
-                ]">
+              <tr v-for="(user, idx) in paginatedData" :key="user.id" @click="selectedRow = user.id" :class="[
+                'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
+                selectedRow === user.id
+                  ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
+                  : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
+              ]">
                 <!-- SL Column -->
-                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 font-normal text-slate-500 dark:text-gray-400 font-mono text-[11px]">
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 font-normal text-slate-500 dark:text-gray-400 font-mono text-[11px]">
                   {{ ((currentPage - 1) * itemsPerPage) + idx + 1 }}
                 </td>
 
                 <!-- Staff Name -->
-                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-800 dark:text-gray-200">
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-800 dark:text-gray-200">
                   <div class="flex items-center gap-2">
-                    <span class="w-5 h-5 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 text-[10px] font-mono flex items-center justify-center border border-slate-300 dark:border-gray-700 uppercase">
+                    <span
+                      class="w-5 h-5 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 text-[10px] font-mono flex items-center justify-center border border-slate-300 dark:border-gray-700 uppercase">
                       {{ user.name.substring(0, 1) }}
                     </span>
                     <span>{{ user.name }}</span>
@@ -151,36 +166,41 @@
                 </td>
 
                 <!-- Email -->
-                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-[11px] text-slate-600 dark:text-gray-400">
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-[11px] text-slate-600 dark:text-gray-400">
                   {{ user.email }}
                 </td>
 
-                <!-- Role & Branch -->
+                <!-- Role -->
                 <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">
-                  <div class="flex flex-col gap-1">
-                    <span :class="[
-                      'px-2 py-0.5 text-[10px] border font-normal inline-block w-fit',
-                      user.role === 'Store Admin'
-                        ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800'
-                        : user.role === 'Branch Manager'
+                  <span :class="[
+                    'px-2 py-0.5 text-[10px] border font-normal inline-block w-fit',
+                    user.role === 'Store Admin'
+                      ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800'
+                      : user.role === 'Branch Manager'
                         ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
                         : user.role === 'Chief Pharmacist'
-                        ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800'
-                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
-                    ]">
-                      {{ user.role }}
-                    </span>
-                    <span class="text-[9px] text-slate-600 dark:text-gray-300 font-medium font-mono" v-if="user.branch_name || user.branch_id">
-                      📍 {{ user.branch_name ? user.branch_name + (user.branch_code ? ' (' + user.branch_code + ')' : '') : ('Branch #' + user.branch_id) }}
-                    </span>
-                    <span class="text-[9px] text-slate-400 font-mono italic" v-else>
-                      🏢 All Branches (Headquarters)
-                    </span>
-                  </div>
+                          ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                  ]">
+                    {{ user.role }}
+                  </span>
+                </td>
+
+                <!-- Branch -->
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-[11px]">
+                  <span class="text-[11px] text-slate-700 dark:text-gray-300 font-medium"
+                    v-if="user.branch_name || user.branch_id">
+                    📍 {{ user.branch_name ? user.branch_name + (user.branch_code ? ' (' + user.branch_code + ')' : '') : ('Branch #' + user.branch_id) }}
+                  </span>
+                  <span class="text-[11px] text-slate-400 font-mono italic" v-else>
+                    🏢 All Branches (HQ)
+                  </span>
                 </td>
 
                 <!-- POS Terminal Access -->
-                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal text-[11px]">
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal text-[11px]">
                   <span v-if="user.terminalAccess" class="text-emerald-700 dark:text-emerald-400 font-normal">
                     ● Authorized
                   </span>
@@ -202,7 +222,8 @@
                 </td>
 
                 <!-- Last Active -->
-                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-[11px] text-slate-500 dark:text-gray-400">
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-[11px] text-slate-500 dark:text-gray-400">
                   {{ user.lastActive }}
                 </td>
 
@@ -230,27 +251,28 @@
         </div>
 
         <!-- Desktop Grid Footer / Pagination -->
-        <div class="bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 px-3 py-1 flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 font-sans">
+        <div
+          class="bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 px-3 py-1 flex items-center justify-between text-[11px] text-slate-500 dark:text-gray-400 font-sans">
           <div>
-            Showing <strong class="text-slate-700 dark:text-gray-300">{{ filteredUsers.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0 }}</strong> to <strong class="text-slate-700 dark:text-gray-300">{{ Math.min(currentPage * itemsPerPage, filteredUsers.length) }}</strong> of <strong class="text-slate-700 dark:text-gray-300">{{ filteredUsers.length }}</strong> staff records (Max limit: <strong class="text-slate-700 dark:text-gray-300">{{ userStore.planMeta.maxUsers }}</strong>)
+            Showing <strong class="text-slate-700 dark:text-gray-300">{{ filteredUsers.length > 0 ? ((currentPage - 1) *
+              itemsPerPage) + 1 : 0 }}</strong> to <strong class="text-slate-700 dark:text-gray-300">{{
+                Math.min(currentPage * itemsPerPage, filteredUsers.length) }}</strong> of <strong
+              class="text-slate-700 dark:text-gray-300">{{ filteredUsers.length }}</strong> staff records (Max limit:
+            <strong class="text-slate-700 dark:text-gray-300">{{ userStore.planMeta.maxUsers }}</strong>)
           </div>
-          <PaginationControls 
-            :current-page="currentPage" 
-            :total-pages="totalPages" 
-            :total-items="filteredUsers.length" 
-            :items-per-page="itemsPerPage"
-            @prev="prevPage" 
-            @next="nextPage" 
-          />
+          <PaginationControls :current-page="currentPage" :total-pages="totalPages" :total-items="filteredUsers.length"
+            :items-per-page="itemsPerPage" @prev="prevPage" @next="nextPage" />
         </div>
       </div>
 
       <!-- Desktop Window Modal: Add / Edit Staff Member -->
       <div v-if="showUserModal"
         class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 z-50 select-none">
-        <div class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 max-w-lg w-full shadow-2xl overflow-hidden font-sans">
+        <div
+          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-800 max-w-lg w-full shadow-2xl overflow-hidden font-sans">
           <!-- Window Title Bar -->
-          <div class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-2 flex items-center justify-between">
+          <div
+            class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-2 flex items-center justify-between">
             <div class="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-gray-200">
               <span>👤</span>
               <span>{{ isEditing ? 'Edit Staff Member' : 'Add New Staff Member' }}</span>
@@ -285,7 +307,7 @@
                   <option value="POS Cashier">POS Cashier (Sales Only)</option>
                 </select>
               </div>
-              
+
               <div>
                 <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Assign Branch</label>
                 <select v-model="userForm.branch_id"
@@ -298,7 +320,8 @@
               </div>
 
               <div class="flex flex-col justify-end md:col-span-2">
-                <label class="flex items-center gap-2 cursor-pointer font-normal text-slate-700 dark:text-gray-300 py-1.5">
+                <label
+                  class="flex items-center gap-2 cursor-pointer font-normal text-slate-700 dark:text-gray-300 py-1.5">
                   <input type="checkbox" v-model="userForm.terminalAccess"
                     class="w-4 h-4 border-slate-300 dark:border-gray-700 text-[#107c41] focus:ring-0 cursor-pointer" />
                   <span>Has POS Terminal Access</span>
@@ -309,18 +332,23 @@
             <div v-if="!isEditing">
               <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Password / 4-Digit PIN *</label>
               <div class="relative">
-                <input v-model="userForm.password" :type="showStaffPassword ? 'text' : 'password'" required placeholder="e.g. 123456"
+                <input v-model="userForm.password" :type="showStaffPassword ? 'text' : 'password'" required
+                  placeholder="e.g. 123456"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 pl-2.5 pr-8 py-1.5 text-slate-800 dark:text-gray-200 font-mono focus:outline-none focus:border-[#107c41] text-xs" />
                 <button type="button" @click="showStaffPassword = !showStaffPassword"
                   class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 cursor-pointer p-0.5 focus:outline-none"
-                  tabindex="-1"
-                  :title="showStaffPassword ? 'Hide password' : 'Show password'">
-                  <svg v-if="!showStaffPassword" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  tabindex="-1" :title="showStaffPassword ? 'Hide password' : 'Show password'">
+                  <svg v-if="!showStaffPassword" class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  <svg v-else class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  <svg v-else class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
                   </svg>
                 </button>
               </div>
@@ -425,13 +453,13 @@ const filteredUsers = computed(() => {
   return userStore.users.filter(user => {
     const q = searchQuery.value.toLowerCase().trim();
     const matchesSearch = !q ||
-      user.name.toLowerCase().includes(q) || 
+      user.name.toLowerCase().includes(q) ||
       user.email.toLowerCase().includes(q) ||
       user.id.toLowerCase().includes(q);
-      
+
     const matchesRole = roleFilter.value === 'All' || user.role === roleFilter.value;
     const matchesStatus = statusFilter.value === 'All' || user.status === statusFilter.value;
-    
+
     return matchesSearch && matchesRole && matchesStatus;
   });
 });

@@ -1,17 +1,19 @@
 <template>
   <NuxtLayout name="admin">
     <div class="space-y-3 select-none font-sans">
-      
+
       <!-- Limit Warning Alert (If max branches reached) -->
-      <div v-if="meta.maxAllowed > 0 && meta.activeBranches >= meta.maxAllowed" 
-           class="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-2 text-amber-900 dark:text-amber-200 shadow-2xs">
+      <div v-if="meta.maxAllowed > 0 && meta.activeBranches >= meta.maxAllowed"
+        class="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-2 text-amber-900 dark:text-amber-200 shadow-2xs">
         <div class="flex items-center gap-2">
           <span class="text-sm">⚠️</span>
           <span>
-            <strong>Plan Limit Reached:</strong> Your <strong>{{ meta.planName }}</strong> plan allows up to <strong>{{ meta.maxAllowed }}</strong> active branch(es) ({{ meta.activeBranches }} currently active).
+            <strong>Plan Limit Reached:</strong> Your <strong>{{ meta.planName }}</strong> plan allows up to <strong>{{
+              meta.maxAllowed }}</strong> active branch(es) ({{ meta.activeBranches }} currently active).
           </span>
         </div>
-        <NuxtLink to="/admin/billing" class="bg-[#107c41] hover:bg-[#0e6b37] text-white px-2.5 py-1 text-[11px] font-normal flex items-center gap-1 shadow-xs transition-all">
+        <NuxtLink to="/admin/billing"
+          class="bg-[#107c41] hover:bg-[#0e6b37] text-white px-2.5 py-1 text-[11px] font-normal flex items-center gap-1 shadow-xs transition-all">
           <span>⚡ Upgrade Plan</span>
         </NuxtLink>
       </div>
@@ -19,38 +21,44 @@
       <!-- Desktop Application Database Data Grid Frame -->
       <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
         <!-- Top Toolbar Ribbon -->
-        <div class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+        <div
+          class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
           <!-- Left: Action buttons & Plan Meter -->
           <div class="flex items-center gap-2 flex-wrap">
-            <button @click="openAddModal"
-              :class="[
-                'font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer',
-                !meta.canAddMore && meta.maxAllowed > 0
-                  ? 'bg-slate-300 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700 cursor-not-allowed'
-                  : 'bg-[#107c41] hover:bg-[#0e6b37] text-white active:scale-95'
-              ]">
-              <span class="text-sm font-bold">+</span> New Branch <span class="text-[10px] opacity-80 font-mono ml-0.5">[F2]</span>
+            <button @click="openAddModal" :class="[
+              'font-normal px-3 py-1 text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer',
+              !meta.canAddMore && meta.maxAllowed > 0
+                ? 'bg-slate-300 dark:bg-gray-800 text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700 cursor-not-allowed'
+                : 'bg-[#107c41] hover:bg-[#0e6b37] text-white active:scale-95'
+            ]">
+              <span class="text-sm font-bold">+</span> New Branch <span
+                class="text-[10px] opacity-80 font-mono ml-0.5">[F2]</span>
             </button>
 
             <button @click="fetchBranches" :disabled="loading"
               class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-normal px-2.5 py-1 text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer">
-              <svg :class="['w-3.5 h-3.5 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg :class="['w-3.5 h-3.5 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                 </path>
               </svg>
               Refresh
             </button>
-            
+
             <!-- Plan & Capacity Meter Badge -->
-            <div v-if="meta.maxAllowed > 0" class="flex items-center gap-2 ml-1 pl-2.5 border-l border-slate-200 dark:border-gray-700 text-[11px] text-slate-600 dark:text-gray-400">
-              <span class="px-1.5 py-0.5 bg-slate-200 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 font-mono text-[10px] text-slate-700 dark:text-gray-300 uppercase">
+            <div v-if="meta.maxAllowed > 0"
+              class="flex items-center gap-2 ml-1 pl-2.5 border-l border-slate-200 dark:border-gray-700 text-[11px] text-slate-600 dark:text-gray-400">
+              <span
+                class="px-1.5 py-0.5 bg-slate-200 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 font-mono text-[10px] text-slate-700 dark:text-gray-300 uppercase">
                 Plan: {{ meta.planName }}
               </span>
-              <span>Capacity: <strong :class="meta.activeBranches >= meta.maxAllowed ? 'text-rose-600 dark:text-rose-400 font-mono font-bold' : 'text-slate-800 dark:text-gray-200 font-mono'">{{ meta.activeBranches }} / {{ meta.maxAllowed }}</strong> Branches</span>
+              <span>Capacity: <strong
+                  :class="meta.activeBranches >= meta.maxAllowed ? 'text-rose-600 dark:text-rose-400 font-mono font-bold' : 'text-slate-800 dark:text-gray-200 font-mono'">{{
+                    meta.activeBranches }} / {{ meta.maxAllowed }}</strong> Branches</span>
               <span class="text-slate-300 dark:text-gray-700 hidden sm:inline">|</span>
-              <span class="hidden sm:inline">Total: <strong class="text-emerald-700 dark:text-emerald-400 font-mono">{{ branches.length }}</strong></span>
+              <span class="hidden sm:inline">Total: <strong class="text-emerald-700 dark:text-emerald-400 font-mono">{{
+                branches.length }}</strong></span>
             </div>
           </div>
 
@@ -78,16 +86,23 @@
 
         <!-- Desktop Grid Table Viewport -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
+          <table
+            class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
             <thead>
-              <tr class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
-                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal">SL.</th>
+              <tr
+                class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
+                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal">SL.
+                </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Branch Name</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Code</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Address & Phone</th>
-                <th class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">Terminals</th>
-                <th class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">Staff</th>
-                <th class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal w-24">Status</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Address</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Phone</th>
+                <th class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">Terminals
+                </th>
+                <th class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal">Staff
+                </th>
+                <th class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-normal w-24">
+                  Status</th>
                 <th class="py-1.5 px-3 text-center w-36 font-normal">Actions</th>
               </tr>
             </thead>
@@ -107,59 +122,71 @@
               </tr>
 
               <!-- Data Rows -->
-              <tr v-for="(branch, idx) in paginatedData" :key="branch.id"
-                @click="selectedRow = branch.id"
-                :class="[
-                  'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
-                  selectedRow === branch.id
-                    ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
-                    : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
-                ]">
+              <tr v-for="(branch, idx) in paginatedData" :key="branch.id" @click="selectedRow = branch.id" :class="[
+                'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
+                selectedRow === branch.id
+                  ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
+                  : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
+              ]">
                 <!-- SL Column -->
-                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 font-normal text-slate-500 dark:text-gray-400 font-mono text-[11px]">
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 font-normal text-slate-500 dark:text-gray-400 font-mono text-[11px]">
                   {{ ((currentPage - 1) * itemsPerPage) + idx + 1 }}
                 </td>
 
                 <!-- Branch Name -->
-                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-800 dark:text-gray-200">
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-800 dark:text-gray-200">
                   <div class="flex items-center gap-2">
-                    <span class="w-5 h-5 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 text-[10px] font-mono flex items-center justify-center border border-slate-300 dark:border-gray-700 uppercase">
+                    <span
+                      class="w-5 h-5 bg-slate-200 dark:bg-gray-800 text-slate-700 dark:text-gray-300 text-[10px] font-mono flex items-center justify-center border border-slate-300 dark:border-gray-700 uppercase">
                       🏢
                     </span>
                     <span class="font-medium">{{ branch.name }}</span>
-                    <span v-if="branch.is_main === 1" class="text-[9px] uppercase tracking-wider font-mono font-semibold text-sky-700 bg-sky-50 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800 px-1.5 py-0.2">
+                    <span v-if="branch.is_main === 1"
+                      class="text-[9px] uppercase tracking-wider font-mono font-semibold text-sky-700 bg-sky-50 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800 px-1.5 py-0.2">
                       HQ MAIN
                     </span>
                   </div>
                 </td>
 
                 <!-- Code -->
-                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-[11px] text-slate-600 dark:text-gray-400">
-                  <span class="px-1.5 py-0.5 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800">
-                    {{ branch.code || 'HQ' }}
+                <td
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-[11px] text-slate-600 dark:text-gray-400">
+                  <span
+                    class="px-1.5 py-0.5 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800">
+                    {{ branch.code || '-' }}
                   </span>
                 </td>
 
                 <!-- Address & Phone -->
                 <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800">
                   <div class="text-slate-700 dark:text-gray-300 truncate max-w-[220px]">
-                    📍 {{ branch.address || 'Not specified' }}
+                    {{ branch.address || '-' }}
                   </div>
-                  <div v-if="branch.phone" class="text-[10px] font-mono text-slate-500 dark:text-gray-400">
-                    📞 {{ branch.phone }}
+
+                </td>
+                <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800">
+                  <div class="text-slate-700 dark:text-gray-300 truncate max-w-[220px]">
+                    {{ branch.phone || '-' }}
                   </div>
+
                 </td>
 
                 <!-- POS Terminals Count -->
-                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-mono text-slate-700 dark:text-gray-300">
-                  <span class="px-1.5 py-0.5 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800">
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-mono text-slate-700 dark:text-gray-300">
+                  <span
+                    class="px-1.5 py-0.5 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800">
                     🖥️ {{ branch.terminals_count || 0 }} POS
                   </span>
                 </td>
 
                 <!-- Staff Count -->
-                <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-mono text-slate-700 dark:text-gray-300">
-                  <span class="px-1.5 py-0.5 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800">
+                <td
+                  class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800 font-mono text-slate-700 dark:text-gray-300">
+                  <span
+                    class="px-1.5 py-0.5 bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-800">
                     👥 {{ branch.staff_count || 0 }} Staff
                   </span>
                 </td>
@@ -168,8 +195,8 @@
                 <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800">
                   <span :class="[
                     'px-2 py-0.5 text-[10px] border font-normal uppercase font-mono tracking-wider',
-                    branch.status === 'active' 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' 
+                    branch.status === 'active'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
                       : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
                   ]">
                     {{ branch.status === 'active' ? 'Active' : 'Inactive' }}
@@ -199,15 +226,8 @@
         </div>
 
         <!-- Footer Pagination Controls -->
-        <PaginationControls
-          :currentPage="currentPage"
-          :totalPages="totalPages"
-          :totalItems="filteredBranches.length"
-          :itemsPerPage="itemsPerPage"
-          itemName="Branches"
-          @prev="prevPage"
-          @next="nextPage"
-        />
+        <PaginationControls :currentPage="currentPage" :totalPages="totalPages" :totalItems="filteredBranches.length"
+          :itemsPerPage="itemsPerPage" itemName="Branches" @prev="prevPage" @next="nextPage" />
       </div>
     </div>
 
@@ -231,7 +251,8 @@
 
           <div class="space-y-3">
             <div>
-              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Branch Name <span class="text-rose-500">*</span></label>
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Branch Name <span
+                  class="text-rose-500">*</span></label>
               <input v-model="form.name" type="text" required placeholder="e.g. Dhanmondi Outlet"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-200 font-normal focus:outline-none focus:border-[#107c41] text-xs" />
             </div>
@@ -253,7 +274,7 @@
               <input v-model="form.phone" type="text" placeholder="e.g. +880 1711 000000"
                 class="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-200 font-mono focus:outline-none focus:border-[#107c41] text-xs" />
             </div>
-            
+
             <div v-if="isEditing">
               <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1">Operating Status</label>
               <select v-model="form.status"
@@ -324,8 +345,8 @@ const filteredBranches = computed(() => {
   return branches.value.filter(b => {
     const q = filterText.value.toLowerCase().trim();
     const matchesSearch = !q ||
-      (b.name && b.name.toLowerCase().includes(q)) || 
-      (b.code && b.code.toLowerCase().includes(q)) || 
+      (b.name && b.name.toLowerCase().includes(q)) ||
+      (b.code && b.code.toLowerCase().includes(q)) ||
       (b.address && b.address.toLowerCase().includes(q)) ||
       (b.phone && b.phone.toLowerCase().includes(q));
 

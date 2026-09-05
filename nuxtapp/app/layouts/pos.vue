@@ -4,7 +4,7 @@
     <DesktopAppHeader />
 
     <!-- Main POS Workspace Body -->
-    <div class="flex-1 flex overflow-hidden">
+    <div class="flex-1 flex overflow-hidden relative">
       <slot />
     </div>
 
