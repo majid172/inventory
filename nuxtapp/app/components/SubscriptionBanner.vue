@@ -62,7 +62,8 @@ const visible = computed(() => {
   if (dismissed.value) return false;
   if (!info.value) return false;
   const s = info.value.status;
-  // Show for: expired statuses always; trial/active with ≤ 7 days remaining
+  // Show for: pending status always; expired statuses always; trial/active with ≤ 7 days remaining
+  if (s === 'pending' || info.value.isPending) return true;
   if (info.value.isExpired) return true;
   if ((s === 'trial' || s === 'active') && info.value.daysRemaining <= 7) return true;
   return false;
@@ -82,6 +83,18 @@ const bannerConfig = computed((): BannerConfig | null => {
   if (!info.value) return null;
   const days = info.value.daysRemaining;
   const status = info.value.status;
+
+  if (status === 'pending' || info.value.isPending) {
+    return {
+      icon: '⏳',
+      title: 'Account Verification Pending.',
+      message: 'আপনার অ্যাকাউন্টটি বর্তমানে পেন্ডিং আছে। Super Admin অনুমোদন (Approve) করলে আপনি সম্পূর্ণ অ্যাক্সেস (Create, Edit, Delete) পাবেন।',
+      btnLabel: 'Billing Status',
+      bg: 'bg-amber-600 dark:bg-amber-700',
+      text: 'text-white',
+      btnClass: 'bg-white text-amber-800 border-white hover:bg-amber-50',
+    };
+  }
 
   if (status === 'expired' || status === 'trial_expired') {
     return {

@@ -321,111 +321,95 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
   };
 
   const fetchTenants = async () => {
+    isLoading.value = true;
     try {
-      const res = await fetch('http://localhost:5000/api/super-admin/tenants');
+      const res = await fetch('http://localhost:5000/api/super-admin/tenants', {
+        headers: getAuthHeaders()
+      });
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          tenants.value = json.data;
+        const incoming = Array.isArray(json.data) ? json.data : (Array.isArray(json.tenants) ? json.tenants : []);
+        if (incoming) {
+          tenants.value = incoming;
         }
       }
     } catch (e) {
-      console.warn("Backend API offline, using local tenant directory.");
+      console.warn("Backend API error in fetchTenants:", e);
+    } finally {
+      isLoading.value = false;
     }
   };
 
-  const createTenant = async (payload: { storeName: string; ownerName: string; email: string; phone?: string; planTier: string }) => {
+  const createTenant = async (payload: { 
+    storeName: string; 
+    ownerName: string; 
+    email: string; 
+    phone?: string; 
+    planTier?: string; 
+    planId?: number | string;
+    password?: string;
+    status?: string;
+    address?: string;
+    slug?: string;
+  }) => {
     isLoading.value = true;
     let newTenant: TenantStore | null = null;
 
     try {
       const res = await fetch('http://localhost:5000/api/super-admin/tenants', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          newTenant = json.data;
-        }
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Failed to create tenant store.');
       }
-    } catch (e) {
-      console.warn("Backend API offline for tenant creation.");
-    }
-
-    if (!newTenant) {
-      const mrrMap: Record<string, number> = { starter: 49, pro: 149, enterprise: 399 };
-      newTenant = {
-        id: `TENANT_${100 + tenants.value.length + 1}`,
-        storeName: payload.storeName,
-        slug: payload.storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        ownerName: payload.ownerName,
-        email: payload.email,
-        phone: payload.phone || "+1 (555) 000-0000",
-        planTier: payload.planTier as any,
-        status: "trial",
-        terminalsCount: payload.planTier === 'enterprise' ? 5 : payload.planTier === 'pro' ? 3 : 1,
-        branchesCount: 1,
-        joinedDate: new Date().toISOString().split('T')[0],
-        nextBillingDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-        mrr: mrrMap[payload.planTier] || 99
-      };
-    }
-
-    const idx = tenants.value.findIndex(t => t.id === newTenant!.id);
-    if (idx === -1) {
-      tenants.value.unshift(newTenant);
-    } else {
-      tenants.value[idx] = newTenant;
-    }
-
-    auditLogs.value.unshift({
-      id: `LOG_${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      event: "New Tenant Onboarded",
-      details: `Created pharmacy tenant '${newTenant.storeName}' (${newTenant.planTier.toUpperCase()} Plan - 14 Day Trial)`,
-      tenantId: newTenant.id,
-      severity: "success"
-    });
-
-    isLoading.value = false;
-    return newTenant;
-  };
-
-  const updateTenant = async (id: string, updates: { status?: 'active' | 'trial' | 'suspended' | 'expired'; planTier?: string; extendDays?: number }) => {
-    try {
-      await fetch(`http://localhost:5000/api/super-admin/tenants/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-    } catch (e) {
-      console.warn("Backend update API offline, performing local mutation.");
-    }
-
-    const t = tenants.value.find(item => item.id === id);
-    if (t) {
-      if (updates.status) t.status = updates.status as any;
-      if (updates.planTier) {
-        t.planTier = updates.planTier as any;
-        const mrrMap: Record<string, number> = { starter: 49, pro: 149, enterprise: 399 };
-        t.mrr = mrrMap[updates.planTier] || t.mrr;
+      if (json.success && (json.data || json.tenant)) {
+        newTenant = json.data || json.tenant;
       }
-      if (updates.extendDays) {
-        const nextDate = new Date(t.nextBillingDate);
-        nextDate.setDate(nextDate.getDate() + Number(updates.extendDays));
-        t.nextBillingDate = nextDate.toISOString().split('T')[0];
+    } catch (e: any) {
+      console.error("Backend API error for tenant creation:", e);
+      isLoading.value = false;
+      throw e;
+    }
+
+    if (newTenant) {
+      const idx = tenants.value.findIndex(t => t.id === newTenant!.id);
+      if (idx === -1) {
+        tenants.value.unshift(newTenant);
+      } else {
+        tenants.value[idx] = newTenant;
       }
 
       auditLogs.value.unshift({
         id: `LOG_${Date.now()}`,
         timestamp: new Date().toISOString(),
-        event: "Tenant Plan/Status Updated",
-        details: `Updated '${t.storeName}' status to ${t.status}, tier to ${t.planTier.toUpperCase()}`,
-        tenantId: t.id,
-        severity: "info"
+        event: "New Tenant Onboarded",
+        details: `Created pharmacy tenant '${newTenant.storeName || (newTenant as any).name}' (${(newTenant.planTier || 'pro').toUpperCase()} Plan)`,
+        tenantId: newTenant.id,
+        severity: "success"
       });
+    }
+
+    await fetchTenants();
+    isLoading.value = false;
+    return newTenant;
+  };
+
+  const updateTenant = async (id: string, updates: { status?: 'active' | 'trial' | 'suspended' | 'expired'; planTier?: string; extendDays?: number }) => {
+    isLoading.value = true;
+    try {
+      await fetch(`http://localhost:5000/api/super-admin/tenants/${id}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updates)
+      });
+      await fetchTenants();
+    } catch (e) {
+      console.warn("Backend update API error:", e);
+    } finally {
+      isLoading.value = false;
     }
   };
 

@@ -15,6 +15,7 @@ export function useSuperAdmin() {
     fetchTenants: store.fetchTenants,
     createTenant: store.createTenant,
     updateTenant: store.updateTenant,
+    deleteTenant: store.deleteTenant,
     fetchMasterDrugs: store.fetchMasterDrugs,
     createMasterDrug: store.createMasterDrug,
     updateMasterDrug: store.updateMasterDrug,

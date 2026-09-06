@@ -5,12 +5,11 @@
     <!-- SUBSCRIPTION LOCKED OVERLAY                                        -->
     <!-- Shown when ?locked=1 is in the URL (redirected by middleware)      -->
     <!-- ================================================================= -->
-    <div
-      v-if="isLocked"
-      class="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-6 font-sans select-none"
-    >
+    <div v-if="isLocked"
+      class="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-6 font-sans select-none">
       <!-- Lock Icon Card -->
-      <div class="bg-white dark:bg-gray-950 border border-red-300 dark:border-red-800 shadow-xl max-w-lg w-full p-8 text-center space-y-5">
+      <div
+        class="bg-white dark:bg-gray-950 border border-red-300 dark:border-red-800 shadow-xl max-w-lg w-full p-8 text-center space-y-5">
         <!-- Icon -->
         <div class="text-6xl mb-2">🔒</div>
 
@@ -25,23 +24,20 @@
         </div>
 
         <!-- Expiry info -->
-        <div class="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded p-3 text-xs text-red-700 dark:text-red-400 font-mono">
+        <div
+          class="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded p-3 text-xs text-red-700 dark:text-red-400 font-mono">
           Store Status:
           <strong class="uppercase ml-1">{{ lockedReasonLabel.status }}</strong>
         </div>
 
         <!-- CTA Buttons -->
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <button
-            @click="openUpgradeModal()"
-            class="w-full sm:w-auto px-6 py-2.5 bg-[#107c41] hover:bg-[#0e6b37] text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
-          >
+          <button @click="openUpgradeModal()"
+            class="w-full sm:w-auto px-6 py-2.5 bg-[#107c41] hover:bg-[#0e6b37] text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2">
             <span>💳</span> Renew / Upgrade Plan
           </button>
-          <button
-            @click="isLocked = false"
-            class="w-full sm:w-auto px-6 py-2.5 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-sm hover:bg-slate-50 transition-all"
-          >
+          <button @click="isLocked = false"
+            class="w-full sm:w-auto px-6 py-2.5 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-sm hover:bg-slate-50 transition-all">
             View Billing Details
           </button>
         </div>
@@ -83,8 +79,16 @@
               STATUS</div>
             <div class="mt-1">
               <span
-                class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide border bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                :class="[
+                  'inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide border',
+                  (activePlanStatus || '').toLowerCase() === 'pending'
+                    ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800'
+                    : (activePlanStatus || '').toLowerCase() === 'active' || (activePlanStatus || '').toLowerCase() === 'trial'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800'
+                      : 'bg-red-50 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-400 dark:border-red-800'
+                ]">
+                <span class="w-1.5 h-1.5 rounded-full inline-block animate-pulse"
+                  :class="(activePlanStatus || '').toLowerCase() === 'pending' ? 'bg-amber-500' : ((activePlanStatus || '').toLowerCase() === 'active' || (activePlanStatus || '').toLowerCase() === 'trial') ? 'bg-emerald-500' : 'bg-red-500'"></span>
                 ● {{ activePlanStatus }}
               </span>
             </div>
@@ -287,8 +291,15 @@
                 <!-- Status -->
                 <td class="py-1.5 px-3 text-center border-r border-slate-200 dark:border-gray-800">
                   <span
-                    class="px-2 py-0.5 rounded text-[10px] font-normal uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800">
-                    ● {{ item.status || 'PAID' }}
+                    :class="[
+                      'px-2 py-0.5 rounded text-[10px] font-normal uppercase tracking-wider border',
+                      (item.status || '').toLowerCase() === 'pending'
+                        ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800'
+                        : (item.status || '').toLowerCase() === 'success' || (item.status || '').toLowerCase() === 'active'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800'
+                          : 'bg-red-50 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-400 dark:border-red-800'
+                    ]">
+                    ● {{ item.status || '-' }}
                   </span>
                 </td>
 
@@ -300,7 +311,8 @@
 
                 <!-- Expiry Date -->
                 <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-[11px]">
-                  <span :class="isItemExpired(item) ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-700 dark:text-emerald-400 font-medium'">
+                  <span
+                    :class="isItemExpired(item) ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-700 dark:text-emerald-400 font-medium'">
                     {{ getItemExpiryDate(item) }}
                   </span>
                 </td>
@@ -318,14 +330,8 @@
           </table>
 
           <!-- Pagination Footer -->
-          <PaginationControls 
-            :current-page="currentPage" 
-            :total-pages="totalPages" 
-            :total-items="filteredPayments.length" 
-            :items-per-page="itemsPerPage"
-            @prev="prevPage" 
-            @next="nextPage" 
-          />
+          <PaginationControls :current-page="currentPage" :total-pages="totalPages"
+            :total-items="filteredPayments.length" :items-per-page="itemsPerPage" @prev="prevPage" @next="nextPage" />
         </div>
 
         <!-- ================================================================= -->
@@ -526,7 +532,8 @@
                 <div>Method: <strong class="uppercase font-mono">{{ selectedInvoice.gateway || 'bKash' }}</strong></div>
                 <div>Trx ID: <span class="font-mono text-emerald-700 dark:text-emerald-400">{{ selectedInvoice.trx_no ||
                   selectedInvoice.transaction_no || 'TRX-8291481' }}</span></div>
-                <div>Plan Expiry: <strong class="font-mono text-emerald-700 dark:text-emerald-400">{{ getItemExpiryDate(selectedInvoice) }}</strong></div>
+                <div>Plan Expiry: <strong class="font-mono text-emerald-700 dark:text-emerald-400">{{
+                  getItemExpiryDate(selectedInvoice) }}</strong></div>
               </div>
             </div>
 
@@ -740,6 +747,11 @@ const isLocked = ref(route.query.locked === '1');
 const lockedReasonLabel = computed(() => {
   const reason = (route.query.reason as string || 'expired').toLowerCase();
   const labels: Record<string, { title: string; message: string; status: string }> = {
+    pending: {
+      title: 'Payment Verification Pending',
+      message: 'আপনার সাবস্ক্রিপশন পেমেন্ট বর্তমানে Super Admin ভেরিফিকেশনের অপেক্ষায় আছে। অনুমোদন পেলে সম্পূর্ণ অ্যাক্সেস চালু হবে।',
+      status: 'PENDING APPROVAL',
+    },
     expired: {
       title: 'Subscription Expired',
       message: 'Your PharmaCare subscription has expired. Renew your plan to restore full POS and inventory access for your pharmacy.',
@@ -844,14 +856,14 @@ const getItemExpiryDate = (item?: any) => {
     try {
       const expDate = new Date(d);
       if (!isNaN(expDate.getTime())) return expDate.toISOString().split('T')[0];
-    } catch(e) {}
+    } catch (e) { }
   }
   if (item.created_at) {
     try {
       const created = new Date(item.created_at);
       created.setDate(created.getDate() + 30);
       return created.toISOString().split('T')[0];
-    } catch(e) {}
+    } catch (e) { }
   }
   return activeRenewalDate.value;
 };

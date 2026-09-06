@@ -33,37 +33,42 @@
           </p>
         </div>
 
-        <!-- Subscription Expired / Account Inactive Error Alert -->
-        <div v-if="authError" class="p-3 border text-xs font-medium space-y-1 shadow-xs"
-          :class="isSubscriptionExpired ? 'bg-amber-50 dark:bg-amber-950/80 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200' : 'bg-rose-50 dark:bg-rose-950 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-400'">
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-start gap-2">
-              <span class="text-base leading-none">{{ isSubscriptionExpired ? '🚨' : '⚠️' }}</span>
-              <div>
-                <strong v-if="isSubscriptionExpired"
-                  class="block font-bold text-xs mb-0.5 text-amber-800 dark:text-amber-300">Subscription Expired /
-                  Access Suspended</strong>
-                <p class="leading-relaxed">{{ authError }}</p>
-              </div>
-            </div>
-            <button @click="authError = ''"
-              class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer text-xs font-bold">✕</button>
-          </div>
-          <div v-if="isSubscriptionExpired"
-            class="pt-2 mt-1 border-t border-amber-200 dark:border-amber-800/60 flex items-center justify-between">
-            <span class="text-[10px] text-amber-700 dark:text-amber-300">Need to renew your store subscription?</span>
+        <!-- Account Suspended Alert -->
+        <div v-if="isAccountSuspended"
+          class="p-2.5 bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-400 text-xs flex items-center justify-between gap-2 shadow-xs">
+          <span>{{ authError || 'Your account is suspended. Please contact administrator.' }}</span>
+          <button type="button" @click="clearAlerts"
+            class="text-rose-400 hover:text-rose-600 dark:hover:text-rose-200 cursor-pointer text-xs font-bold px-1">✕</button>
+        </div>
+
+        <!-- Subscription Expired Alert -->
+        <div v-else-if="isSubscriptionExpired"
+          class="p-2.5 bg-amber-50 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-900 text-amber-800 dark:text-amber-300 text-xs flex items-center justify-between gap-2 shadow-xs">
+          <span>{{ authError || 'Subscription expired. Please renew your plan.' }}</span>
+          <div class="flex items-center gap-2">
             <NuxtLink :to="{ path: '/renew', query: { email: identifier } }"
-              class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-bold shadow-xs">
+              class="px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-medium whitespace-nowrap shadow-xs">
               Renew Plan →
             </NuxtLink>
+            <button type="button" @click="clearAlerts"
+              class="text-amber-400 hover:text-amber-600 dark:hover:text-amber-200 cursor-pointer text-xs font-bold px-1">✕</button>
           </div>
+        </div>
+
+        <!-- Generic Auth Error Alert -->
+        <div v-else-if="authError"
+          class="p-2.5 bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-400 flex items-center justify-between gap-2 shadow-xs">
+          <span>{{ authError }}</span>
+          <button type="button" @click="clearAlerts"
+            class="text-rose-400 hover:text-rose-600 dark:hover:text-rose-200 cursor-pointer text-xs font-bold px-1">✕</button>
         </div>
 
         <!-- Success Alert -->
         <div v-if="authSuccess"
-          class="p-2.5 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-          <span>✅</span>
+          class="p-2.5 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-700 dark:text-emerald-400 flex items-center justify-between gap-1.5 shadow-xs">
           <span>{{ authSuccess }}</span>
+          <button type="button" @click="authSuccess = ''"
+            class="text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-200 cursor-pointer text-xs font-bold px-1">✕</button>
         </div>
 
         <!-- Simple Clean Form -->
@@ -87,16 +92,19 @@
                 class="w-full bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-700 pl-3 pr-9 py-2 text-slate-800 dark:text-gray-200 font-mono outline-none focus:border-[#107c41] text-xs" />
               <button type="button" @click="showPassword = !showPassword"
                 class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 cursor-pointer p-0.5 focus:outline-none"
-                tabindex="-1"
-                :title="showPassword ? 'Hide password' : 'Show password'">
+                tabindex="-1" :title="showPassword ? 'Hide password' : 'Show password'">
                 <!-- Eye Open Icon (Show) -->
                 <svg v-if="!showPassword" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
                 <!-- Eye Closed / Slash Icon (Hide) -->
-                <svg v-else class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                <svg v-else class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
                 </svg>
               </button>
             </div>
@@ -127,7 +135,8 @@
         </form>
 
         <div class="text-center border-t border-slate-200 dark:border-gray-800 pt-3">
-          <NuxtLink :to="{ path: '/renew', query: { email: identifier } }" class="text-slate-500 dark:text-gray-400 hover:text-[#107c41] dark:hover:text-emerald-400 text-[11px]">
+          <NuxtLink :to="{ path: '/renew', query: { email: identifier } }"
+            class="text-slate-500 dark:text-gray-400 hover:text-[#107c41] dark:hover:text-emerald-400 text-[11px]">
             Need to renew your store subscription? Renew Here →
           </NuxtLink>
         </div>
@@ -160,33 +169,47 @@ const showPassword = ref(false);
 const rememberMe = ref(true);
 const loading = ref(false);
 const authError = ref('');
+const isAccountSuspended = ref(false);
 const isSubscriptionExpired = ref(false);
 const authSuccess = ref('');
+
+const clearAlerts = () => {
+  authError.value = '';
+  isAccountSuspended.value = false;
+  isSubscriptionExpired.value = false;
+};
 
 onMounted(() => {
   if (route.query.email) {
     identifier.value = String(route.query.email);
   }
   if (route.query.pending === 'true') {
-    authSuccess.value = '⏳ Subscription renewal submitted! Your payment is currently under review by SuperAdmin for verification.';
+    authSuccess.value = 'Subscription renewal submitted! Your payment is currently under review by SuperAdmin for verification.';
   } else if (route.query.renewed === 'true') {
-    authSuccess.value = '🎉 Subscription plan renewed successfully! You can now sign in.';
+    authSuccess.value = 'Subscription plan renewed successfully! You can now sign in.';
   }
-  if (route.query.reason == 'subscription_expired') {
-    authError.value = '⚠️ Subscription Expired! Your store plan has ended. Please renew to regain access.';
+  if (route.query.reason === 'subscription_expired') {
+    authError.value = 'Subscription plan expired. Please renew to regain access.';
     isSubscriptionExpired.value = true;
+    isAccountSuspended.value = false;
+  } else if (route.query.reason === 'suspended') {
+    authError.value = 'Account suspended by administrator.';
+    isAccountSuspended.value = true;
+    isSubscriptionExpired.value = false;
   }
 });
 
 const handleSignIn = async () => {
   if (!identifier.value.trim() || !password.value.trim()) {
     authError.value = 'Please enter both email/username and password.';
+    isAccountSuspended.value = false;
     isSubscriptionExpired.value = false;
     return;
   }
 
   loading.value = true;
   authError.value = '';
+  isAccountSuspended.value = false;
   isSubscriptionExpired.value = false;
   authSuccess.value = '';
 
@@ -236,8 +259,13 @@ const handleSignIn = async () => {
       }, 250);
     } else {
       authError.value = data.message || 'Invalid email or password. Please try again.';
-      if (data.code === 'SUBSCRIPTION_EXPIRED' || (data.message && (data.message.toLowerCase().includes('expire') || data.message.toLowerCase().includes('inactive') || data.message.toLowerCase().includes('suspend')))) {
+
+      if (data.code === 'ACCOUNT_SUSPENDED' || (data.message && data.message.toLowerCase().includes('suspend'))) {
+        isAccountSuspended.value = true;
+        isSubscriptionExpired.value = false;
+      } else if (data.code === 'SUBSCRIPTION_EXPIRED' || (data.message && (data.message.toLowerCase().includes('expire') || data.message.toLowerCase().includes('plan expired')))) {
         isSubscriptionExpired.value = true;
+        isAccountSuspended.value = false;
       }
     }
   } catch (err: any) {

@@ -191,7 +191,8 @@
                 <td class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-[11px]">
                   <span class="text-[11px] text-slate-700 dark:text-gray-300 font-medium"
                     v-if="user.branch_name || user.branch_id">
-                    📍 {{ user.branch_name ? user.branch_name + (user.branch_code ? ' (' + user.branch_code + ')' : '') : ('Branch #' + user.branch_id) }}
+                    📍 {{ user.branch_name ? user.branch_name + (user.branch_code ? ' (' + user.branch_code + ')' : '')
+                      : ('Branch #' + user.branch_id) }}
                   </span>
                   <span class="text-[11px] text-slate-400 font-mono italic" v-else>
                     🏢 All Branches (HQ)

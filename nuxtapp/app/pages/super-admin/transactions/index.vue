@@ -1,50 +1,69 @@
 <template>
   <NuxtLayout name="super-admin">
     <div class="space-y-3 font-sans select-none">
-      
+
       <!-- Top Overview KPI Summary Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <!-- KPI 1: Total Subscription Revenue -->
         <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 p-3 shadow-xs">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-normal uppercase tracking-wider text-slate-500 dark:text-gray-400">Total Subscription Revenue</span>
+            <span class="text-[11px] font-normal uppercase tracking-wider text-slate-500 dark:text-gray-400">Total
+              Subscription Revenue</span>
             <span class="p-1 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xs">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                </path>
+              </svg>
             </span>
           </div>
           <div class="mt-2 flex items-baseline justify-between">
-            <span class="text-xl font-normal text-slate-900 dark:text-gray-100 font-mono">৳{{ totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</span>
+            <span class="text-xl font-normal text-slate-900 dark:text-gray-100 font-mono">৳{{
+              totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</span>
             <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">↑ SaaS Platform</span>
           </div>
-          <p class="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5">Lifetime collected from tenant subscriptions</p>
+          <p class="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5">Lifetime collected from tenant subscriptions
+          </p>
         </div>
 
         <!-- KPI 2: Successful Transactions -->
         <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 p-3 shadow-xs">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-normal uppercase tracking-wider text-slate-500 dark:text-gray-400">Paid Invoices</span>
+            <span class="text-[11px] font-normal uppercase tracking-wider text-slate-500 dark:text-gray-400">Paid
+              Invoices</span>
             <span class="p-1 bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 rounded-xs">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
             </span>
           </div>
           <div class="mt-2 flex items-baseline justify-between">
             <span class="text-xl font-normal text-slate-900 dark:text-gray-100 font-mono">{{ successCount }}</span>
-            <span class="text-[10px] text-sky-600 dark:text-sky-400 font-medium">{{ ((successCount / (payments.length || 1)) * 100).toFixed(0) }}% Rate</span>
+            <span class="text-[10px] text-sky-600 dark:text-sky-400 font-medium">{{ ((successCount / (payments.length ||
+              1)) * 100).toFixed(0) }}% Rate</span>
           </div>
-          <p class="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5">Successfully processed subscription payments</p>
+          <p class="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5">Successfully processed subscription payments
+          </p>
         </div>
 
         <!-- KPI 3: Pending & Failed Payments -->
         <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 p-3 shadow-xs">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-normal uppercase tracking-wider text-slate-500 dark:text-gray-400">Pending / Failed</span>
+            <span class="text-[11px] font-normal uppercase tracking-wider text-slate-500 dark:text-gray-400">Pending /
+              Failed</span>
             <span class="p-1 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-xs">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
             </span>
           </div>
           <div class="mt-2 flex items-baseline justify-between">
-            <span class="text-xl font-normal text-slate-900 dark:text-gray-100 font-mono">{{ pendingCount + failedCount }}</span>
-            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-medium">{{ pendingCount }} Pending | {{ failedCount }} Failed</span>
+            <span class="text-xl font-normal text-slate-900 dark:text-gray-100 font-mono">{{ pendingCount + failedCount
+              }}</span>
+            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-medium">{{ pendingCount }} Pending | {{
+              failedCount }} Failed</span>
           </div>
           <p class="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5">Requires tenant follow-up or re-attempt</p>
         </div>
@@ -52,16 +71,24 @@
         <!-- KPI 4: Active Payment Methods -->
         <div class="bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 p-3 shadow-xs">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-normal uppercase tracking-wider text-slate-500 dark:text-gray-400">MFS & Gateways</span>
+            <span class="text-[11px] font-normal uppercase tracking-wider text-slate-500 dark:text-gray-400">MFS &
+              Gateways</span>
             <span class="p-1 bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-xs">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+              </svg>
             </span>
           </div>
           <div class="mt-2 flex items-center gap-1.5 flex-wrap">
-            <span class="text-[10px] bg-pink-100 dark:bg-pink-950/80 text-pink-700 dark:text-pink-300 px-1.5 py-0.5 font-medium">bKash</span>
-            <span class="text-[10px] bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 font-medium">Nagad</span>
-            <span class="text-[10px] bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 font-medium">SSLCommerz</span>
-            <span class="text-[10px] bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 font-medium">Cards</span>
+            <span
+              class="text-[10px] bg-pink-100 dark:bg-pink-950/80 text-pink-700 dark:text-pink-300 px-1.5 py-0.5 font-medium">bKash</span>
+            <span
+              class="text-[10px] bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 font-medium">Nagad</span>
+            <span
+              class="text-[10px] bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 font-medium">SSLCommerz</span>
+            <span
+              class="text-[10px] bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 font-medium">Cards</span>
           </div>
           <p class="text-[10px] text-slate-400 dark:text-gray-500 mt-1">Multi-tenant automated gateway logs</p>
         </div>
@@ -69,25 +96,30 @@
 
       <!-- Main Desktop Application Database Data Grid Frame -->
       <div class="border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xs">
-        
+
         <!-- Top Toolbar -->
-        <div class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div
+          class="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
           <!-- Left: Action / Controls -->
           <div class="flex items-center gap-2">
             <button @click="fetchPayments" :disabled="loading"
               class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-normal px-2.5 py-1 text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer">
-              <svg :class="['w-3.5 h-3.5 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              <svg :class="['w-3.5 h-3.5 text-slate-500 dark:text-gray-400', { 'animate-spin': loading }]" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                </path>
               </svg>
               Refresh Table
             </button>
-            
+
             <div class="h-4 w-px bg-slate-200 dark:bg-gray-700 mx-1"></div>
 
             <!-- Gateway Filter -->
             <div class="flex items-center gap-1.5">
               <label class="text-[11px] text-slate-500 dark:text-gray-400 font-normal">Gateway:</label>
-              <select v-model="selectedGateway" class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:border-emerald-500">
+              <select v-model="selectedGateway"
+                class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:border-emerald-500">
                 <option value="ALL">All Gateways</option>
                 <option value="bkash">bKash MFS</option>
                 <option value="nagad">Nagad MFS</option>
@@ -100,7 +132,8 @@
             <!-- Status Filter -->
             <div class="flex items-center gap-1.5">
               <label class="text-[11px] text-slate-500 dark:text-gray-400 font-normal">Status:</label>
-              <select v-model="selectedStatus" class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:border-emerald-500">
+              <select v-model="selectedStatus"
+                class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2 py-1 text-xs text-slate-800 dark:text-gray-200 focus:outline-none focus:border-emerald-500">
                 <option value="ALL">All Statuses</option>
                 <option value="success">Paid / Success</option>
                 <option value="pending">Pending</option>
@@ -111,7 +144,8 @@
 
           <!-- Right: Search Filter -->
           <div class="flex items-center gap-2">
-            <label class="font-normal text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">SEARCH:</label>
+            <label
+              class="font-normal text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">SEARCH:</label>
             <div class="relative">
               <input type="text" v-model="filterText" placeholder="Search tenant, invoice, Trx ID..."
                 class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1 text-xs text-slate-800 dark:text-gray-200 placeholder-slate-400 font-normal focus:outline-none focus:border-emerald-500 w-56 sm:w-64" />
@@ -125,16 +159,20 @@
 
         <!-- Desktop Grid Table Viewport -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
+          <table
+            class="w-full text-left text-xs font-sans border-collapse border border-slate-200 dark:border-gray-800">
             <thead>
-              <tr class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
-                <th class="py-2 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># SL</th>
+              <tr
+                class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
+                <th class="py-2 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># SL
+                </th>
                 <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Trx No.</th>
                 <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Invoice #</th>
                 <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Pharmacy Store</th>
                 <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Subscription</th>
                 <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 text-right font-normal">Amount</th>
-                <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Gateway</th>
+                <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Gateway
+                </th>
                 <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal">Status</th>
                 <th class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Date & Time</th>
                 <th class="py-2 px-3 text-center w-24 font-normal">Actions</th>
@@ -144,7 +182,8 @@
             <tbody class="divide-y divide-slate-200 dark:divide-gray-800 bg-white dark:bg-gray-950">
               <tr v-if="loading">
                 <td colspan="10" class="py-8 text-center text-slate-400 dark:text-gray-500 font-normal text-xs">
-                  <span class="inline-block animate-spin mr-2"></span> Loading subscription transactions from database...
+                  <span class="inline-block animate-spin mr-2"></span> Loading subscription transactions from
+                  database...
                 </td>
               </tr>
 
@@ -154,46 +193,52 @@
                 </td>
               </tr>
 
-              <tr v-for="(row, idx) in filteredPayments" :key="row.id"
-                @click="selectedRow = row.id"
-                :class="[
-                  'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
-                  selectedRow === row.id
-                    ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
-                    : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
-                ]">
-                
+              <tr v-for="(row, idx) in filteredPayments" :key="row.id" @click="selectedRow = row.id" :class="[
+                'transition-colors cursor-pointer border-b border-slate-200 dark:border-gray-800 font-normal text-slate-700 dark:text-gray-300',
+                selectedRow === row.id
+                  ? 'bg-[#e8f4fd] dark:bg-sky-950/40 text-slate-900 dark:text-white'
+                  : 'hover:bg-slate-50 dark:hover:bg-gray-900/50'
+              ]">
+
                 <!-- SL -->
-                <td class="py-2 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 text-slate-500 dark:text-gray-400">
+                <td
+                  class="py-2 px-3 text-center border-r border-slate-200 dark:border-gray-800 w-12 text-slate-500 dark:text-gray-400">
                   {{ idx + 1 }}
                 </td>
 
                 <!-- Transaction No -->
-                <td class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-emerald-700 dark:text-emerald-400 font-medium">
+                <td
+                  class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-emerald-700 dark:text-emerald-400 font-medium">
                   {{ row.trx_no || row.transaction_no || '-' }}
                 </td>
 
                 <!-- Invoice No -->
-                <td class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-slate-800 dark:text-gray-200">
+                <td
+                  class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-slate-800 dark:text-gray-200">
                   {{ row.invoice_no || '-' }}
                 </td>
 
                 <!-- Tenant Name -->
-                <td class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-900 dark:text-gray-100">
+                <td
+                  class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-900 dark:text-gray-100">
                   <div>{{ row.tenant_name || `Tenant #${row.tenant_id}` }}</div>
-                  <div v-if="row.tenant_domain" class="text-[10px] text-slate-400 font-mono">{{ row.tenant_domain }}</div>
+                  <div v-if="row.tenant_domain" class="text-[10px] text-slate-400 font-mono">{{ row.tenant_domain }}
+                  </div>
                 </td>
 
                 <!-- Plan -->
                 <td class="py-2 px-3 border-r border-slate-200 dark:border-gray-800">
-                  <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300">
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300">
                     {{ row.plan_name || row.plan_id || 'Pro Tier' }}
-                    <span class="ml-1 text-[9px] text-slate-400 uppercase font-mono">({{ row.billing_cycle || 'monthly' }})</span>
+                    <span class="ml-1 text-[9px] text-slate-400 uppercase font-mono">({{ row.billing_cycle || 'monthly'
+                      }})</span>
                   </span>
                 </td>
 
                 <!-- Amount -->
-                <td class="py-2 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-mono font-medium text-slate-900 dark:text-gray-100">
+                <td
+                  class="py-2 px-3 text-right border-r border-slate-200 dark:border-gray-800 font-mono font-medium text-slate-900 dark:text-gray-100">
                   ৳{{ Number(row.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
                 </td>
 
@@ -212,25 +257,26 @@
                 </td>
 
                 <!-- Date -->
-                <td class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 text-[11px] text-slate-600 dark:text-gray-400">
+                <td
+                  class="py-2 px-3 border-r border-slate-200 dark:border-gray-800 text-[11px] text-slate-600 dark:text-gray-400">
                   {{ formatDate(row.paid_at || row.created_at) }}
                 </td>
 
                 <!-- Actions -->
-                <td class="py-2 px-3 text-center" @click.stop>
-                  <div class="flex items-center justify-center gap-1.5">
+                <td class="py-1.5 px-3 text-center" @click.stop>
+                  <div class="flex items-center justify-center gap-1.5 whitespace-nowrap">
                     <button v-if="row.status === 'pending'" @click="handleApprovePayment(row.id)"
-                      class="px-2 py-0.5 text-[10px] font-medium text-white bg-[#107c41] hover:bg-[#0e6b37] border border-[#0e6b37] cursor-pointer shadow-2xs transition-colors"
+                      class="px-2 py-0.5 bg-white dark:bg-gray-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-300 dark:border-gray-700 text-[#107c41] dark:text-emerald-400 text-xs font-normal cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
                       title="Verify & Approve Payment">
-                      ✓ Approve
+                      Approve
                     </button>
                     <button v-if="row.status === 'pending'" @click="handleRejectPayment(row.id)"
-                      class="px-2 py-0.5 text-[10px] font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 cursor-pointer shadow-2xs transition-colors"
+                      class="px-2 py-0.5 bg-white dark:bg-gray-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-300 dark:border-gray-700 text-[#d13438] dark:text-rose-400 text-xs font-normal cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
                       title="Reject Payment Request">
-                      ✕ Reject
+                      Reject
                     </button>
                     <button @click="openInvoiceModal(row)"
-                      class="px-2 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/50 hover:bg-sky-100 dark:hover:bg-sky-900/60 border border-sky-200 dark:border-sky-800 cursor-pointer shadow-2xs transition-colors"
+                      class="px-2 py-0.5 bg-white dark:bg-gray-900 hover:bg-slate-50 dark:hover:bg-gray-800 border border-slate-300 dark:border-gray-700 text-[#005a9e] dark:text-sky-400 text-xs font-normal cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
                       title="View Invoice Receipt">
                       Details
                     </button>
@@ -242,7 +288,8 @@
         </div>
 
         <!-- Desktop Grid Footer Bar -->
-        <div class="px-3 py-2 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 font-normal">
+        <div
+          class="px-3 py-2 bg-slate-50 dark:bg-gray-900 border-t border-slate-200 dark:border-gray-800 flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 font-normal">
           <div>Displaying <strong>{{ filteredPayments.length }}</strong> SaaS subscription transaction records</div>
           <div class="text-[10px] text-slate-400 font-mono">
             Platform Gateway: <code>payments</code> table
@@ -255,17 +302,20 @@
       <!-- ===================================================================== -->
       <div v-if="showInvoiceModal && selectedPayment"
         class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none animate-fadeIn">
-        <div class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-lg shadow-xl overflow-hidden">
-          
+        <div
+          class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-lg shadow-xl overflow-hidden">
+
           <!-- Titlebar -->
-          <div class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-4 py-2.5 flex items-center justify-between">
+          <div
+            class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-4 py-2.5 flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="text-emerald-600 font-semibold">💳</span>
               <h3 class="font-normal text-xs text-slate-800 dark:text-gray-100">
                 Subscription Payment Receipt #{{ selectedPayment.invoice_no || selectedPayment.id }}
               </h3>
             </div>
-            <button @click="showInvoiceModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs cursor-pointer">✕</button>
+            <button @click="showInvoiceModal = false"
+              class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs cursor-pointer">✕</button>
           </div>
 
           <!-- Body -->
@@ -288,21 +338,25 @@
             <div class="grid grid-cols-2 gap-3 text-xs">
               <div class="bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
                 <span class="text-[10px] uppercase text-slate-400 block font-medium">Billed To (Tenant)</span>
-                <strong class="text-slate-800 dark:text-gray-100 block text-xs mt-0.5">{{ selectedPayment.tenant_name }}</strong>
+                <strong class="text-slate-800 dark:text-gray-100 block text-xs mt-0.5">{{ selectedPayment.tenant_name
+                  }}</strong>
                 <span class="text-[10px] text-slate-500 font-mono block">{{ selectedPayment.tenant_domain }}</span>
               </div>
 
               <div class="bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
                 <span class="text-[10px] uppercase text-slate-400 block font-medium">Payment Gateway</span>
-                <strong class="text-slate-800 dark:text-gray-100 block text-xs mt-0.5 capitalize">{{ getGatewayLabel(selectedPayment.gateway) }}</strong>
-                <span class="text-[10px] text-slate-500 font-mono block">Ref: {{ selectedPayment.gateway_ref || 'N/A' }}</span>
+                <strong class="text-slate-800 dark:text-gray-100 block text-xs mt-0.5 capitalize">{{
+                  getGatewayLabel(selectedPayment.gateway) }}</strong>
+                <span class="text-[10px] text-slate-500 font-mono block">Ref: {{ selectedPayment.gateway_ref || 'N/A'
+                  }}</span>
               </div>
             </div>
 
             <!-- Line Items Table -->
             <div class="border border-slate-200 dark:border-gray-800">
               <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50 dark:bg-gray-900 text-slate-500 text-[10px] uppercase border-b border-slate-200 dark:border-gray-800">
+                <thead
+                  class="bg-slate-50 dark:bg-gray-900 text-slate-500 text-[10px] uppercase border-b border-slate-200 dark:border-gray-800">
                   <tr>
                     <th class="p-2 font-normal">Subscription Item</th>
                     <th class="p-2 font-normal text-center">Cycle</th>
@@ -332,9 +386,19 @@
             </div>
 
             <!-- Footer Action -->
-            <div class="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-gray-800">
+            <div class="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-gray-800">
+              <div class="flex items-center gap-2">
+                <button v-if="selectedPayment.status === 'pending'" @click="handleApprovePayment(selectedPayment.id)"
+                  class="px-3 py-1.5 bg-[#107c41] hover:bg-[#0e6b37] text-white font-normal text-xs cursor-pointer shadow-2xs transition-colors">
+                  Approve & Activate Plan
+                </button>
+                <button v-if="selectedPayment.status === 'pending'" @click="handleRejectPayment(selectedPayment.id)"
+                  class="px-3 py-1.5 bg-white hover:bg-rose-50 text-[#d13438] dark:bg-gray-900 dark:text-rose-400 border border-slate-300 dark:border-gray-700 font-normal text-xs cursor-pointer shadow-2xs transition-colors">
+                  Reject Payment
+                </button>
+              </div>
               <button @click="showInvoiceModal = false"
-                class="px-4 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 font-normal text-xs cursor-pointer">
+                class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 font-normal text-xs cursor-pointer">
                 Close
               </button>
             </div>
@@ -517,6 +581,7 @@ const handleApprovePayment = async (id: number) => {
     });
     const data = await res.json();
     if (res.ok && data.success) {
+      showInvoiceModal.value = false;
       alert(data.message || 'Payment approved successfully!');
       await fetchPayments();
     } else {
@@ -540,6 +605,7 @@ const handleRejectPayment = async (id: number) => {
     });
     const data = await res.json();
     if (res.ok && data.success) {
+      showInvoiceModal.value = false;
       alert(data.message || 'Payment request rejected.');
       await fetchPayments();
     } else {

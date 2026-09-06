@@ -147,10 +147,6 @@ async function initBillingDB() {
     } catch (e) {}
 
     try {
-      await db.query(`ALTER TABLE \`users\` MODIFY COLUMN \`status\` VARCHAR(50) NOT NULL DEFAULT 'active'`);
-    } catch (e) {}
-
-    try {
       await db.query(`ALTER TABLE \`users\` ADD COLUMN \`branch_id\` INT DEFAULT NULL AFTER \`tenant_id\``);
     } catch (e) {}
 
@@ -166,7 +162,27 @@ async function initBillingDB() {
       await db.query(`ALTER TABLE \`purchase_orders\` ADD COLUMN \`branch_id\` INT DEFAULT NULL AFTER \`tenant_id\``);
     } catch (e) {}
 
-    console.log('✅ Billing, Plans, Branches, Terminals & Payments database tables verified / initialized in MySQL!');
+    // 6. Ensure all status columns across all core tables are VARCHAR(50) to prevent 'Data truncated' errors
+    const statusTables = [
+      { name: 'tenants', default: 'active' },
+      { name: 'pharmacy_tenants', default: 'active' },
+      { name: 'users', default: 'active' },
+      { name: 'tenant_subscriptions', default: 'active' },
+      { name: 'billings', default: 'pending' },
+      { name: 'payments', default: 'pending' },
+      { name: 'branches', default: 'active' },
+      { name: 'pos_terminals', default: 'active' }
+    ];
+
+    for (const table of statusTables) {
+      try {
+        await db.query(`ALTER TABLE \`${table.name}\` MODIFY COLUMN \`status\` VARCHAR(50) NOT NULL DEFAULT '${table.default}'`);
+      } catch (e) {
+        // Table might not exist yet or already updated
+      }
+    }
+
+    console.log('✅ Billing, Plans, Branches, Terminals, Subscriptions & Payments database tables verified / initialized in MySQL!');
   } catch (err) {
     console.warn('⚠️ Warning verifying/creating billing tables in MySQL:', err.message);
   }

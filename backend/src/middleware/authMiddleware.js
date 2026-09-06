@@ -138,6 +138,23 @@ const requireActiveSubscription = async (req, res, next) => {
       [req.tenantId]
     );
 
+    const tStatus = (tenant.status || '').toLowerCase();
+    const uStatus = (req.user?.status || '').toLowerCase();
+    const subStatus = (sub?.status || '').toLowerCase();
+    const isPending = tStatus === 'pending' || uStatus === 'pending' || subStatus === 'pending' || subStatus === 'pending_payment';
+
+    // 2. Pending account / payment verification — allow reads (GET), block all writes (POST/PUT/PATCH/DELETE)
+    if (isPending) {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        return res.status(403).json({
+          success: false,
+          code: 'SUBSCRIPTION_PENDING',
+          message: 'Your account is pending administrator approval. Create, edit, and delete actions are disabled until approved.'
+        });
+      }
+      return next();
+    }
+
     // No subscription record at all — deny writes, allow reads
     if (!sub) {
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
@@ -151,11 +168,10 @@ const requireActiveSubscription = async (req, res, next) => {
     }
 
     const now = new Date();
-    const subStatus = (sub.status || '').toLowerCase();
     const subEnd = sub.end_date ? new Date(sub.end_date) : null;
 
-    // 3. Active subscription — allow everything
-    if (subStatus === 'active' && subEnd && subEnd >= now) {
+    // 3. Active / Trial subscription — allow everything
+    if ((subStatus === 'active' || subStatus === 'trial') && subEnd && subEnd >= now) {
       return next();
     }
 

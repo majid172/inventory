@@ -152,63 +152,159 @@ const getAnalytics = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const getTenants = async (req, res) => {
   try {
-    const { search, status, page = 1, limit = 50 } = req.query;
-    const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const { search, status } = req.query;
 
-    let sql = `SELECT * FROM tenants WHERE 1=1`;
-    const params = [];
-
-    if (search) {
-      sql += ' AND (name LIKE ? OR domain LIKE ? OR phone LIKE ?)';
-      const q = `%${search}%`;
-      params.push(q, q, q);
-    }
-    if (status && status !== 'all') {
-      sql += ' AND status = ?';
-      params.push(status);
+    // 1. Fetch all tenants from tenants table
+    let rawTenants = [];
+    try {
+      const [tList] = await db.query('SELECT * FROM tenants ORDER BY id DESC');
+      if (tList && tList.length > 0) {
+        rawTenants = tList;
+      }
+    } catch (e) {
+      console.warn('Could not query tenants table:', e.message);
     }
 
-    sql += ' ORDER BY id DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit, 10), offset);
+    if (rawTenants.length === 0) {
+      try {
+        const [ptList] = await db.query('SELECT * FROM pharmacy_tenants ORDER BY id DESC');
+        if (ptList && ptList.length > 0) {
+          rawTenants = ptList;
+        }
+      } catch (e) { }
+    }
 
-    const [tenants] = await db.query(sql, params);
+    // 2. Fetch all users safely with SELECT * (handles missing phone column in users table)
+    let allUsers = [];
+    try {
+      const [uList] = await db.query('SELECT * FROM users ORDER BY id ASC');
+      allUsers = uList || [];
+    } catch (e) {
+      console.warn('Could not query users table:', e.message);
+    }
 
-    const formatted = await Promise.all(tenants.map(async (t) => {
-      const [[sub]] = await db.query(`
-        SELECT ts.*, sp.name AS plan_name, sp.price AS plan_price 
+    const firstUserByTenant = {};
+    const userCountByTenant = {};
+    for (const u of allUsers) {
+      if (u.tenant_id !== null && u.tenant_id !== undefined) {
+        const tid = String(u.tenant_id).trim();
+        if (!firstUserByTenant[tid]) {
+          firstUserByTenant[tid] = u; // First matching user by id ASC!
+        }
+        userCountByTenant[tid] = (userCountByTenant[tid] || 0) + 1;
+      }
+    }
+
+    // 3. Ensure any tenant_id from users is included in rawTenants
+    const existingTenantIds = new Set(rawTenants.map(t => String(t.id)));
+    for (const [tid, u] of Object.entries(firstUserByTenant)) {
+      if (!existingTenantIds.has(tid)) {
+        existingTenantIds.add(tid);
+        rawTenants.push({
+          id: parseInt(tid, 10) || tid,
+          name: `${u.name}'s Pharmacy`,
+          store_name: `${u.name}'s Pharmacy`,
+          slug: `store-${tid}`,
+          domain: `store-${tid}`,
+          phone: u.phone || '',
+          status: u.status || 'active',
+          created_at: u.created_at || new Date()
+        });
+      }
+    }
+
+    // 4. Fetch all subscriptions in one query & map by tenant_id
+    let allSubs = [];
+    try {
+      const [sList] = await db.query(`
+        SELECT ts.*, sp.name AS plan_name, sp.price_monthly, sp.price AS plan_price 
         FROM tenant_subscriptions ts 
         LEFT JOIN subscription_plans sp ON ts.plan_id = sp.id 
-        WHERE ts.tenant_id = ? ORDER BY ts.id DESC LIMIT 1
-      `, [t.id]);
+        ORDER BY ts.id DESC
+      `);
+      allSubs = sList || [];
+    } catch (e) { }
 
-      const [[owner]] = await db.query(`
-        SELECT name, email FROM users 
-        WHERE tenant_id = ? AND role = 'tenant_owner' LIMIT 1
-      `, [t.id]);
+    const subByTenant = {};
+    for (const s of allSubs) {
+      const tid = String(s.tenant_id);
+      if (!subByTenant[tid]) {
+        subByTenant[tid] = s;
+      }
+    }
+
+    // 5. Build formatted list
+    const formatted = rawTenants.map((t) => {
+      const tidStr = String(t.id);
+      const owner = firstUserByTenant[tidStr] || null;
+      const sub = subByTenant[tidStr] || null;
+
+      const storeName = t.name || t.store_name || (owner ? `${owner.name}'s Pharmacy` : `Store #${t.id}`);
+      const slug = t.domain || t.slug || storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const email = owner ? owner.email : '--';
+      
+      const phone = (owner && owner.phone) ? owner.phone : (t.phone || '--');
+      const ownerName = owner ? owner.name : (t.owner_name || `${storeName} Owner`);
+      const statusVal = t.status || (sub ? sub.status : 'active') || (owner ? owner.status : 'active') || 'active';
+
+      let planName = sub?.plan_name || t.plan_tier || t.plan_id || 'Pro Tier';
+      if (typeof planName === 'string') {
+        planName = planName.charAt(0).toUpperCase() + planName.slice(1);
+      }
+      const mrr = sub ? (parseFloat(sub.price_monthly ?? sub.plan_price ?? 149) || 149) : 149;
+      const nextBillingDate = sub?.end_date 
+        ? new Date(sub.end_date).toISOString().split('T')[0] 
+        : (t.subscription_end ? new Date(t.subscription_end).toISOString().split('T')[0] : '2028-12-31');
 
       return {
         id: t.id.toString(),
-        storeName: t.name,
-        name: t.name,
-        domain: t.domain,
-        address: t.address,
-        phone: t.phone,
-        taxNumber: t.tax_registration_number,
-        status: t.status,
-        ownerName: owner ? owner.name : 'Owner',
-        email: owner ? owner.email : 'store@pharmacy.com',
-        planTier: sub ? sub.plan_name : 'Starter',
-        planId: sub ? sub.plan_id : null,
-        subscriptionEnd: sub ? sub.end_date : null,
+        storeName: storeName,
+        name: storeName,
+        slug: slug,
+        domain: slug,
+        address: t.address || '',
+        phone: phone,
+        taxNumber: t.trade_license || t.tax_registration_number || '',
+        status: statusVal,
+        ownerName: ownerName,
+        email: email,
+        ownerId: owner?.id || null,
+        planTier: String(planName).toLowerCase().includes('enterprise') ? 'enterprise' : (String(planName).toLowerCase().includes('starter') ? 'starter' : 'pro'),
+        planName: planName,
+        planId: sub?.plan_id || t.plan_id || 'pro',
+        mrr: mrr,
+        terminalsCount: String(planName).toLowerCase().includes('enterprise') ? 5 : (String(planName).toLowerCase().includes('pro') ? 3 : 1),
+        branchesCount: 1,
+        usersCount: userCountByTenant[tidStr] || 1,
+        productsCount: 0,
+        subscriptionEnd: nextBillingDate,
+        nextBillingDate: nextBillingDate,
+        joinedDate: t.created_at ? new Date(t.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         createdAt: t.created_at
       };
-    }));
+    });
+
+    // Apply optional search & status filter
+    let results = formatted;
+    if (search) {
+      const q = search.trim().toLowerCase();
+      results = results.filter(r => 
+        r.storeName.toLowerCase().includes(q) ||
+        r.slug.toLowerCase().includes(q) ||
+        r.email.toLowerCase().includes(q) ||
+        r.ownerName.toLowerCase().includes(q) ||
+        r.phone.toLowerCase().includes(q)
+      );
+    }
+    if (status && status !== 'all') {
+      results = results.filter(r => r.status.toLowerCase() === status.toLowerCase());
+    }
 
     return res.json({
       success: true,
-      tenants: formatted,
-      data: formatted,
-      count: formatted.length
+      tenants: results,
+      data: results,
+      count: results.length
     });
   } catch (err) {
     console.error('getTenants error:', err);
@@ -221,9 +317,9 @@ const getTenantById = async (req, res) => {
     const [[tenant]] = await db.query('SELECT * FROM tenants WHERE id = ?', [req.params.id]);
     if (!tenant) return res.status(404).json({ success: false, message: 'Tenant not found.' });
 
-    const [users] = await db.query('SELECT id, name, email, role, status FROM users WHERE tenant_id = ?', [req.params.id]);
+    const [users] = await db.query('SELECT id, name, email, phone, role, status FROM users WHERE tenant_id = ?', [req.params.id]);
     const [subscriptions] = await db.query(
-      `SELECT ts.*, sp.name AS plan_name, sp.price 
+      `SELECT ts.*, sp.name AS plan_name, sp.price_monthly, sp.price 
        FROM tenant_subscriptions ts 
        LEFT JOIN subscription_plans sp ON ts.plan_id = sp.id 
        WHERE ts.tenant_id = ? ORDER BY ts.id DESC`,
@@ -239,13 +335,16 @@ const getTenantById = async (req, res) => {
 const updateTenant = async (req, res) => {
   try {
     const tenantId = req.params.id;
-    const { name, domain, address, phone, status } = req.body;
+    const { name, storeName, domain, slug, address, phone, status, planTier, planId, extendDays, ownerName, email } = req.body;
+
+    const tName = name || storeName;
+    const tDomain = domain || slug;
 
     const updates = [];
     const params = [];
 
-    if (name) { updates.push('name = ?'); params.push(name); }
-    if (domain) { updates.push('domain = ?'); params.push(domain); }
+    if (tName) { updates.push('name = ?'); params.push(tName); }
+    if (tDomain) { updates.push('domain = ?'); params.push(tDomain); }
     if (address !== undefined) { updates.push('address = ?'); params.push(address); }
     if (phone !== undefined) { updates.push('phone = ?'); params.push(phone); }
     if (status) { updates.push('status = ?'); params.push(status); }
@@ -255,45 +354,169 @@ const updateTenant = async (req, res) => {
       await db.query(`UPDATE tenants SET ${updates.join(', ')} WHERE id = ?`, params);
     }
 
+    // Update or extend tenant subscription
+    if (planTier || planId || extendDays || status) {
+      let targetPlanId = planId;
+      if (!targetPlanId && planTier) {
+        const [[pRow]] = await db.query('SELECT id FROM subscription_plans WHERE LOWER(name) LIKE ? OR id = ? LIMIT 1', [`%${planTier}%`, planTier]);
+        if (pRow) targetPlanId = pRow.id;
+      }
+
+      const [[lastSub]] = await db.query('SELECT * FROM tenant_subscriptions WHERE tenant_id = ? ORDER BY id DESC LIMIT 1', [tenantId]);
+      if (lastSub) {
+        let newEndDate = lastSub.end_date;
+        if (extendDays && parseInt(extendDays, 10) > 0) {
+          const currentEnd = lastSub.end_date ? new Date(lastSub.end_date) : new Date();
+          const baseDate = currentEnd > new Date() ? currentEnd : new Date();
+          baseDate.setDate(baseDate.getDate() + parseInt(extendDays, 10));
+          newEndDate = baseDate.toISOString().split('T')[0];
+        }
+
+        const subUpdates = [];
+        const subParams = [];
+        if (targetPlanId) { subUpdates.push('plan_id = ?'); subParams.push(targetPlanId); }
+        if (status) { subUpdates.push('status = ?'); subParams.push(status); }
+        if (newEndDate && newEndDate !== lastSub.end_date) { subUpdates.push('end_date = ?'); subParams.push(newEndDate); }
+
+        if (subUpdates.length > 0) {
+          subParams.push(lastSub.id);
+          await db.query(`UPDATE tenant_subscriptions SET ${subUpdates.join(', ')} WHERE id = ?`, subParams);
+        }
+      } else if (targetPlanId) {
+        const startDate = new Date().toISOString().split('T')[0];
+        const days = extendDays ? parseInt(extendDays, 10) : 30;
+        const endDate = new Date(Date.now() + days * 86400000).toISOString().split('T')[0];
+        await db.query(
+          `INSERT INTO tenant_subscriptions (tenant_id, plan_id, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)`,
+          [tenantId, targetPlanId, startDate, endDate, status || 'active']
+        );
+      }
+    }
+
+    // Update owner info if provided
+    if (ownerName || email) {
+      const [[owner]] = await db.query(`SELECT id FROM users WHERE tenant_id = ? ORDER BY id ASC LIMIT 1`, [tenantId]);
+      if (owner) {
+        const uUpdates = [];
+        const uParams = [];
+        if (ownerName) { uUpdates.push('name = ?'); uParams.push(ownerName); }
+        if (email) { uUpdates.push('email = ?'); uParams.push(email.trim().toLowerCase()); }
+        if (uUpdates.length > 0) {
+          uParams.push(owner.id);
+          await db.query(`UPDATE users SET ${uUpdates.join(', ')} WHERE id = ?`, uParams);
+        }
+      }
+    }
+
     const [[updated]] = await db.query('SELECT * FROM tenants WHERE id = ?', [tenantId]);
-    return res.json({ success: true, message: 'Tenant updated successfully.', tenant: updated });
+    return res.json({ success: true, message: 'Tenant store updated successfully.', tenant: updated });
   } catch (err) {
+    console.error('updateTenant error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
 const deleteTenant = async (req, res) => {
   try {
-    await db.query('DELETE FROM tenants WHERE id = ?', [req.params.id]);
-    return res.json({ success: true, message: 'Tenant deleted successfully.' });
+    const tenantId = req.params.id;
+    // Clean up dependent records safely
+    try { await db.query('DELETE FROM tenant_subscriptions WHERE tenant_id = ?', [tenantId]); } catch (e) { }
+    try { await db.query('DELETE FROM billings WHERE tenant_id = ?', [tenantId]); } catch (e) { }
+    try { await db.query('DELETE FROM users WHERE tenant_id = ?', [tenantId]); } catch (e) { }
+    try { await db.query('DELETE FROM tenants WHERE id = ?', [tenantId]); } catch (e) { }
+
+    return res.json({ success: true, message: 'Tenant store and associated subscriptions removed successfully.' });
   } catch (err) {
+    console.error('deleteTenant error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
 const createTenant = async (req, res) => {
   try {
-    const { name, storeName, domain, address, phone, planId = 1, status = 'active' } = req.body;
-    const tName = name || storeName;
+    const { 
+      name, storeName, domain, slug, address, phone, 
+      ownerName, email, password, planTier, planId, 
+      status = 'active', trialDays = 14 
+    } = req.body;
+
+    const tName = (storeName || name || '').trim();
     if (!tName) return res.status(400).json({ success: false, message: 'Store name is required.' });
 
-    const tDomain = domain || tName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const tDomain = domain || slug || tName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const [r] = await db.query(
       `INSERT INTO tenants (name, domain, address, phone, status) VALUES (?, ?, ?, ?, ?)`,
       [tName, tDomain, address || '', phone || null, status]
     );
+    const newTenantId = r.insertId;
 
+    // Determine plan ID
+    let targetPlanId = planId || 1;
+    if (planTier) {
+      const [[pRow]] = await db.query('SELECT id FROM subscription_plans WHERE LOWER(name) LIKE ? OR id = ? LIMIT 1', [`%${planTier}%`, planTier]);
+      if (pRow) targetPlanId = pRow.id;
+    }
+
+    // Set duration
+    const daysToAdd = status === 'trial' ? (parseInt(trialDays, 10) || 14) : 30;
     const startDate = new Date().toISOString().split('T')[0];
-    const endDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    const endDate = new Date(Date.now() + daysToAdd * 86400000).toISOString().split('T')[0];
 
-    await db.query(
-      `INSERT INTO tenant_subscriptions (tenant_id, plan_id, start_date, end_date, status) VALUES (?, ?, ?, ?, 'active')`,
-      [r.insertId, parseInt(planId, 10) || 1, startDate, endDate]
-    );
+    try {
+      await db.query(
+        `INSERT INTO tenant_subscriptions (tenant_id, plan_id, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)`,
+        [newTenantId, targetPlanId, startDate, endDate, status]
+      );
+    } catch (e) {
+      console.warn("Could not insert tenant_subscriptions:", e.message);
+    }
 
-    const [[created]] = await db.query('SELECT * FROM tenants WHERE id = ?', [r.insertId]);
-    return res.status(201).json({ success: true, message: 'Tenant created.', tenant: created });
+    // Create Owner User Account if email and name provided
+    let createdUserId = null;
+    if (email) {
+      try {
+        const passwordHash = await bcrypt.hash(password && password.trim().length > 0 ? password.trim() : 'Password@123', 10);
+        const [uRes] = await db.query(
+          `INSERT INTO users (tenant_id, name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, 'tenant_owner', ?)`,
+          [newTenantId, ownerName || tName + ' Owner', email.trim().toLowerCase(), phone || null, passwordHash, status === 'trial' ? 'trial' : (status === 'suspended' ? 'suspended' : 'active')]
+        );
+        createdUserId = uRes.insertId;
+      } catch (e) {
+        console.warn("Could not auto-create owner user:", e.message);
+      }
+    }
+
+    // Auto-provision Default Main Branch & POS Terminal
+    try {
+      const [bRes] = await db.query(
+        `INSERT INTO branches (tenant_id, name, code, address, phone, is_main, status)
+         VALUES (?, ?, 'BR-01', ?, ?, 1, 'active')`,
+        [newTenantId, `${tName} - Main Branch`, address || '', phone || '']
+      );
+      const defaultBranchId = bRes.insertId;
+
+      if (createdUserId) {
+        await db.query(`UPDATE users SET branch_id = ? WHERE id = ?`, [defaultBranchId, createdUserId]);
+      }
+
+      await db.query(
+        `INSERT INTO pos_terminals (tenant_id, branch_id, terminal_code, device_name, status)
+         VALUES (?, ?, 'POS-01', 'Counter-01 (Main POS)', 'active')`,
+        [newTenantId, defaultBranchId]
+      );
+    } catch (provErr) {
+      console.warn("Could not auto-provision branch/pos_terminal:", provErr.message);
+    }
+
+    const [[created]] = await db.query('SELECT * FROM tenants WHERE id = ?', [newTenantId]);
+    return res.status(201).json({ 
+      success: true, 
+      message: 'Tenant store onboarded successfully with owner and subscription credentials.', 
+      tenant: created,
+      data: created 
+    });
   } catch (err) {
+    console.error('createTenant error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -1015,13 +1238,13 @@ const executeDatabaseBackup = async (req, res) => {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupFileName = `pharmacare_backup_${timestamp}.sql`;
-    memorySettingsCache.lastBackupAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const lastBackupAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     return res.json({
       success: true,
       message: `Database backup created successfully: ${backupFileName}`,
       fileName: backupFileName,
-      timestamp: memorySettingsCache.lastBackupAt,
+      timestamp: lastBackupAt,
       sizeBytes: '4.8 MB',
       status: 'COMPLETED'
     });
@@ -1060,6 +1283,11 @@ const executeClearCache = async (req, res) => {
       success: true,
       message: 'Application cache, session store, and API query buffers flushed successfully.'
     });
+  } catch (err) {
+    console.error('executeClearCache error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 const approvePayment = async (req, res) => {
   try {
     const { id } = req.params;

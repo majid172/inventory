@@ -104,7 +104,7 @@
                 <td
                   class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal text-slate-600 dark:text-gray-400">
                   {{ row.dosageForm || 'Tablet' }}<span v-if="row.strength && row.strength !== '-'"> ({{ row.strength
-                    }})</span>
+                  }})</span>
                 </td>
 
                 <!-- Category -->
@@ -259,7 +259,7 @@
                     class="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">⚡ Auto-Complete Powered</span>
                 </label>
                 <input type="text" v-model="newProd.name" @input="handleMedicineInput" @focus="handleMedicineInput"
-                  required
+                  @blur="handleMedicineBlur" required
                   :placeholder="newProd.productType === 'medicine' ? 'Type 2+ letters e.g. Napa, Ace, Seclo...' : 'e.g. Savlon Antiseptic 500ml'"
                   class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 font-normal focus:outline-none focus:border-emerald-500 text-xs" />
 
@@ -280,12 +280,12 @@
                       <span
                         class="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 border rounded">
                         {{ item.dosageForm || item.dosage_form || 'Tablet' }} {{ item.strength ? `• ${item.strength}` :
-                        '' }}
+                          '' }}
                       </span>
                     </div>
                     <div class="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 flex justify-between">
                       <span>Generic: <strong class="text-slate-700 dark:text-gray-300">{{ item.genericName ||
-                          item.generic_name }}</strong></span>
+                        item.generic_name }}</strong></span>
                       <span v-if="item.manufacturer" class="italic">{{ item.manufacturer }}</span>
                     </div>
                   </div>
@@ -680,8 +680,12 @@ const handleMedicineInput = () => {
 
   clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(async () => {
+    const token = process.client ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || '') : '';
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     try {
-      const res = await fetch(`http://localhost:5000/api/super-admin/master-drugs?search=${encodeURIComponent(query)}`);
+      const res = await fetch(`http://localhost:5000/api/master-drugs?search=${encodeURIComponent(query)}`, { headers });
       const data = await res.json();
       if (data && data.success && Array.isArray(data.data)) {
         masterDrugSearchResults.value = data.data;
@@ -689,19 +693,27 @@ const handleMedicineInput = () => {
         return;
       }
     } catch (e) {
-      console.warn("Direct Express fetch failed, trying proxy...", e);
+      console.warn("Direct master-drugs fetch failed, trying fallback...", e);
     }
 
     try {
-      const res: any = await $fetch(`/api/super-admin/master-drugs?search=${encodeURIComponent(query)}`);
-      if (res && res.success && Array.isArray(res.data)) {
-        masterDrugSearchResults.value = res.data;
-        showMasterDrugDropdown.value = res.data.length > 0;
+      const res = await fetch(`http://localhost:5000/api/super-admin/master-drugs?search=${encodeURIComponent(query)}`, { headers });
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.data)) {
+        masterDrugSearchResults.value = data.data;
+        showMasterDrugDropdown.value = data.data.length > 0;
+        return;
       }
     } catch (e) {
-      console.warn("Master drug fetch failed:", e);
+      console.warn("Super admin master drug fetch failed:", e);
     }
-  }, 150);
+  }, 100);
+};
+
+const handleMedicineBlur = () => {
+  setTimeout(() => {
+    showMasterDrugDropdown.value = false;
+  }, 250);
 };
 
 const selectMasterDrug = (item: any) => {

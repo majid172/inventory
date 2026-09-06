@@ -8,8 +8,9 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export interface TenantSubscriptionInfo {
   isExpired: boolean;
+  isPending?: boolean;
   daysRemaining: number;
-  status: 'active' | 'trial' | 'suspended' | 'expired' | 'trial_expired';
+  status: 'active' | 'trial' | 'suspended' | 'expired' | 'trial_expired' | 'pending';
   storeName: string;
   planTier: string;
   nextBillingDate: string;
@@ -49,6 +50,7 @@ export function useTenantSubscription() {
     if (!store && !authUser) {
       return {
         isExpired: false,
+        isPending: false,
         daysRemaining: 14,
         status: 'active',
         storeName: 'My Pharmacy',
@@ -60,6 +62,7 @@ export function useTenantSubscription() {
 
     const status: string =
       authUser?.subscriptionStatus ||
+      authUser?.status ||
       store?.status ||
       'trial';
 
@@ -78,13 +81,18 @@ export function useTenantSubscription() {
       nextBillingDate = joined.toISOString().split('T')[0];
     }
 
+    // Pending account status
+    if (status === 'pending' || status === 'pending_payment') {
+      return { isExpired: false, isPending: true, daysRemaining: 0, status: 'pending', storeName, planTier, nextBillingDate, joinedDate };
+    }
+
     // Definitively expired/suspended statuses
     if (status === 'expired' || status === 'suspended' || status === 'inactive') {
-      return { isExpired: true, daysRemaining: 0, status: status as any, storeName, planTier, nextBillingDate, joinedDate };
+      return { isExpired: true, isPending: false, daysRemaining: 0, status: status as any, storeName, planTier, nextBillingDate, joinedDate };
     }
 
     if (status === 'active') {
-      return { isExpired: false, daysRemaining: 365, status: 'active', storeName, planTier, nextBillingDate, joinedDate };
+      return { isExpired: false, isPending: false, daysRemaining: 365, status: 'active', storeName, planTier, nextBillingDate, joinedDate };
     }
 
     // Trial — calculate days remaining
@@ -95,10 +103,10 @@ export function useTenantSubscription() {
     const daysRemaining = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     if (daysRemaining <= 0) {
-      return { isExpired: true, daysRemaining: 0, status: 'trial_expired', storeName, planTier, nextBillingDate, joinedDate };
+      return { isExpired: true, isPending: false, daysRemaining: 0, status: 'trial_expired', storeName, planTier, nextBillingDate, joinedDate };
     }
 
-    return { isExpired: false, daysRemaining, status: 'trial', storeName, planTier, nextBillingDate, joinedDate };
+    return { isExpired: false, isPending: false, daysRemaining, status: 'trial', storeName, planTier, nextBillingDate, joinedDate };
   };
 
   // ---------------------------------------------------------------------------
@@ -130,19 +138,23 @@ export function useTenantSubscription() {
   // Core: map raw API subscription object → TenantSubscriptionInfo
   // ---------------------------------------------------------------------------
   const mapApiSubscription = (sub: any, store: any): TenantSubscriptionInfo => {
-    const apiStatus: string = (sub.status || 'trial').toLowerCase();
+    const apiStatus: string = (sub.status || store?.status || 'trial').toLowerCase();
 
     const storeName = store?.storeName || store?.ownerName || sub.storeName || 'Pharmacy Store';
     const planTier = sub.plan_name || sub.planTier || store?.planTier || 'pro';
     const joinedDate = sub.start_date || store?.joinedDate || '2026-01-01';
     const nextBillingDate = sub.end_date || sub.nextBillingDate || store?.nextBillingDate || '2026-12-31';
 
+    if (apiStatus === 'pending' || apiStatus === 'pending_payment') {
+      return { isExpired: false, isPending: true, daysRemaining: 0, status: 'pending', storeName, planTier, nextBillingDate, joinedDate };
+    }
+
     if (apiStatus === 'expired' || apiStatus === 'suspended' || apiStatus === 'inactive') {
-      return { isExpired: true, daysRemaining: 0, status: apiStatus as any, storeName, planTier, nextBillingDate, joinedDate };
+      return { isExpired: true, isPending: false, daysRemaining: 0, status: apiStatus as any, storeName, planTier, nextBillingDate, joinedDate };
     }
 
     if (apiStatus === 'active') {
-      return { isExpired: false, daysRemaining: 365, status: 'active', storeName, planTier, nextBillingDate, joinedDate };
+      return { isExpired: false, isPending: false, daysRemaining: 365, status: 'active', storeName, planTier, nextBillingDate, joinedDate };
     }
 
     // trial
@@ -151,9 +163,10 @@ export function useTenantSubscription() {
     const daysRemaining = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     if (daysRemaining <= 0) {
-      return { isExpired: true, daysRemaining: 0, status: 'trial_expired', storeName, planTier, nextBillingDate, joinedDate };
+      return { isExpired: true, isPending: false, daysRemaining: 0, status: 'trial_expired', storeName, planTier, nextBillingDate, joinedDate };
     }
-    return { isExpired: false, daysRemaining, status: 'trial', storeName, planTier, nextBillingDate, joinedDate };
+
+    return { isExpired: false, isPending: false, daysRemaining, status: 'trial', storeName, planTier, nextBillingDate, joinedDate };
   };
 
   // ---------------------------------------------------------------------------

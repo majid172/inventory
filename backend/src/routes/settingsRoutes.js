@@ -28,3 +28,4 @@ router.get('/tenant', verifyTokenMiddleware, requireTenantAccess, settingsContro
 router.post('/tenant', verifyTokenMiddleware, requireTenantAccess, requireRole('STORE_ADMIN', 'SUPER_ADMIN'), settingsController.updateTenantSettings);
 
 module.exports = router;
+module.exports = router;

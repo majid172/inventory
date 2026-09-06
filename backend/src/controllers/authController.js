@@ -79,6 +79,14 @@ const registerTenant = async (req, res) => {
         message: 'Email address is required.'
       });
     }
+    // Ensure schema columns support trial, pending, suspended, expired
+    try { await db.query('ALTER TABLE `tenants` MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT "active"'); } catch (e) {}
+    try { await db.query('ALTER TABLE `users` MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT "active"'); } catch (e) {}
+    try { await db.query('ALTER TABLE `tenant_subscriptions` MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT "active"'); } catch (e) {}
+    try { await db.query('ALTER TABLE `billings` MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT "success"'); } catch (e) {}
+    try { await db.query('ALTER TABLE `payments` MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT "success"'); } catch (e) {}
+    try { await db.query('ALTER TABLE `branches` MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT "active"'); } catch (e) {}
+    try { await db.query('ALTER TABLE `pos_terminals` MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT "active"'); } catch (e) {}
 
     const bDomain = bStoreName ? bStoreName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : '';
 
@@ -100,10 +108,13 @@ const registerTenant = async (req, res) => {
 
       tenantId = existingTenant ? existingTenant.id : (existingUser ? existingUser.tenant_id : null);
       
-      // Update tenant & user status to 'active'
+      const explicitStatus = req.body.status;
+      const renewStatus = explicitStatus || (Boolean(req.body.trx_no || req.body.trxNo) ? 'pending' : 'active');
+
+      // Update tenant & user status
       if (tenantId) {
-        await db.query(`UPDATE tenants SET status = 'active' WHERE id = ?`, [tenantId]);
-        await db.query(`UPDATE users SET status = 'active' WHERE tenant_id = ?`, [tenantId]);
+        await db.query(`UPDATE tenants SET status = ? WHERE id = ?`, [renewStatus, tenantId]);
+        await db.query(`UPDATE users SET status = ? WHERE tenant_id = ?`, [renewStatus, tenantId]);
       }
 
       // If user exists, update password if provided
@@ -120,8 +131,8 @@ const registerTenant = async (req, res) => {
         const passwordHash = await bcrypt.hash(password || '123456', salt);
         const [uRes] = await db.query(
           `INSERT INTO users (tenant_id, name, email, password_hash, role, status)
-           VALUES (?, ?, ?, ?, 'tenant_owner', 'active')`,
-          [tenantId, bOwnerName, bEmail, passwordHash]
+           VALUES (?, ?, ?, ?, 'tenant_owner', ?)`,
+          [tenantId, bOwnerName, bEmail, passwordHash, renewStatus]
         );
         userId = uRes.insertId;
       }
@@ -133,9 +144,11 @@ const registerTenant = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Password is required for new pharmacy store registration.' });
       }
 
-      // 1. Determine trial mode
-      const isFreeTrial = req.body.gateway === 'free_trial' || req.body.billingType === 'trial' || !req.body.trx_no;
-      const initialStatus = isFreeTrial ? 'trial' : 'active';
+      // 1. Determine trial / pending mode
+      const explicitStatus = req.body.status;
+      const isFreeTrial = req.body.gateway === 'free_trial' || req.body.billingType === 'trial';
+      const isPendingPayment = !isFreeTrial && Boolean(req.body.trx_no || req.body.trxNo || req.body.transactionId || req.body.transaction_no);
+      const initialStatus = explicitStatus || (isFreeTrial ? 'trial' : (isPendingPayment ? 'pending' : 'active'));
 
       // Insert Tenant
       const [tenantResult] = await db.query(
@@ -151,8 +164,8 @@ const registerTenant = async (req, res) => {
 
       const [userResult] = await db.query(
         `INSERT INTO users (tenant_id, name, email, password_hash, role, status)
-         VALUES (?, ?, ?, ?, 'tenant_owner', 'active')`,
-        [tenantId, bOwnerName, bEmail, passwordHash]
+         VALUES (?, ?, ?, ?, 'tenant_owner', ?)`,
+        [tenantId, bOwnerName, bEmail, passwordHash, initialStatus]
       );
       userId = userResult.insertId;
 
@@ -332,47 +345,47 @@ const login = async (req, res) => {
     // Status & Subscription Expiry Verification (Non-SuperAdmin Users)
     if (!isSuperAdminUser) {
       const uStatus = (user.status || 'active').toLowerCase();
-      if (uStatus === 'inactive' || uStatus === 'suspended' || uStatus === 'expired' || uStatus === 'disabled') {
+      const tStatus = (tenant?.status || 'active').toLowerCase();
+      const sStatus = (subscription?.status || 'active').toLowerCase();
+
+      // 1. SUSPENDED CHECK (Explicitly suspended by Super Admin)
+      if (uStatus === 'suspended' || tStatus === 'suspended' || sStatus === 'suspended') {
         return res.status(403).json({
           success: false,
-          code: 'SUBSCRIPTION_EXPIRED',
-          message: '⚠️ Subscription Expired / Account Inactive! Your account is currently inactive or suspended. Please renew your subscription to access your panel.'
+          code: 'ACCOUNT_SUSPENDED',
+          message: 'Account suspended by administrator. Please contact support.'
         });
       }
 
-      if (tenant) {
-        const tStatus = (tenant.status || 'active').toLowerCase();
-        if (tStatus === 'inactive' || tStatus === 'suspended' || tStatus === 'expired') {
-          return res.status(403).json({
-            success: false,
-            code: 'SUBSCRIPTION_EXPIRED',
-            message: '⚠️ Subscription Expired / Store Suspended! Your pharmacy store account is currently inactive. Please renew your plan to access your panel.'
-          });
-        }
+      // 2. INACTIVE CHECK
+      if (uStatus === 'inactive' || uStatus === 'disabled' || tStatus === 'inactive') {
+        return res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_INACTIVE',
+          message: 'Account is inactive. Please contact support.'
+        });
       }
 
-      if (subscription) {
-        const sStatus = (subscription.status || 'active').toLowerCase();
-        const todayStr = new Date().toISOString().split('T')[0];
-        const endStr = subscription.end_date ? new Date(subscription.end_date).toISOString().split('T')[0] : null;
-        const isExpired = sStatus === 'expired' || sStatus === 'suspended' || (endStr && endStr < todayStr);
+      // 3. EXPIRED SUBSCRIPTION CHECK
+      const todayStr = new Date().toISOString().split('T')[0];
+      const endStr = subscription?.end_date ? new Date(subscription.end_date).toISOString().split('T')[0] : null;
+      const isExpired = tStatus === 'expired' || uStatus === 'expired' || sStatus === 'expired' || (endStr && endStr < todayStr);
 
-        if (isExpired) {
-          // Auto sync status = 'expired' in MySQL
-          if (user.tenant_id) {
-            try {
-              await db.query(`UPDATE tenants SET status = 'expired' WHERE id = ?`, [user.tenant_id]);
-              await db.query(`UPDATE users SET status = 'expired' WHERE tenant_id = ?`, [user.tenant_id]);
-              await db.query(`UPDATE tenant_subscriptions SET status = 'expired' WHERE tenant_id = ?`, [user.tenant_id]);
-            } catch (e) {}
-          }
-
-          return res.status(403).json({
-            success: false,
-            code: 'SUBSCRIPTION_EXPIRED',
-            message: `⚠️ Subscription Expired! Your subscription plan expired on ${endStr || 'recently'}. Please renew your plan to reactivate access.`
-          });
+      if (isExpired) {
+        // Auto sync status = 'expired' in MySQL
+        if (user.tenant_id) {
+          try {
+            await db.query(`UPDATE tenants SET status = 'expired' WHERE id = ? AND status != 'suspended'`, [user.tenant_id]);
+            await db.query(`UPDATE users SET status = 'expired' WHERE tenant_id = ? AND status != 'suspended'`, [user.tenant_id]);
+            await db.query(`UPDATE tenant_subscriptions SET status = 'expired' WHERE tenant_id = ? AND status != 'suspended'`, [user.tenant_id]);
+          } catch (e) {}
         }
+
+        return res.status(403).json({
+          success: false,
+          code: 'SUBSCRIPTION_EXPIRED',
+          message: 'Subscription plan expired. Please renew your plan.'
+        });
       }
     }
     let branch = null;

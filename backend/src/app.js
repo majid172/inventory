@@ -21,6 +21,7 @@ const plansRoutes       = require('./routes/plansRoutes');
 const settingsRoutes    = require('./routes/settingsRoutes');
 const terminalRoutes    = require('./routes/terminalRoutes');
 const branchRoutes      = require('./routes/branchRoutes');
+const { getMasterDrugs } = require('./controllers/superAdminController');
 
 // Legacy routes (kept for backward compat)
 const productRoutes     = require('./routes/productRoutes');
@@ -51,6 +52,7 @@ app.use('/api/inventory',   inventoryRoutes);   // Tenant: inventory, products, 
 app.use('/api/sales',       salesRoutes);       // Tenant: POS, sales history
 app.use('/api/terminals',   terminalRoutes);   // Tenant: POS Terminals / PC Counters
 app.use('/api/branches',    branchRoutes);      // Tenant: Pharmacy Outlets / Branches
+app.get('/api/master-drugs', getMasterDrugs);    // Global / Tenant: Master Drug dictionary
 app.use('/api/super-admin', superAdminRoutes);  // Super Admin panel
 
 // Legacy API mounts (maintained for existing frontend pages)
