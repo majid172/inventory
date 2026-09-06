@@ -63,16 +63,26 @@ export default defineNuxtRouteMiddleware((to, _from) => {
       return navigateTo('/login');
     }
 
+    const { getSubscriptionInfo, fetchSubscriptionStatus } = useTenantSubscription();
+    const info = getSubscriptionInfo();
+
+    // STRICT PENDING CHECK: Pending accounts cannot access dashboard or POS until SuperAdmin approval
+    const uStat = (authUser?.status || '').toLowerCase();
+    const subStat = (authUser?.subscriptionStatus || '').toLowerCase();
+    if (info.isPending || (info.status as string) === 'pending' || uStat === 'pending' || subStat === 'pending') {
+      if (process.client) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('is_logged_in');
+      }
+      return navigateTo('/login?reason=pending');
+    }
+
     // 3b. Subscription Gatekeeper
     // Allow billing page through always so tenant owner can renew
     const isBillingPage = to.path === '/admin/billing';
 
     if (!isBillingPage) {
-      const { getSubscriptionInfo, fetchSubscriptionStatus } = useTenantSubscription();
-
-      // Synchronous fast-read from memory/cache for instant decision
-      const info = getSubscriptionInfo();
-
       if (info.isExpired) {
         // If cashier or branch manager, block with alert; if owner, redirect to billing
         if (isCashier || isBranchManager) {
@@ -90,6 +100,16 @@ export default defineNuxtRouteMiddleware((to, _from) => {
   // 4. Redirect already-logged-in users away from /login
   // ──────────────────────────────────────────────────────────────────────────
   if (to.path === '/login' && isLoggedIn) {
+    const uStat = (authUser?.status || '').toLowerCase();
+    const subStat = (authUser?.subscriptionStatus || '').toLowerCase();
+    if (uStat === 'pending' || subStat === 'pending') {
+      if (process.client) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('is_logged_in');
+      }
+      return;
+    }
     if (isSuperAdmin) return navigateTo('/super-admin');
     if (isCashier) return navigateTo('/pos');
     return navigateTo('/admin');

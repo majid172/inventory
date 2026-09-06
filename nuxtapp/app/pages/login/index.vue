@@ -33,8 +33,22 @@
           </p>
         </div>
 
+        <!-- Account Pending Alert -->
+        <div v-if="isAccountPending"
+          class="p-3 bg-amber-50 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-900 text-amber-900 dark:text-amber-200 text-xs flex items-center justify-between gap-2 shadow-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-base">⏳</span>
+            <div>
+              <span class="font-bold block">Account Pending Approval</span>
+              <span>{{ authError || 'Your account is pending approval. You will get dashboard access once the Super Admin approves your subscription.' }}</span>
+            </div>
+          </div>
+          <button type="button" @click="clearAlerts"
+            class="text-amber-400 hover:text-amber-600 dark:hover:text-amber-200 cursor-pointer text-xs font-bold px-1">✕</button>
+        </div>
+
         <!-- Account Suspended Alert -->
-        <div v-if="isAccountSuspended"
+        <div v-else-if="isAccountSuspended"
           class="p-2.5 bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-400 text-xs flex items-center justify-between gap-2 shadow-xs">
           <span>{{ authError || 'Your account is suspended. Please contact administrator.' }}</span>
           <button type="button" @click="clearAlerts"
@@ -169,12 +183,14 @@ const showPassword = ref(false);
 const rememberMe = ref(true);
 const loading = ref(false);
 const authError = ref('');
+const isAccountPending = ref(false);
 const isAccountSuspended = ref(false);
 const isSubscriptionExpired = ref(false);
 const authSuccess = ref('');
 
 const clearAlerts = () => {
   authError.value = '';
+  isAccountPending.value = false;
   isAccountSuspended.value = false;
   isSubscriptionExpired.value = false;
 };
@@ -183,8 +199,11 @@ onMounted(() => {
   if (route.query.email) {
     identifier.value = String(route.query.email);
   }
-  if (route.query.pending === 'true') {
-    authSuccess.value = 'Subscription renewal submitted! Your payment is currently under review by SuperAdmin for verification.';
+  if (route.query.pending === 'true' || route.query.reason === 'pending') {
+    authError.value = 'Your account is pending approval. You will get dashboard access once the Super Admin approves your subscription.';
+    isAccountPending.value = true;
+    isAccountSuspended.value = false;
+    isSubscriptionExpired.value = false;
   } else if (route.query.renewed === 'true') {
     authSuccess.value = 'Subscription plan renewed successfully! You can now sign in.';
   }
@@ -192,16 +211,19 @@ onMounted(() => {
     authError.value = 'Subscription plan expired. Please renew to regain access.';
     isSubscriptionExpired.value = true;
     isAccountSuspended.value = false;
+    isAccountPending.value = false;
   } else if (route.query.reason === 'suspended') {
     authError.value = 'Account suspended by administrator.';
     isAccountSuspended.value = true;
     isSubscriptionExpired.value = false;
+    isAccountPending.value = false;
   }
 });
 
 const handleSignIn = async () => {
   if (!identifier.value.trim() || !password.value.trim()) {
     authError.value = 'Please enter both email/username and password.';
+    isAccountPending.value = false;
     isAccountSuspended.value = false;
     isSubscriptionExpired.value = false;
     return;
@@ -209,6 +231,7 @@ const handleSignIn = async () => {
 
   loading.value = true;
   authError.value = '';
+  isAccountPending.value = false;
   isAccountSuspended.value = false;
   isSubscriptionExpired.value = false;
   authSuccess.value = '';
@@ -260,11 +283,17 @@ const handleSignIn = async () => {
     } else {
       authError.value = data.message || 'Invalid email or password. Please try again.';
 
-      if (data.code === 'ACCOUNT_SUSPENDED' || (data.message && data.message.toLowerCase().includes('suspend'))) {
+      if (data.code === 'ACCOUNT_PENDING' || (data.message && data.message.toLowerCase().includes('pending'))) {
+        isAccountPending.value = true;
+        isAccountSuspended.value = false;
+        isSubscriptionExpired.value = false;
+      } else if (data.code === 'ACCOUNT_SUSPENDED' || (data.message && data.message.toLowerCase().includes('suspend'))) {
         isAccountSuspended.value = true;
+        isAccountPending.value = false;
         isSubscriptionExpired.value = false;
       } else if (data.code === 'SUBSCRIPTION_EXPIRED' || (data.message && (data.message.toLowerCase().includes('expire') || data.message.toLowerCase().includes('plan expired')))) {
         isSubscriptionExpired.value = true;
+        isAccountPending.value = false;
         isAccountSuspended.value = false;
       }
     }

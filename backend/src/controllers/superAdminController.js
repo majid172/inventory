@@ -352,6 +352,11 @@ const updateTenant = async (req, res) => {
     if (updates.length > 0) {
       params.push(tenantId);
       await db.query(`UPDATE tenants SET ${updates.join(', ')} WHERE id = ?`, params);
+      if (status) {
+        try {
+          await db.query(`UPDATE users SET status = ? WHERE tenant_id = ?`, [status, tenantId]);
+        } catch (uErr) {}
+      }
     }
 
     // Update or extend tenant subscription

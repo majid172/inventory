@@ -709,6 +709,12 @@ const handleRegisterStore = async () => {
       throw new Error(json.message || 'Registration failed');
     }
 
+    if (json.isPending) {
+      showModal.value = false;
+      navigateTo(`/login?pending=true&email=${encodeURIComponent(signupForm.email)}`);
+      return;
+    }
+
     if (json.token && json.user) {
       setAuthSession(json.token, json.user, json.tenant);
     }

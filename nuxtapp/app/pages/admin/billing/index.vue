@@ -749,7 +749,7 @@ const lockedReasonLabel = computed(() => {
   const labels: Record<string, { title: string; message: string; status: string }> = {
     pending: {
       title: 'Payment Verification Pending',
-      message: 'আপনার সাবস্ক্রিপশন পেমেন্ট বর্তমানে Super Admin ভেরিফিকেশনের অপেক্ষায় আছে। অনুমোদন পেলে সম্পূর্ণ অ্যাক্সেস চালু হবে।',
+      message: 'Your subscription payment is currently pending Super Admin verification. Full access will be activated once approved.',
       status: 'PENDING APPROVAL',
     },
     expired: {
@@ -1169,35 +1169,36 @@ const submitUpgrade = async () => {
   isSubmitting.value = true;
   try {
     const chosenPlan = availablePlans.value.find(p => String(p.id) === String(upgradeForm.value.planId)) || availablePlans.value[0];
-    const amount = upgradeForm.value.cycle === 'yearly' ? Math.round(chosenPlan.priceMonthly * 0.8 * 12) : chosenPlan.priceMonthly;
 
-    // Push new invoice record
-    const newInvoice = {
-      id: payments.value.length + 105,
-      invoice_no: `INV-${new Date().getFullYear()}-${String(payments.value.length + 105).padStart(5, '0')}`,
-      plan_name: chosenPlan.name,
-      amount: amount,
-      gateway: upgradeForm.value.gateway,
-      trx_no: upgradeForm.value.trxId,
-      status: 'PAID',
-      created_at: new Date().toISOString()
-    };
-    payments.value.unshift(newInvoice);
+    // Send renewal/upgrade request to backend
+    const res = await fetch('http://localhost:5000/api/auth/register-tenant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: auth.user.value?.email || '',
+        planId: chosenPlan.id,
+        billingCycle: upgradeForm.value.cycle,
+        gateway: upgradeForm.value.gateway,
+        trx_no: upgradeForm.value.trxId.trim()
+      })
+    });
 
-    if (activeSubscription.value) {
-      activeSubscription.value.plan_name = chosenPlan.name;
-      activeSubscription.value.price = chosenPlan.priceMonthly;
-    } else {
-      activeSubscription.value = {
-        plan_name: chosenPlan.name,
-        price: chosenPlan.priceMonthly,
-        status: 'active',
-        end_date: new Date(Date.now() + 30 * 86400000).toISOString()
-      };
+    const data = await res.json();
+    showUpgradeModal.value = false;
+
+    if (data && data.isPending) {
+      if (process.client) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('is_logged_in');
+      }
+      router.push('/login?reason=pending');
+      return;
     }
 
-    showUpgradeModal.value = false;
-    alert(`🎉 Subscription upgraded to ${chosenPlan.name} successfully! Payment Trx recorded.`);
+    alert(`🎉 Subscription updated to ${chosenPlan.name} successfully!`);
+    await fetchSubscription();
+    await fetchBillingData();
   } catch (err: any) {
     alert("Error upgrading subscription: " + err.message);
   } finally {

@@ -262,6 +262,22 @@ const registerTenant = async (req, res) => {
     const [[tenant]] = await db.query('SELECT * FROM tenants WHERE id = ?', [tenantId]);
     const [[user]] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
 
+    // STRICT PENDING APPROVAL CHECK:
+    // If account / payment is pending SuperAdmin verification, DO NOT issue token or login session!
+    // User must wait until SuperAdmin approves the payment/account.
+    if (isPendingPayment || initialStatus === 'pending' || subStatus === 'pending') {
+      return res.status(isRenewal ? 200 : 201).json({
+        success: true,
+        isRenewal,
+        isPending: true,
+        code: 'ACCOUNT_PENDING',
+        message: 'Your account is pending approval. You will get dashboard access once the Super Admin approves your subscription.',
+        token: null,
+        user: null,
+        tenant
+      });
+    }
+
     const token = signToken({
       id: userId,
       email: user.email,
@@ -269,16 +285,14 @@ const registerTenant = async (req, res) => {
       tenantId: tenantId
     });
 
-    const responseMsg = isPendingPayment
-      ? `Subscription payment (Trx ID: ${bTrxNo}) submitted successfully! Your account will be reactivated upon SuperAdmin verification.`
-      : (isRenewal 
-        ? 'Subscription plan renewed successfully! Store access reactivated.' 
-        : 'Pharmacy store registered & provisioned successfully.');
+    const responseMsg = isRenewal 
+      ? 'Subscription plan renewed successfully! Store access reactivated.' 
+      : 'Pharmacy store registered & provisioned successfully.';
 
     return res.status(isRenewal ? 200 : 201).json({
       success: true,
       isRenewal,
-      isPending: isPendingPayment,
+      isPending: false,
       message: responseMsg,
       token,
       user: formatUser(user, tenant, { plan_id: bPlanId, status: subStatus, end_date: endDate }),
@@ -347,6 +361,15 @@ const login = async (req, res) => {
       const uStatus = (user.status || 'active').toLowerCase();
       const tStatus = (tenant?.status || 'active').toLowerCase();
       const sStatus = (subscription?.status || 'active').toLowerCase();
+
+      // 0. PENDING CHECK (Strict block as requested)
+      if (uStatus === 'pending' || tStatus === 'pending' || sStatus === 'pending' || sStatus === 'pending_payment') {
+        return res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_PENDING',
+          message: 'Your account is pending approval. Please wait for Super Admin verification.'
+        });
+      }
 
       // 1. SUSPENDED CHECK (Explicitly suspended by Super Admin)
       if (uStatus === 'suspended' || tStatus === 'suspended' || sStatus === 'suspended') {

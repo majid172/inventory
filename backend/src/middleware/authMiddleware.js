@@ -8,7 +8,7 @@ const db = require('../config/db');
 // ---------------------------------------------------------------------------
 // 1. verifyTokenMiddleware — Parse & validate JWT on every protected request
 // ---------------------------------------------------------------------------
-const verifyTokenMiddleware = (req, res, next) => {
+const verifyTokenMiddleware = async (req, res, next) => {
   const authHeader = req.headers['authorization'] || req.headers['Authorization'];
   let token = null;
 
@@ -41,6 +41,50 @@ const verifyTokenMiddleware = (req, res, next) => {
       success: false,
       message: 'Invalid or expired token. Please sign in again.'
     });
+  }
+
+  // Check if user still exists in DB and is active
+  try {
+    const [[dbUser]] = await db.query('SELECT id, status, role, tenant_id FROM users WHERE id = ?', [decoded.id]);
+    if (!dbUser) {
+      return res.status(401).json({ success: false, message: 'User account has been deleted. Access revoked.' });
+    }
+    const uStatus = (dbUser.status || 'active').toLowerCase();
+    const isSuper = (dbUser.role || decoded.role || '').toUpperCase().includes('SUPER_ADMIN') || (dbUser.role || decoded.role || '').toUpperCase() === 'SUPERADMIN';
+
+    if (!isSuper) {
+      if (uStatus === 'pending') {
+        return res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_PENDING',
+          message: 'Your account is pending approval. Please wait for Super Admin verification.'
+        });
+      }
+      if (uStatus === 'suspended' || uStatus === 'inactive' || uStatus === 'deleted') {
+        return res.status(403).json({ success: false, message: `Your account is ${uStatus}. Access revoked.` });
+      }
+
+      if (dbUser.tenant_id) {
+        const [[tRow]] = await db.query('SELECT status FROM tenants WHERE id = ?', [dbUser.tenant_id]);
+        if (tRow && (tRow.status || '').toLowerCase() === 'pending') {
+          return res.status(403).json({
+            success: false,
+            code: 'ACCOUNT_PENDING',
+            message: 'Your account is pending approval. Please wait for Super Admin verification.'
+          });
+        }
+        const [[sRow]] = await db.query('SELECT status FROM tenant_subscriptions WHERE tenant_id = ? ORDER BY id DESC LIMIT 1', [dbUser.tenant_id]);
+        if (sRow && ((sRow.status || '').toLowerCase() === 'pending' || (sRow.status || '').toLowerCase() === 'pending_payment')) {
+          return res.status(403).json({
+            success: false,
+            code: 'ACCOUNT_PENDING',
+            message: 'Your account is pending approval. Please wait for Super Admin verification.'
+          });
+        }
+      }
+    }
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server error while verifying user account.' });
   }
 
   req.user = decoded;
@@ -143,16 +187,13 @@ const requireActiveSubscription = async (req, res, next) => {
     const subStatus = (sub?.status || '').toLowerCase();
     const isPending = tStatus === 'pending' || uStatus === 'pending' || subStatus === 'pending' || subStatus === 'pending_payment';
 
-    // 2. Pending account / payment verification — allow reads (GET), block all writes (POST/PUT/PATCH/DELETE)
+    // 2. Pending account / payment verification — strictly block all access (reads & writes)
     if (isPending) {
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        return res.status(403).json({
-          success: false,
-          code: 'SUBSCRIPTION_PENDING',
-          message: 'Your account is pending administrator approval. Create, edit, and delete actions are disabled until approved.'
-        });
-      }
-      return next();
+      return res.status(403).json({
+        success: false,
+        code: 'ACCOUNT_PENDING',
+        message: 'Your account is pending approval. Please wait for Super Admin verification.'
+      });
     }
 
     // No subscription record at all — deny writes, allow reads
