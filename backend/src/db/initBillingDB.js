@@ -87,7 +87,7 @@ async function initBillingDB() {
         \`max_users\`           INT             NOT NULL DEFAULT 3,
         \`max_products\`        INT             NOT NULL DEFAULT 500,
         \`max_branches\`        INT             NOT NULL DEFAULT 1,
-        \`max_sms\`             INT             NOT NULL DEFAULT 0,
+        \`max_emails\`          INT             NOT NULL DEFAULT 0,
         \`trial_days\`          INT             NOT NULL DEFAULT 14,
         \`features\`            JSON            NULL,
         \`is_active\`           TINYINT(1)      NOT NULL DEFAULT 1,

@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `subscription_plans` (
   `max_users`           INT             NOT NULL DEFAULT 3,
   `max_products`        INT             NOT NULL DEFAULT 500,
   `max_branches`        INT             NOT NULL DEFAULT 1,
-  `max_sms`             INT             NOT NULL DEFAULT 0,
+  `max_emails`          INT             NOT NULL DEFAULT 0,
   `trial_days`          INT             NOT NULL DEFAULT 14,
   `features`            JSON            NULL,
   `is_active`           TINYINT(1)      NOT NULL DEFAULT 1,
@@ -258,6 +258,7 @@ CREATE TABLE IF NOT EXISTS `sales` (
   `invoice_no`      VARCHAR(100)    NOT NULL,
   `customer_id`     INT             DEFAULT NULL,
   `customer_name`   VARCHAR(255)    DEFAULT NULL,
+  `customer_email`  VARCHAR(255)    DEFAULT NULL,
   `subtotal`        DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
   `discount`        DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
   `tax`             DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
@@ -366,11 +367,11 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ============================================================================
 
 -- Subscription Plans
-INSERT INTO `subscription_plans` (`id`, `name`, `price_monthly`, `price_yearly`, `max_users`, `max_products`, `max_branches`, `max_sms`, `trial_days`, `features`, `is_active`)
+INSERT INTO `subscription_plans` (`id`, `name`, `price_monthly`, `price_yearly`, `max_users`, `max_products`, `max_branches`, `max_emails`, `trial_days`, `features`, `is_active`)
 VALUES
-  ('starter',    'Starter',         49.00,   470.00,  3,   500,  1,    0,    14, '{"posRegister":true,"fefoExpiry":"Basic","rxVerification":false,"smsReceipts":false,"purchaseOrders":false,"multipleReports":false,"support":"Email Support"}', 1),
-  ('pro',        'Pro',            149.00,  1430.00,  10, 5000,  3,  500,    14, '{"posRegister":true,"fefoExpiry":"Advanced","rxVerification":true,"smsReceipts":"500/mo","purchaseOrders":true,"multipleReports":true,"support":"Priority Chat"}', 1),
-  ('enterprise', 'Enterprise',     399.00,  3830.00, 999,99999, 99, 9999,   14, '{"posRegister":true,"fefoExpiry":"AI Reorder","rxVerification":true,"smsReceipts":"Unlimited","purchaseOrders":true,"multipleReports":true,"support":"24/7 Dedicated"}', 1)
+  ('starter',    'Starter',         49.00,   470.00,  3,   500,  1,    0,    14, '{"posRegister":true,"fefoExpiry":"Basic","rxVerification":false,"emailReceipts":false,"purchaseOrders":false,"multipleReports":false,"support":"Email Support"}', 1),
+  ('pro',        'Pro',            149.00,  1430.00,  10, 5000,  3,  500,    14, '{"posRegister":true,"fefoExpiry":"Advanced","rxVerification":true,"emailReceipts":"500/mo","purchaseOrders":true,"multipleReports":true,"support":"Priority Chat"}', 1),
+  ('enterprise', 'Enterprise',     399.00,  3830.00, 999,99999, 99, 9999,   14, '{"posRegister":true,"fefoExpiry":"AI Reorder","rxVerification":true,"emailReceipts":"Unlimited","purchaseOrders":true,"multipleReports":true,"support":"24/7 Dedicated"}', 1)
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 
 -- Demo Tenants

@@ -275,8 +275,8 @@
                   <span>PO Supplier Generator</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
-                  <input type="checkbox" v-model="form.features.smsReceipts" class="text-emerald-600" />
-                  <span>SMS Customer Receipts</span>
+                  <input type="checkbox" v-model="form.features.emailReceipts" class="text-emerald-600" />
+                  <span>Email Customer Receipts</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.multiBranch" class="text-emerald-600" />
@@ -398,8 +398,8 @@
                   <span>PO Supplier Generator</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
-                  <input type="checkbox" v-model="form.features.smsReceipts" class="text-emerald-600" />
-                  <span>SMS Customer Receipts</span>
+                  <input type="checkbox" v-model="form.features.emailReceipts" class="text-emerald-600" />
+                  <span>Email Customer Receipts</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.multiBranch" class="text-emerald-600" />
@@ -456,7 +456,7 @@ const form = reactive({
     fefoExpiry: true,
     rxVerification: true,
     poGenerator: false,
-    smsReceipts: false,
+    emailReceipts: false,
     multiBranch: false
   }
 });
@@ -493,7 +493,7 @@ const openCreateModal = () => {
     fefoExpiry: true,
     rxVerification: true,
     poGenerator: false,
-    smsReceipts: false,
+    emailReceipts: false,
     multiBranch: false
   };
   showCreateModal.value = true;
@@ -548,7 +548,7 @@ const openEditModal = (plan: SubscriptionPlan) => {
     fefoExpiry: (feat as any)?.fefoExpiry !== undefined ? Boolean((feat as any).fefoExpiry) : true,
     rxVerification: feat?.rxVerification !== undefined ? Boolean(feat.rxVerification) : false,
     poGenerator: feat?.poGenerator !== undefined ? Boolean(feat.poGenerator) : false,
-    smsReceipts: (feat as any)?.smsReceipts !== undefined ? Boolean((feat as any).smsReceipts) : false,
+    emailReceipts: (feat as any)?.emailReceipts !== undefined ? Boolean((feat as any).emailReceipts) : false,
     multiBranch: (feat as any)?.multiBranch !== undefined ? Boolean((feat as any).multiBranch) : false
   };
 };

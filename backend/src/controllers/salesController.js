@@ -4,6 +4,7 @@
 // ============================================================================
 
 const db = require('../config/db');
+const { sendReceiptEmail } = require('../utils/emailService');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/sales — Process POS Checkout & FEFO Inventory Batch Deductions
@@ -28,7 +29,8 @@ const processSale = async (req, res) => {
       due_amount = 0,
       payment_method = 'cash',
       transaction_no,
-      notes
+      notes,
+      customer_email
     } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -43,6 +45,7 @@ const processSale = async (req, res) => {
     const paidVal = parseFloat(paid_amount !== undefined ? paid_amount : totalVal);
     const dueVal = parseFloat(due_amount || Math.max(0, totalVal - paidVal));
     const phoneVal = customer_phone || 'Walk-in Patient';
+    const emailVal = customer_email || null;
     const finalTrxNo = transaction_no || null;
     const finalNotes = notes || null;
 
@@ -62,13 +65,13 @@ const processSale = async (req, res) => {
     // 1. Insert into sales table with branch_id & terminal_id
     const [saleResult] = await connection.query(
       `INSERT INTO sales (
-         tenant_id, branch_id, terminal_id, invoice_no, customer_phone, 
+         tenant_id, branch_id, terminal_id, invoice_no, customer_phone, customer_email,
          subtotal, discount, tax, total, paid_amount, due_amount, 
          payment_method, transaction_no, status, notes, sold_by
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?)`,
       [
-        tid, targetBranchId, terminalId, invoiceNo, phoneVal,
+        tid, targetBranchId, terminalId, invoiceNo, phoneVal, emailVal,
         subtotalVal, discountVal, taxVal, totalVal, paidVal, dueVal,
         payment_method, finalTrxNo, finalNotes, userId
       ]
@@ -143,6 +146,15 @@ const processSale = async (req, res) => {
        WHERE si.sale_id = ?`,
       [saleId]
     );
+
+    // Attempt to send email receipt asynchronously
+    if (emailVal) {
+      // Get tenant store name
+      const [[tenantInfo]] = await db.query('SELECT store_name FROM tenants WHERE id = ?', [tid]);
+      const storeName = tenantInfo ? tenantInfo.store_name : 'Pharmacy Store';
+      createdSale.items = saleItemsList;
+      sendReceiptEmail(emailVal, createdSale, { storeName }).catch(err => console.error('Email error:', err));
+    }
 
     return res.status(201).json({
       success: true,

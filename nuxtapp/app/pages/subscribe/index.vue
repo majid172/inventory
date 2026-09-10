@@ -177,7 +177,7 @@
             </li>
             <li class="flex items-center gap-2.5">
               <span class="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-[10px]">✓</span>
-              <span>SMS Receipts: {{ plan.features?.smsReceipts || 'Not Included' }}</span>
+              <span>Email Receipts: {{ plan.features?.emailReceipts || 'Not Included' }}</span>
             </li>
             <li class="flex items-center gap-2.5">
               <span 
@@ -271,10 +271,10 @@
               <td class="p-4 sm:p-5 text-center text-emerald-400 font-bold">✓ Included</td>
             </tr>
             <tr>
-              <td class="p-4 sm:p-5 font-bold text-white">SMS Customer Receipts</td>
+              <td class="p-4 sm:p-5 font-bold text-white">Email Customer Receipts</td>
               <td class="p-4 sm:p-5 text-center text-slate-500">Not Included</td>
-              <td class="p-4 sm:p-5 text-center font-mono">500 SMS / month</td>
-              <td class="p-4 sm:p-5 text-center font-mono text-purple-300 font-bold">Unlimited SMS</td>
+              <td class="p-4 sm:p-5 text-center font-mono">500 Emails / month</td>
+              <td class="p-4 sm:p-5 text-center font-mono text-purple-300 font-bold">Unlimited Emails</td>
             </tr>
             <tr>
               <td class="p-4 sm:p-5 font-bold text-white">Support SLA</td>
@@ -708,7 +708,7 @@ const displayPlans = computed(() => {
           posRegister: true,
           fefoExpiry: 'Basic',
           rxVerification: false,
-          smsReceipts: '100 SMS/mo',
+          emailReceipts: '100 Emails/mo',
           poGenerator: false,
           support: 'Standard Email'
         }
@@ -726,7 +726,7 @@ const displayPlans = computed(() => {
           posRegister: true,
           fefoExpiry: 'Advanced FEFO',
           rxVerification: true,
-          smsReceipts: '1,000 SMS/mo',
+          emailReceipts: '1,000 Emails/mo',
           poGenerator: true,
           support: 'Priority Phone & Chat'
         }
@@ -744,7 +744,7 @@ const displayPlans = computed(() => {
           posRegister: true,
           fefoExpiry: 'Automated AI Reordering',
           rxVerification: true,
-          smsReceipts: 'Unlimited SMS',
+          emailReceipts: 'Unlimited Emails',
           poGenerator: true,
           support: '24/7 Dedicated Manager'
         }

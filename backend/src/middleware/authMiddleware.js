@@ -140,10 +140,7 @@ const requireTenantAccess = (req, res, next) => {
   next();
 };
 
-// ---------------------------------------------------------------------------
-// 4. requireActiveSubscription — Block write ops on expired/suspended tenants
-//    Uses tenant_subscriptions.end_date (real DB schema — tenants table has
-//    NO subscription_end or grace_period_days columns).
+
 // ---------------------------------------------------------------------------
 const GRACE_PERIOD_DAYS = 7; // Fixed grace period after subscription expires
 

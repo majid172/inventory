@@ -97,4 +97,68 @@ const sendPasswordResetEmail = async (toEmail, resetToken, userName = 'User') =>
   return sendEmail({ to: toEmail, subject: 'Reset Your PharmaCare Password', html, text });
 };
 
-module.exports = { sendEmail, sendPasswordResetEmail };
+/**
+ * Send a digital receipt via email
+ * @param {string} toEmail - Customer email
+ * @param {object} saleData - Sale invoice details
+ * @param {object} storeData - Store details (name, etc.)
+ */
+const sendReceiptEmail = async (toEmail, saleData, storeData) => {
+  if (!toEmail) return false;
+
+  const itemsHtml = (saleData.items || []).map(item => \`
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #ddd;">\${item.product_name} x\${item.quantity}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">\${item.subtotal.toFixed(2)}</td>
+    </tr>
+  \`).join('');
+
+  const html = \`
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
+      <h2 style="color: #0ea5e9; text-align: center;">\${storeData.storeName || 'Pharmacy Store'}</h2>
+      <p style="text-align: center; color: #64748b; font-size: 14px;">Thank you for your purchase!</p>
+      
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+      
+      <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+        <div>
+          <p style="margin: 0; color: #475569; font-size: 12px;">INVOICE NO</p>
+          <p style="margin: 4px 0 0 0; font-weight: bold;">\${saleData.invoice_no}</p>
+        </div>
+        <div style="text-align: right;">
+          <p style="margin: 0; color: #475569; font-size: 12px;">DATE</p>
+          <p style="margin: 4px 0 0 0; font-weight: bold;">\${new Date().toLocaleDateString()}</p>
+        </div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+          <tr style="background-color: #f8fafc;">
+            <th style="padding: 10px 8px; text-align: left; font-size: 12px; color: #64748b;">ITEM</th>
+            <th style="padding: 10px 8px; text-align: right; font-size: 12px; color: #64748b;">AMOUNT</th>
+          </tr>
+        </thead>
+        <tbody>
+          \${itemsHtml}
+        </tbody>
+      </table>
+
+      <div style="text-align: right; margin-bottom: 20px;">
+        <p style="margin: 4px 0;">Subtotal: \${Number(saleData.subtotal).toFixed(2)}</p>
+        <p style="margin: 4px 0;">Discount: \${Number(saleData.discount).toFixed(2)}</p>
+        <p style="margin: 8px 0 0 0; font-weight: bold; font-size: 18px; color: #0ea5e9;">Total: \${Number(saleData.total).toFixed(2)}</p>
+      </div>
+      
+      <div style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 30px;">
+        <p>Powered by PharmaSaaS</p>
+      </div>
+    </div>
+  \`;
+
+  const text = \`Thank you for your purchase from \${storeData.storeName || 'PharmacyStore'}. Invoice No: \${saleData.invoice_no}. Total: \${Number(saleData.total).toFixed(2)}\`;
+
+  return sendEmail({ to: toEmail, subject: \`Your Receipt from \${storeData.storeName || 'Pharmacy'} - Invoice \${saleData.invoice_no}\`, html, text });
+};
+
+module.exports = { sendEmail, sendPasswordResetEmail, sendReceiptEmail };
+

@@ -30,8 +30,8 @@ export interface SubscriptionPlan {
     posRegister: boolean;
     fefoExpiry: string;
     rxVerification: boolean;
-    smsReceipts: string;
-    poGenerator: boolean;
+    emailReceipts: string | boolean;
+    purchaseOrders: boolean;
     support: string;
   };
 }
@@ -229,8 +229,8 @@ export const useSuperAdminStore = defineStore('superAdmin', () => {
           posRegister: true,
           fefoExpiry: "Basic",
           rxVerification: false,
-          smsReceipts: "Not Included",
-          poGenerator: false,
+          emailReceipts: "Not Included",
+          purchaseOrders: false,
           support: "Email Support"
         }
       };

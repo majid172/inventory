@@ -33,7 +33,7 @@ graph TD
 - **Tenant Store Management**: Approve, suspend, or upgrade pharmacy subscriptions.
 - **Subscription & Billing**: Set pricing plans (Monthly/Yearly), monitor revenue, handle failed payments.
 - **Global Master Drug Dictionary**: Maintain a shared database of 50,000+ certified medicines (Brand name, Generic chemical, Dosage form, Manufacturer) so new subscriber pharmacies don't have to enter drug details manually.
-- **Feature Flag Control**: Toggle modules per subscription tier (e.g. FEFO Expiry Tracking, Multi-branch sync, SMS alerts).
+- **Feature Flag Control**: Toggle modules per subscription tier (e.g. FEFO Expiry Tracking, Multi-branch sync, Email receipts).
 
 ### B. 🏥 Pharmacy Store Admin (Tenant Owner)
 - **Store Configuration**: Pharmacy license info, logo, receipt template, tax registration number.
@@ -92,7 +92,7 @@ sequenceDiagram
 | **FEFO Batch & Expiry** | Basic | ✅ Advanced Alerts | ✅ Automated Reorder AI |
 | **Rx Doctor Verification**| ✕ | ✅ Included | ✅ Included |
 | **Supplier Procurement** | Manual | ✅ Purchase Orders | ✅ Automated PO Generator |
-| **SMS Customer Receipts** | ✕ | ✅ 500 SMS / month | ✅ Unlimited SMS |
+| **Email Customer Receipts** | ✕ | ✅ 500 Emails / month | ✅ Unlimited Emails |
 | **Support** | Email Support | Priority Chat Support | 24/7 Dedicated Manager |
 
 ---
