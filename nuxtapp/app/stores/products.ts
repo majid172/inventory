@@ -100,12 +100,16 @@ export const useProductStore = defineStore('products', {
       return headers;
     },
 
-    async fetchProducts() {
+    async fetchProducts(page = 1, limit = 20, search = '', categoryId = '') {
       this.loading = true;
       this.error = null;
 
       try {
-        const res = await fetch('http://localhost:5000/api/products', {
+        let url = `http://localhost:5000/api/products?page=${page}&limit=${limit}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (categoryId) url += `&category_id=${categoryId}`;
+
+        const res = await fetch(url, {
           headers: this.getHeaders()
         });
         const json = await res.json();
@@ -117,17 +121,17 @@ export const useProductStore = defineStore('products', {
 
         if (Array.isArray(itemsList)) {
           this.products = itemsList.map((item: any) => ({
-            id: item.id,
-            tenantId: item.tenantId || item.tenant_id,
-            masterDrugId: item.master_drug_id || item.masterDrugId || null,
-            productType: item.master_drug_id ? 'medicine' : 'general',
+            id: item.product_id || item.master_drug_id || item.id, // Handles both local and master
+            actualProductId: item.product_id || null,
+            masterDrugId: item.master_drug_id || null,
+            productType: item.source_type === 'master' || item.master_drug_id ? 'medicine' : 'general',
             name: item.name,
             genericName: item.genericName || item.generic_name || item.name,
             dosageForm: item.dosageForm || item.dosage_form || '-',
             strength: item.strength || '-',
             categoryId: item.categoryId || item.category_id,
             category: item.category || item.category_name || 'General',
-            barcode: item.barcode || `MED-${item.id}`,
+            barcode: item.barcode || `MED-${item.product_id || item.master_drug_id || item.id}`,
             price: parseFloat(item.price ?? item.retail_price ?? 0) || 0,
             cost: parseFloat(item.cost ?? item.purchase_price ?? 0) || 0,
             taxRate: 0,
@@ -144,10 +148,19 @@ export const useProductStore = defineStore('products', {
             minReorderLevel: parseInt(item.minReorderLevel ?? item.min_reorder_level ?? 10, 10),
             created_at: item.created_at
           }));
+          
+          return {
+            total: json.total || this.products.length,
+            page: json.page || 1,
+            limit: json.limit || 20,
+            totalPages: json.totalPages || 1
+          };
         }
+        return null;
       } catch (e: any) {
         console.error('Failed to fetch products:', e.message);
         this.error = e.message || 'Failed to fetch products';
+        return null;
       } finally {
         this.loading = false;
       }
@@ -246,6 +259,27 @@ export const useProductStore = defineStore('products', {
         await this.fetchProducts();
       } catch (e: any) {
         console.error('Failed to delete product:', e.message);
+        throw e;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async quickAddStock(payload: { product_id?: number | null; master_drug_id?: number | null; batch_number: string; expiry_date: string; quantity: number; purchase_price: number; supplier_id?: number | null }) {
+      this.loading = true;
+      try {
+        const res = await fetch('http://localhost:5000/api/inventory/stock-in', {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Failed to add stock');
+        }
+        return data.data;
+      } catch (e: any) {
+        console.error('Failed to add stock:', e.message);
         throw e;
       } finally {
         this.loading = false;

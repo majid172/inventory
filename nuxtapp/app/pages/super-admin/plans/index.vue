@@ -14,8 +14,8 @@
             </button>
             <button @click="refreshData" :disabled="isRefreshing"
               class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-200 font-normal px-2.5 py-1 text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer">
-              <svg :class="['w-3.5 h-3.5 text-slate-500 dark:text-gray-400', { 'animate-spin': isRefreshing }]" fill="none"
-                stroke="currentColor" viewBox="0 0 24 24">
+              <svg :class="['w-3.5 h-3.5 text-slate-500 dark:text-gray-400', { 'animate-spin': isRefreshing }]"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                 </path>
@@ -26,7 +26,8 @@
 
           <!-- Right: Search Filter -->
           <div class="flex items-center gap-2">
-            <label class="font-normal text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">FILTER:</label>
+            <label
+              class="font-normal text-[11px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">FILTER:</label>
             <div class="relative">
               <input type="text" v-model="filterText" placeholder="Search plan name, price..."
                 class="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 px-2.5 py-1 text-xs text-slate-800 dark:text-gray-200 placeholder-slate-400 font-normal focus:outline-none focus:border-[#107c41] w-56 sm:w-64" />
@@ -45,13 +46,20 @@
             <thead>
               <tr
                 class="bg-slate-50 dark:bg-gray-900/80 text-slate-600 dark:text-gray-400 font-normal text-[11px] uppercase tracking-wide border-b border-slate-200 dark:border-gray-800">
-                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># ID</th>
+                <th class="py-1.5 px-3 w-12 text-center border-r border-slate-200 dark:border-gray-800 font-normal"># ID
+                </th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Plan Tier Name</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-right font-normal w-24">Price ($)</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-28">Billing Cycle</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-28">Max Terminals</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-24">Max Users</th>
-                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-28">Max Products</th>
+                <th
+                  class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-right font-normal w-24">
+                  Price ($)</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-28">
+                  Billing Cycle</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-28">Max
+                  Terminals</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-24">Max
+                  Users</th>
+                <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-normal w-28">Max
+                  Products</th>
                 <th class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-normal">Feature Matrix</th>
                 <th class="py-1.5 px-3 text-center w-24 font-normal">Actions</th>
               </tr>
@@ -104,7 +112,8 @@
                 <!-- Price -->
                 <td
                   class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 font-mono text-right font-normal text-slate-800 dark:text-gray-200">
-                  {{ settingsStore.currencySymbol }}{{ Number(row.price ?? (row as any).priceMonthly ?? (row as any).price_monthly ?? 0).toFixed(2) }}
+                  {{ settingsStore.currencySymbol }}{{ Number(row.price ?? (row as any).priceMonthly ?? (row as
+                    any).price_monthly ?? 0).toFixed(2) }}
                 </td>
 
                 <!-- Duration -->
@@ -116,7 +125,8 @@
                 <!-- Max Terminals -->
                 <td
                   class="py-1.5 px-3 border-r border-slate-200 dark:border-gray-800 text-center font-mono font-normal text-slate-700 dark:text-gray-300">
-                  {{ (row as any).maxTerminals || (row as any).max_terminals || (row as any).terminalsLimit || 1 }} Counter
+                  {{ (row as any).maxTerminals || (row as any).max_terminals || (row as any).terminalsLimit || 1 }}
+                  Counter
                 </td>
 
                 <!-- Max Users -->
@@ -138,10 +148,12 @@
                     <span class="inline-flex items-center gap-0.5 text-emerald-700 dark:text-emerald-400">
                       <span>✓</span> POS
                     </span>
-                    <span :class="row.features?.rxVerification ? 'text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5' : 'text-slate-400'">
+                    <span
+                      :class="row.features?.rxVerification ? 'text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5' : 'text-slate-400'">
                       {{ row.features?.rxVerification ? '✓ Rx' : '✕ Rx' }}
                     </span>
-                    <span :class="row.features?.poGenerator ? 'text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5' : 'text-slate-400'">
+                    <span
+                      :class="row.features?.poGenerator ? 'text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5' : 'text-slate-400'">
                       {{ row.features?.poGenerator ? '✓ PO' : '✕ PO' }}
                     </span>
                   </div>
@@ -256,29 +268,37 @@
 
             <!-- Features -->
             <div class="pt-1">
-              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features & Module Permissions</label>
-              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features & Module
+                Permissions</label>
+              <div
+                class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.posRegister" class="text-emerald-600" />
                   <span>POS Terminal Counter</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.fefoExpiry" class="text-emerald-600" />
                   <span>FEFO Expiry Batch Tracking</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.rxVerification" class="text-emerald-600" />
                   <span>Doctor Rx Verification</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.poGenerator" class="text-emerald-600" />
                   <span>PO Supplier Generator</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.emailReceipts" class="text-emerald-600" />
                   <span>Email Customer Receipts</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.multiBranch" class="text-emerald-600" />
                   <span>Multi-Branch Chain Sync</span>
                 </label>
@@ -300,9 +320,7 @@
         </div>
       </div>
 
-      <!-- ===================================================================== -->
-      <!-- MODAL: EDIT SUBSCRIPTION PLAN -->
-      <!-- ===================================================================== -->
+
       <div v-if="editingPlan"
         class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none animate-fadeIn">
         <div
@@ -379,29 +397,37 @@
 
             <!-- Features -->
             <div class="pt-1">
-              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features & Module Permissions</label>
-              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+              <label class="block font-normal text-slate-700 dark:text-gray-300 mb-1.5">Features & Module
+                Permissions</label>
+              <div
+                class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-900 p-2.5 border border-slate-200 dark:border-gray-800">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.posRegister" class="text-emerald-600" />
                   <span>POS Terminal Counter</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.fefoExpiry" class="text-emerald-600" />
                   <span>FEFO Expiry Batch Tracking</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.rxVerification" class="text-emerald-600" />
                   <span>Doctor Rx Verification</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.poGenerator" class="text-emerald-600" />
                   <span>PO Supplier Generator</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.emailReceipts" class="text-emerald-600" />
                   <span>Email Customer Receipts</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer font-normal text-xs text-slate-800 dark:text-gray-200">
                   <input type="checkbox" v-model="form.features.multiBranch" class="text-emerald-600" />
                   <span>Multi-Branch Chain Sync</span>
                 </label>
@@ -538,7 +564,7 @@ const openEditModal = (plan: SubscriptionPlan) => {
   form.maxBranches = (plan as any).max_branches || (plan as any).maxBranches || (plan as any).branchesLimit || 1;
   form.maxUsers = (plan as any).max_users || (plan as any).maxUsers || 5;
   form.maxProducts = (plan as any).max_products || (plan as any).maxProducts || 500;
-  
+
   let feat = plan.features;
   if (typeof feat === 'string') {
     try { feat = JSON.parse(feat); } catch (e) { feat = {} as any; }
@@ -593,4 +619,3 @@ const confirmDeletePlan = async (plan: SubscriptionPlan) => {
   }
 };
 </script>
-

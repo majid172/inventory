@@ -365,52 +365,105 @@ const getMySubscription = async (req, res) => {
 const getProducts = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    const { search, category_id } = req.query;
+    const { search, category_id, page = 1, limit = 20 } = req.query;
+    
+    // We construct a query that unions Master Drugs and Local-only products.
+    // However, to paginate effectively, we should query them as a single derived table.
+    let baseSql = `
+      SELECT
+        'master' AS source_type,
+        md.id AS master_drug_id,
+        p.id AS product_id,
+        COALESCE(p.name, md.brand_name) AS name,
+        md.generic_name,
+        md.dosage_form,
+        md.strength,
+        COALESCE(p.retail_price, md.default_price, 0) AS price,
+        COALESCE(p.retail_price, md.default_price, 0) AS retail_price,
+        COALESCE(p.reorder_level, 10) AS reorder_level,
+        COALESCE(p.rack_location, '') AS rack_location,
+        COALESCE((SELECT SUM(ib.quantity) FROM inventory_batches ib WHERE ib.product_id = p.id AND ib.tenant_id = ?), 0) AS stock_quantity,
+        COALESCE((SELECT SUM(ib.quantity) FROM inventory_batches ib WHERE ib.product_id = p.id AND ib.tenant_id = ?), 0) AS total_stock,
+        p.category_id,
+        c.name AS category_name,
+        COALESCE(md.manufacturer, 'Unknown') AS manufacturer,
+        md.rx_required,
+        COALESCE(p.status, 1) AS status,
+        COALESCE(p.is_active, 1) AS is_active
+      FROM master_drugs md
+      LEFT JOIN products p ON md.id = p.master_drug_id AND p.tenant_id = ?
+      LEFT JOIN categories c ON p.category_id = c.id
 
-    let sql = `
-      SELECT p.*, 
-             c.name AS category_name, 
-             md.generic_name, 
-             md.dosage_form, 
-             md.manufacturer, 
-             md.rx_required,
-             COALESCE((
-               SELECT SUM(ib.quantity) 
-               FROM inventory_batches ib 
-               WHERE ib.product_id = p.id
-             ), 0) AS total_stock,
-             COALESCE((
-               SELECT SUM(ib.quantity) 
-               FROM inventory_batches ib 
-               WHERE ib.product_id = p.id
-             ), 0) AS stock_quantity,
-             COALESCE((
-               SELECT ib.purchase_price
-               FROM inventory_batches ib
-               WHERE ib.product_id = p.id
-               ORDER BY ib.id DESC LIMIT 1
-             ), 0) AS cost
+      UNION
+
+      SELECT
+        'local' AS source_type,
+        NULL AS master_drug_id,
+        p.id AS product_id,
+        p.name,
+        p.name AS generic_name,
+        'N/A' AS dosage_form,
+        '-' AS strength,
+        p.retail_price AS price,
+        p.retail_price,
+        p.reorder_level,
+        p.rack_location,
+        COALESCE((SELECT SUM(ib.quantity) FROM inventory_batches ib WHERE ib.product_id = p.id AND ib.tenant_id = ?), 0) AS stock_quantity,
+        COALESCE((SELECT SUM(ib.quantity) FROM inventory_batches ib WHERE ib.product_id = p.id AND ib.tenant_id = ?), 0) AS total_stock,
+        p.category_id,
+        c.name AS category_name,
+        'Local Item' AS manufacturer,
+        0 AS rx_required,
+        p.status,
+        p.is_active
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN master_drugs md ON p.master_drug_id = md.id
-      WHERE p.tenant_id = ?
+      WHERE p.tenant_id = ? AND p.master_drug_id IS NULL
     `;
-    const params = [tid];
-
+    
+    // Derived table wrapper to allow filtering and pagination on the combined set
+    let sql = `SELECT * FROM (${baseSql}) AS combined WHERE 1=1`;
+    let countSql = `SELECT COUNT(*) AS total FROM (${baseSql}) AS combined WHERE 1=1`;
+    
+    // The baseSql requires tenant_id injected 6 times
+    const queryParams = [tid, tid, tid, tid, tid, tid];
+    
     if (search) {
-      sql += ' AND (p.name LIKE ? OR p.barcode LIKE ? OR md.generic_name LIKE ?)';
+      sql += ' AND (name LIKE ? OR generic_name LIKE ? OR manufacturer LIKE ?)';
+      countSql += ' AND (name LIKE ? OR generic_name LIKE ? OR manufacturer LIKE ?)';
       const q = `%${search}%`;
-      params.push(q, q, q);
+      queryParams.push(q, q, q);
     }
+    
     if (category_id) {
-      sql += ' AND p.category_id = ?';
-      params.push(category_id);
+      sql += ' AND category_id = ?';
+      countSql += ' AND category_id = ?';
+      queryParams.push(category_id);
     }
+    
+    // Pagination parameters
+    const [[countRow]] = await db.query(countSql, queryParams);
+    const total = countRow ? countRow.total : 0;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 20);
+    const totalPages = Math.ceil(total / limitNum) || 1;
 
-    sql += ' ORDER BY p.id DESC';
-    const [rows] = await db.query(sql, params);
+    // We want the tenant's actual products (stock > 0) to bubble up if possible, but alphabetically is fine for now
+    sql += ' ORDER BY stock_quantity DESC, name ASC LIMIT ? OFFSET ?';
+    queryParams.push(limitNum, (pageNum - 1) * limitNum);
+    
+    const [rows] = await db.query(sql, queryParams);
 
-    return res.json({ success: true, count: rows.length, data: rows, products: rows });
+    return res.json({ 
+      success: true, 
+      data: rows, 
+      products: rows,
+      count: rows.length,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages 
+    });
   } catch (err) {
     console.error('getProducts error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -606,7 +659,38 @@ const getBatches = async (req, res) => {
 const createBatch = async (req, res) => {
   try {
     const tid = req.tenantId || 1;
-    const { product_id, supplier_id, batch_number, expiry_date, quantity, purchase_price } = req.body;
+    let { product_id, master_drug_id, supplier_id, batch_number, expiry_date, quantity, purchase_price } = req.body;
+
+    // Implicit Product Creation from Master Catalog
+    if (!product_id && master_drug_id) {
+      // 1. Fetch master drug
+      const [[md]] = await db.query('SELECT * FROM master_drugs WHERE id = ?', [master_drug_id]);
+      if (!md) {
+        return res.status(400).json({ success: false, message: 'Master drug not found.' });
+      }
+      // 2. Check if product already exists for this tenant
+      const [[existingProd]] = await db.query('SELECT id FROM products WHERE tenant_id = ? AND master_drug_id = ?', [tid, master_drug_id]);
+      if (existingProd) {
+        product_id = existingProd.id;
+      } else {
+        // 3. Create the product automatically
+        const [r] = await db.query(
+          `INSERT INTO products (tenant_id, master_drug_id, category_id, name, barcode, retail_price, reorder_level, rack_location)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            tid, 
+            master_drug_id, 
+            md.category_id || null, 
+            md.brand_name || 'Unknown', 
+            md.barcode || null, 
+            parseFloat(md.default_price || 0), 
+            10, // default reorder level
+            'Shelf A-01'
+          ]
+        );
+        product_id = r.insertId;
+      }
+    }
 
     if (!product_id || !batch_number || !expiry_date || quantity === undefined || purchase_price === undefined) {
       return res.status(400).json({ success: false, message: 'Missing batch required fields.' });
@@ -619,7 +703,7 @@ const createBatch = async (req, res) => {
     );
 
     const [[created]] = await db.query('SELECT * FROM inventory_batches WHERE id = ?', [r.insertId]);
-    return res.status(201).json({ success: true, message: 'Batch added successfully.', data: created });
+    return res.status(201).json({ success: true, message: 'Batch added successfully.', data: created, product_id });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
