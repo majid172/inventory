@@ -119,7 +119,7 @@ const { showReceiptModal, completedReceipt } = storeToRefs(cartStore);
 
 const closeReceipt = () => {
   showReceiptModal.value = false;
-  productStore.fetchProducts();
+  productStore.fetchProducts(1, 10000);
 };
 
 const storeName = computed(() => {

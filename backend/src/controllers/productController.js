@@ -29,8 +29,9 @@ const resolveTenantId = async (req) => {
 const getProducts = async (req, res, next) => {
   try {
     const tid = await resolveTenantId(req);
+    const { search, category_id } = req.query;
 
-    const sql = `
+    let baseSql = `
       SELECT 
         p.id,
         p.tenant_id,
@@ -86,16 +87,114 @@ const getProducts = async (req, res, next) => {
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN master_drugs m ON (p.master_drug_id = m.id OR (p.master_drug_id IS NULL AND LOWER(p.name) = LOWER(m.brand_name)))
-      WHERE p.tenant_id = ? OR ? IS NULL
-      ORDER BY p.id DESC
+      WHERE p.tenant_id = ?
+
+      UNION ALL
+
+      SELECT 
+        CONCAT('MD-', md.id) AS id,
+        ? AS tenant_id,
+        md.id AS master_drug_id,
+        NULL AS category_id,
+        md.brand_name AS name,
+        CONCAT('MD-', md.id) AS barcode,
+        COALESCE(md.default_price, 0) AS price,
+        10 AS min_reorder_level,
+        'N/A' AS rack_location,
+        1 AS is_active,
+        NOW() AS created_at,
+        'Master Catalog' AS category_name,
+        md.generic_name AS generic_name,
+        md.dosage_form AS dosage_form,
+        md.strength AS strength,
+        md.manufacturer AS manufacturer,
+        md.rx_required AS rx_required,
+        COALESCE((
+          SELECT SUM(b.quantity) 
+          FROM inventory_batches b 
+          WHERE b.master_drug_id = md.id AND b.tenant_id = ?
+        ), 0) AS stock_quantity,
+        COALESCE((
+          SELECT b.purchase_price 
+          FROM inventory_batches b 
+          WHERE b.master_drug_id = md.id AND b.tenant_id = ? 
+          ORDER BY b.id DESC 
+          LIMIT 1
+        ), 0) AS cost,
+        COALESCE((
+          SELECT b.batch_number 
+          FROM inventory_batches b 
+          WHERE b.master_drug_id = md.id AND b.tenant_id = ? 
+          ORDER BY b.id DESC 
+          LIMIT 1
+        ), 'N/A') AS batch_number,
+        COALESCE((
+          SELECT DATE_FORMAT(b.expiry_date, '%Y-%m-%d')
+          FROM inventory_batches b 
+          WHERE b.master_drug_id = md.id AND b.tenant_id = ? 
+          ORDER BY b.id DESC 
+          LIMIT 1
+        ), '2028-12-31') AS expiry_date,
+        COALESCE((
+          SELECT s.name 
+          FROM inventory_batches b 
+          LEFT JOIN suppliers s ON b.supplier_id = s.id 
+          WHERE b.master_drug_id = md.id AND b.tenant_id = ? 
+          ORDER BY b.id DESC 
+          LIMIT 1
+        ), md.manufacturer) AS supplier_name
+      FROM master_drugs md
+      WHERE md.id NOT IN (
+        SELECT master_drug_id FROM products WHERE tenant_id = ? AND master_drug_id IS NOT NULL
+      )
     `;
 
-    const [rows] = await db.query(sql, [tid, tid]);
+    let sql = `SELECT * FROM (${baseSql}) AS combined WHERE 1=1`;
+    let countSql = `SELECT COUNT(*) AS total FROM (${baseSql}) AS combined WHERE 1=1`;
+    const params = Array(8).fill(tid);
+
+    if (search) {
+      const searchClause = ' AND (name LIKE ? OR generic_name LIKE ? OR manufacturer LIKE ?)';
+      sql += searchClause;
+      countSql += searchClause;
+      const q = `%${search}%`;
+      params.push(q, q, q);
+    }
+    
+    if (category_id) {
+      sql += ' AND category_id = ?';
+      countSql += ' AND category_id = ?';
+      params.push(category_id);
+    }
+
+    const [[countRow]] = await db.query(countSql, params);
+    const total = countRow ? countRow.total : 0;
+
+    sql += ' ORDER BY name ASC';
+    
+    let pageNum = 1;
+    let limitNum = 20;
+    const { page, limit } = req.query;
+    if (page && limit) {
+      pageNum = parseInt(page, 10) || 1;
+      limitNum = parseInt(limit, 10) || 20;
+      const offset = (pageNum - 1) * limitNum;
+      sql += ' LIMIT ? OFFSET ?';
+      params.push(limitNum, offset);
+    } else {
+      limitNum = total > 0 ? total : 20;
+    }
+    
+    const totalPages = Math.ceil(total / limitNum) || 1;
+
+    const [rows] = await db.query(sql, params);
 
     const formatted = (rows || []).map(r => {
       const stock = parseInt(r.stock_quantity, 10) || 0;
       return {
         id: r.id,
+        product_id: String(r.id).startsWith('MD-') ? null : r.id,
+        master_drug_id: r.master_drug_id,
         tenantId: r.tenant_id,
         name: r.name,
         genericName: r.generic_name,
@@ -126,6 +225,10 @@ const getProducts = async (req, res, next) => {
     return res.json({
       success: true,
       count: formatted.length,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages,
       data: formatted,
       products: formatted
     });

@@ -661,45 +661,27 @@ const createBatch = async (req, res) => {
     const tid = req.tenantId || 1;
     let { product_id, master_drug_id, supplier_id, batch_number, expiry_date, quantity, purchase_price } = req.body;
 
-    // Implicit Product Creation from Master Catalog
-    if (!product_id && master_drug_id) {
-      // 1. Fetch master drug
-      const [[md]] = await db.query('SELECT * FROM master_drugs WHERE id = ?', [master_drug_id]);
-      if (!md) {
-        return res.status(400).json({ success: false, message: 'Master drug not found.' });
-      }
-      // 2. Check if product already exists for this tenant
-      const [[existingProd]] = await db.query('SELECT id FROM products WHERE tenant_id = ? AND master_drug_id = ?', [tid, master_drug_id]);
-      if (existingProd) {
-        product_id = existingProd.id;
-      } else {
-        // 3. Create the product automatically
-        const [r] = await db.query(
-          `INSERT INTO products (tenant_id, master_drug_id, category_id, name, barcode, retail_price, reorder_level, rack_location)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            tid, 
-            master_drug_id, 
-            md.category_id || null, 
-            md.brand_name || 'Unknown', 
-            md.barcode || null, 
-            parseFloat(md.default_price || 0), 
-            10, // default reorder level
-            'Shelf A-01'
-          ]
-        );
-        product_id = r.insertId;
-      }
+    if (!product_id && !master_drug_id) {
+      return res.status(400).json({ success: false, message: 'Missing product_id or master_drug_id.' });
     }
 
-    if (!product_id || !batch_number || !expiry_date || quantity === undefined || purchase_price === undefined) {
+    if (!batch_number || !expiry_date || quantity === undefined || purchase_price === undefined) {
       return res.status(400).json({ success: false, message: 'Missing batch required fields.' });
     }
 
     const [r] = await db.query(
-      `INSERT INTO inventory_batches (tenant_id, product_id, supplier_id, batch_number, expiry_date, quantity, purchase_price)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [tid, product_id, supplier_id || null, batch_number, expiry_date, parseInt(quantity, 10), parseFloat(purchase_price)]
+      `INSERT INTO inventory_batches (tenant_id, product_id, master_drug_id, supplier_id, batch_number, expiry_date, quantity, purchase_price)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        tid, 
+        product_id || null, 
+        master_drug_id || null, 
+        supplier_id || null, 
+        batch_number, 
+        expiry_date, 
+        parseInt(quantity, 10), 
+        parseFloat(purchase_price)
+      ]
     );
 
     const [[created]] = await db.query('SELECT * FROM inventory_batches WHERE id = ?', [r.insertId]);

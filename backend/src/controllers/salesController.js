@@ -80,7 +80,10 @@ const processSale = async (req, res) => {
 
     // 2. Process each item and deduct stock from inventory_batches (FEFO)
     for (const item of items) {
-      const productId = item.product_id || item.id;
+      const productId = String(item.product_id || item.id);
+      const isMasterDrug = productId.startsWith('MD-');
+      const numericId = isMasterDrug ? parseInt(productId.replace('MD-', ''), 10) : parseInt(productId, 10);
+      
       let requestedQty = parseInt(item.quantity, 10) || 1;
       const unitPrice = parseFloat(item.unit_price || item.retail_price || item.price || 0);
       const itemDiscount = parseFloat(item.discount || 0);
@@ -88,12 +91,14 @@ const processSale = async (req, res) => {
       const prodName = item.name || item.product_name || 'Medicine Item';
 
       // FEFO Batch Selection: Select earliest expiring batch with available quantity
-      const [batches] = await connection.query(
-        `SELECT * FROM inventory_batches 
-         WHERE tenant_id = ? AND product_id = ? AND quantity > 0
-         ORDER BY expiry_date ASC`,
-        [tid, productId]
-      );
+      let batchesQuery = '';
+      if (isMasterDrug) {
+        batchesQuery = `SELECT * FROM inventory_batches WHERE tenant_id = ? AND master_drug_id = ? AND quantity > 0 ORDER BY expiry_date ASC`;
+      } else {
+        batchesQuery = `SELECT * FROM inventory_batches WHERE tenant_id = ? AND product_id = ? AND quantity > 0 ORDER BY expiry_date ASC`;
+      }
+
+      const [batches] = await connection.query(batchesQuery, [tid, numericId]);
 
       let allocatedBatchId = null;
 
@@ -113,19 +118,21 @@ const processSale = async (req, res) => {
         }
       }
 
-      // Deduct product overall stock if products table has stock_quantity
-      try {
-        await connection.query(
-          `UPDATE products SET stock_quantity = GREATEST(0, COALESCE(stock_quantity, 0) - ?) WHERE id = ? AND tenant_id = ?`,
-          [requestedQty, productId, tid]
-        );
-      } catch (e) {}
+      // Deduct product overall stock if products table has stock_quantity (Only for local products)
+      if (!isMasterDrug) {
+        try {
+          await connection.query(
+            `UPDATE products SET stock_quantity = GREATEST(0, COALESCE(stock_quantity, 0) - ?) WHERE id = ? AND tenant_id = ?`,
+            [requestedQty, numericId, tid]
+          );
+        } catch (e) {}
+      }
 
       // Insert sale item record
       await connection.query(
-        `INSERT INTO sale_items (tenant_id, sale_id, product_id, batch_id, product_name, quantity, unit_price, discount, subtotal)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [tid, saleId, productId, allocatedBatchId, prodName, requestedQty, unitPrice, itemDiscount, itemSubtotal]
+        `INSERT INTO sale_items (tenant_id, sale_id, product_id, master_drug_id, batch_id, product_name, quantity, unit_price, discount, subtotal)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [tid, saleId, productId, isMasterDrug ? numericId : null, allocatedBatchId, prodName, requestedQty, unitPrice, itemDiscount, itemSubtotal]
       );
     }
 

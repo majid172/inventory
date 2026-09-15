@@ -233,6 +233,13 @@ const getTenants = async (req, res) => {
       }
     }
 
+    // 4.5 Fetch all subscription plans to get dynamic pricing
+    let allPlans = [];
+    try {
+      const [pList] = await db.query('SELECT * FROM subscription_plans');
+      allPlans = pList || [];
+    } catch (e) { }
+
     // 5. Build formatted list
     const formatted = rawTenants.map((t) => {
       const tidStr = String(t.id);
@@ -251,10 +258,30 @@ const getTenants = async (req, res) => {
       if (typeof planName === 'string') {
         planName = planName.charAt(0).toUpperCase() + planName.slice(1);
       }
-      const mrr = sub ? (parseFloat(sub.price_monthly ?? sub.plan_price ?? 149) || 149) : 149;
+      
+      const planIdStr = String(sub?.plan_id || t.plan_id || '').toLowerCase();
+      const planNameLower = String(planName).toLowerCase();
+      
+      const foundPlan = allPlans.find(p => 
+        String(p.id).toLowerCase() === planIdStr || 
+        String(p.name).toLowerCase() === planNameLower ||
+        String(p.name).toLowerCase().includes(planNameLower) ||
+        (planNameLower.includes('pro') && String(p.name).toLowerCase().includes('pro'))
+      );
+
+      let mrr = 149; // Default fallback
+      if (sub && (sub.price_monthly != null || sub.plan_price != null)) {
+        mrr = parseFloat(sub.price_monthly ?? sub.plan_price) || 149;
+      } else if (foundPlan) {
+        mrr = parseFloat(foundPlan.price_monthly ?? foundPlan.price) || 149;
+      } else {
+        mrr = planNameLower.includes('enterprise') ? 299 : (planNameLower.includes('starter') ? 49 : 149);
+      }
+      const defaultExpDate = new Date(t.created_at ? new Date(t.created_at) : Date.now());
+      defaultExpDate.setDate(defaultExpDate.getDate() + 30);
       const nextBillingDate = sub?.end_date 
         ? new Date(sub.end_date).toISOString().split('T')[0] 
-        : (t.subscription_end ? new Date(t.subscription_end).toISOString().split('T')[0] : '2028-12-31');
+        : (t.subscription_end ? new Date(t.subscription_end).toISOString().split('T')[0] : defaultExpDate.toISOString().split('T')[0]);
 
       return {
         id: t.id.toString(),

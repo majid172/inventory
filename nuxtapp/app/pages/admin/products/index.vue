@@ -16,6 +16,13 @@
               </svg>
               Refresh Catalog
             </button>
+            <button @click="openAddModal"
+              class="bg-[#107c41] hover:bg-[#0e6b37] text-white border border-[#0e6b37] font-normal px-2.5 py-1 text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add New Product
+            </button>
           </div>
 
           <div class="flex items-center gap-2">
@@ -203,6 +210,142 @@
         </div>
       </div>
 
+      <!-- Add New Product Modal -->
+      <div v-if="showAddModal"
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none">
+        <div class="bg-white dark:bg-gray-950 border border-slate-300 dark:border-gray-700 w-full max-w-2xl shadow-xl overflow-hidden flex flex-col max-h-[92vh]">
+          <!-- Titlebar -->
+          <div class="bg-slate-100 dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2 flex items-center justify-between shrink-0">
+            <h3 class="font-semibold text-xs text-slate-800 dark:text-gray-100 flex items-center gap-2">
+              <span>💊</span> Add New Custom Product
+            </h3>
+            <button @click="showAddModal = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs cursor-pointer">✕</button>
+          </div>
+
+          <!-- Form -->
+          <form @submit.prevent="handleAddProduct" class="p-4 space-y-3 text-xs font-sans overflow-y-auto flex-1">
+            
+            <!-- Row 1: Name + Generic Name -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Brand / Trade Name <span class="text-red-500">*</span></label>
+                <input type="text" v-model="addForm.name" required placeholder="e.g. Napa Extra"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Generic / Chemical Name</label>
+                <input type="text" v-model="addForm.genericName" placeholder="e.g. Paracetamol + Caffeine"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+            </div>
+
+            <!-- Row 2: Dosage Form + Strength -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Dosage Form</label>
+                <select v-model="addForm.dosageForm"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
+                  <option value="">-- Select Form --</option>
+                  <option>Tablet</option>
+                  <option>Capsule</option>
+                  <option>Syrup</option>
+                  <option>Suspension</option>
+                  <option>Injection</option>
+                  <option>Cream/Ointment</option>
+                  <option>Inhaler</option>
+                  <option>Drops</option>
+                  <option>Suppository</option>
+                  <option>Patch</option>
+                  <option>General Item</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Strength / Concentration</label>
+                <input type="text" v-model="addForm.strength" placeholder="e.g. 500mg, 10mg/5ml"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+            </div>
+
+            <!-- Row 3: Category + Manufacturer -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Category</label>
+                <select v-model="addForm.categoryId"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs cursor-pointer">
+                  <option :value="null">-- Select Category --</option>
+                  <option v-for="cat in categoryStore.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Manufacturer / Brand</label>
+                <input type="text" v-model="addForm.manufacturer" placeholder="e.g. Square Pharmaceuticals"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+            </div>
+
+            <!-- Row 4: Price + Cost -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Retail/Sale Price ({{ settingsStore.currencySymbol }}) <span class="text-red-500">*</span></label>
+                <input type="number" step="0.01" min="0" v-model.number="addForm.price" required
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Purchase/Cost Price ({{ settingsStore.currencySymbol }})</label>
+                <input type="number" step="0.01" min="0" v-model.number="addForm.cost"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+            </div>
+
+            <!-- Row 5: Barcode + Rack + Reorder -->
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Barcode</label>
+                <input type="text" v-model="addForm.barcode" placeholder="Auto-generated if blank"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Rack / Shelf Location</label>
+                <input type="text" v-model="addForm.rackLocation" placeholder="e.g. A-12"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 dark:text-gray-300 mb-1">Min Reorder Level</label>
+                <input type="number" min="0" v-model.number="addForm.minReorderLevel"
+                  class="w-full bg-white dark:bg-gray-900 border border-slate-300 dark:border-gray-700 px-2.5 py-1.5 text-slate-800 dark:text-gray-100 focus:outline-none focus:border-emerald-500 text-xs" />
+              </div>
+            </div>
+
+            <!-- Row 6: Rx Required toggle -->
+            <div class="flex items-center gap-2 pt-1">
+              <input type="checkbox" id="rxRequired" v-model="addForm.rxRequired"
+                class="w-3.5 h-3.5 accent-emerald-600 cursor-pointer" />
+              <label for="rxRequired" class="text-slate-700 dark:text-gray-300 cursor-pointer">Requires Prescription (Rx Only)</label>
+            </div>
+
+            <!-- Error -->
+            <div v-if="addError" class="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 p-2 text-[11px]">
+              ⚠ {{ addError }}
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-end gap-2 pt-3 mt-1 border-t border-slate-200 dark:border-gray-800">
+              <button type="button" @click="showAddModal = false"
+                class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-normal text-xs cursor-pointer">
+                Cancel
+              </button>
+              <button type="submit" :disabled="addSaving"
+                class="px-4 py-1 bg-[#107c41] hover:bg-[#0e6b37] disabled:opacity-50 text-white font-medium text-xs cursor-pointer flex items-center gap-1.5">
+                <svg v-if="addSaving" class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ addSaving ? 'Saving...' : 'Create Product' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div>
   </NuxtLayout>
 </template>
@@ -214,6 +357,7 @@ import { useCategoryStore } from '~/stores/categories';
 import { useAdminSuppliers } from '~/composables/useAdminSuppliers';
 import { useProductStore, type ProductItem } from '~/stores/products';
 import { useSettingsStore } from '~/stores/settings';
+import axios from 'axios';
 
 const productsStore = useProductStore();
 const settingsStore = useSettingsStore();
@@ -330,6 +474,96 @@ const handleSaveStock = async () => {
     alert("Error adding stock: " + (e.message || "Failed to communicate with server"));
   } finally {
     stockSaving.value = false;
+  }
+};
+
+// ─── Add New Product Modal ────────────────────────────────────────────────────
+const showAddModal = ref(false);
+const addSaving = ref(false);
+const addError = ref('');
+
+const defaultAddForm = () => ({
+  name: '',
+  genericName: '',
+  dosageForm: 'Tablet',
+  strength: '',
+  categoryId: null as number | null,
+  manufacturer: '',
+  price: 0,
+  cost: 0,
+  barcode: '',
+  rackLocation: '',
+  minReorderLevel: 10,
+  rxRequired: false
+});
+
+const addForm = ref(defaultAddForm());
+
+const openAddModal = () => {
+  addForm.value = defaultAddForm();
+  addError.value = '';
+  showAddModal.value = true;
+};
+
+const getAuthHeaders = () => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (process.client) {
+    const token = localStorage.getItem('auth_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const savedUser = localStorage.getItem('auth_user');
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        if (user?.tenantId && user.tenantId !== 'SYSTEM') headers['x-tenant-id'] = String(user.tenantId);
+      } catch (e) {}
+    }
+    if (!headers['x-tenant-id']) {
+      const savedStore = localStorage.getItem('active_tenant_store');
+      if (savedStore) {
+        try {
+          const s = JSON.parse(savedStore);
+          if (s?.id) headers['x-tenant-id'] = String(s.id);
+        } catch (e) {}
+      }
+    }
+  }
+  return headers;
+};
+
+const handleAddProduct = async () => {
+  addError.value = '';
+  if (!addForm.value.name.trim()) {
+    addError.value = 'Product name is required.';
+    return;
+  }
+  if (addForm.value.price <= 0) {
+    addError.value = 'Retail price must be greater than 0.';
+    return;
+  }
+  addSaving.value = true;
+  try {
+    const payload = {
+      name: addForm.value.name.trim(),
+      genericName: addForm.value.genericName.trim(),
+      dosageForm: addForm.value.dosageForm,
+      strength: addForm.value.strength.trim(),
+      categoryId: addForm.value.categoryId,
+      manufacturer: addForm.value.manufacturer.trim(),
+      price: addForm.value.price,
+      cost: addForm.value.cost,
+      barcode: addForm.value.barcode.trim() || undefined,
+      rackLocation: addForm.value.rackLocation.trim(),
+      minReorderLevel: addForm.value.minReorderLevel,
+      rxRequired: addForm.value.rxRequired ? 1 : 0
+    };
+    await axios.post('/products', payload, { headers: getAuthHeaders() });
+    showAddModal.value = false;
+    currentPage.value = 1;
+    loadData();
+  } catch (e: any) {
+    addError.value = e?.response?.data?.message || e?.message || 'Failed to create product. Please try again.';
+  } finally {
+    addSaving.value = false;
   }
 };
 </script>

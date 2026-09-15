@@ -7,8 +7,11 @@ async function initSalesDB() {
       CREATE TABLE IF NOT EXISTS \`sales\` (
         \`id\`              INT             NOT NULL AUTO_INCREMENT,
         \`tenant_id\`       INT             NOT NULL DEFAULT 1,
+        \`branch_id\`       INT             DEFAULT NULL,
+        \`terminal_id\`     INT             DEFAULT NULL,
         \`invoice_no\`      VARCHAR(100)    NOT NULL,
         \`customer_phone\`  VARCHAR(255)    DEFAULT 'Walk-in Patient',
+        \`customer_email\`  VARCHAR(255)    DEFAULT NULL,
         \`subtotal\`        DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
         \`discount\`        DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
         \`tax\`             DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
@@ -16,6 +19,7 @@ async function initSalesDB() {
         \`paid_amount\`     DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
         \`due_amount\`      DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
         \`payment_method\`  VARCHAR(50)     NOT NULL DEFAULT 'cash',
+        \`transaction_no\`  VARCHAR(100)    DEFAULT NULL,
         \`status\`          VARCHAR(50)     NOT NULL DEFAULT 'completed',
         \`notes\`           TEXT            DEFAULT NULL,
         \`sold_by\`         INT             DEFAULT NULL COMMENT 'user_id of cashier',
@@ -23,34 +27,40 @@ async function initSalesDB() {
         PRIMARY KEY (\`id\`),
         UNIQUE KEY \`uq_tenant_invoice\` (\`tenant_id\`, \`invoice_no\`),
         INDEX \`idx_sale_tenant\`   (\`tenant_id\`),
+        INDEX \`idx_sale_branch\`   (\`branch_id\`),
         INDEX \`idx_sale_phone\`    (\`customer_phone\`),
         INDEX \`idx_sale_date\`     (\`created_at\`)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
     `);
 
-    // Ensure customer_phone and transaction_no columns exist if table was created previously
-    try {
-      await db.query(`ALTER TABLE \`sales\` ADD COLUMN \`customer_phone\` VARCHAR(255) DEFAULT 'Walk-in Patient' AFTER \`invoice_no\``);
-    } catch (e) {}
-
-    try {
-      await db.query(`ALTER TABLE \`sales\` ADD COLUMN \`transaction_no\` VARCHAR(100) DEFAULT NULL AFTER \`payment_method\``);
-    } catch (e) {}
+    // Patch existing sales table with missing columns
+    const salesAlterColumns = [
+      `ALTER TABLE \`sales\` ADD COLUMN \`branch_id\` INT DEFAULT NULL AFTER \`tenant_id\``,
+      `ALTER TABLE \`sales\` ADD COLUMN \`terminal_id\` INT DEFAULT NULL AFTER \`branch_id\``,
+      `ALTER TABLE \`sales\` ADD COLUMN \`customer_phone\` VARCHAR(255) DEFAULT 'Walk-in Patient' AFTER \`invoice_no\``,
+      `ALTER TABLE \`sales\` ADD COLUMN \`customer_email\` VARCHAR(255) DEFAULT NULL AFTER \`customer_phone\``,
+      `ALTER TABLE \`sales\` ADD COLUMN \`transaction_no\` VARCHAR(100) DEFAULT NULL AFTER \`payment_method\``,
+      `ALTER TABLE \`sales\` ADD COLUMN \`refunded_amount\` DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER \`paid_amount\``
+    ];
+    for (const alter of salesAlterColumns) {
+      try { await db.query(alter); } catch (e) {}
+    }
 
     // 2. Create `sale_items` table if not exists
     await db.query(`
       CREATE TABLE IF NOT EXISTS \`sale_items\` (
-        \`id\`          INT             NOT NULL AUTO_INCREMENT,
-        \`tenant_id\`   INT             NOT NULL DEFAULT 1,
-        \`sale_id\`     INT             NOT NULL,
-        \`product_id\`  INT             NOT NULL,
-        \`batch_id\`    INT             DEFAULT NULL,
-        \`product_name\`VARCHAR(255)    NOT NULL DEFAULT 'Medicine',
-        \`quantity\`    INT             NOT NULL DEFAULT 1,
-        \`returned_quantity\` INT       NOT NULL DEFAULT 0,
-        \`unit_price\`  DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
-        \`discount\`    DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
-        \`subtotal\`    DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
+        \`id\`              INT             NOT NULL AUTO_INCREMENT,
+        \`tenant_id\`       INT             NOT NULL DEFAULT 1,
+        \`sale_id\`         INT             NOT NULL,
+        \`product_id\`      VARCHAR(50)     DEFAULT NULL COMMENT 'Local product ID or MD- prefixed master drug ID',
+        \`master_drug_id\`  INT             DEFAULT NULL COMMENT 'Master drug numeric ID if from master catalog',
+        \`batch_id\`        INT             DEFAULT NULL,
+        \`product_name\`    VARCHAR(255)    NOT NULL DEFAULT 'Medicine',
+        \`quantity\`        INT             NOT NULL DEFAULT 1,
+        \`returned_quantity\` INT           NOT NULL DEFAULT 0,
+        \`unit_price\`      DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
+        \`discount\`        DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
+        \`subtotal\`        DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
         PRIMARY KEY (\`id\`),
         INDEX \`idx_si_tenant\`  (\`tenant_id\`),
         INDEX \`idx_si_sale\`    (\`sale_id\`),
@@ -59,10 +69,15 @@ async function initSalesDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
     `);
 
-    // Ensure returned_quantity exists in sale_items
-    try {
-      await db.query(`ALTER TABLE \`sale_items\` ADD COLUMN \`returned_quantity\` INT NOT NULL DEFAULT 0 AFTER \`quantity\``);
-    } catch (e) {}
+    // Patch existing sale_items table
+    const saleItemsAlters = [
+      `ALTER TABLE \`sale_items\` MODIFY COLUMN \`product_id\` VARCHAR(50) DEFAULT NULL`,
+      `ALTER TABLE \`sale_items\` ADD COLUMN \`master_drug_id\` INT DEFAULT NULL AFTER \`product_id\``,
+      `ALTER TABLE \`sale_items\` ADD COLUMN \`returned_quantity\` INT NOT NULL DEFAULT 0 AFTER \`quantity\``
+    ];
+    for (const alter of saleItemsAlters) {
+      try { await db.query(alter); } catch (e) {}
+    }
 
     // Ensure refunded_amount exists in sales
     try {

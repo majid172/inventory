@@ -18,7 +18,8 @@ export function usePOSProducts() {
   const filteredProducts = computed(() => store.filteredProducts);
 
   const fetchProducts = async () => {
-    await store.fetchProducts();
+    // POS typically needs the entire active catalog loaded for fast offline-capable filtering
+    await store.fetchProducts(1, 10000);
   };
 
   return {

@@ -121,7 +121,7 @@ export const useProductStore = defineStore('products', {
 
         if (Array.isArray(itemsList)) {
           this.products = itemsList.map((item: any) => ({
-            id: item.product_id || item.master_drug_id || item.id, // Handles both local and master
+            id: item.id || item.product_id || item.master_drug_id, // Preserves MD- prefix for master drugs
             actualProductId: item.product_id || null,
             masterDrugId: item.master_drug_id || null,
             productType: item.source_type === 'master' || item.master_drug_id ? 'medicine' : 'general',

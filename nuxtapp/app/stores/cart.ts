@@ -315,7 +315,7 @@ export const useCartStore = defineStore('cart', {
         // Re-fetch products from backend to ensure batch inventory counts match MySQL
         try {
           const productStore = useProductStore();
-          productStore.fetchProducts();
+          productStore.fetchProducts(1, 10000); // Fetch the entire active catalog for the POS
         } catch (e) {}
       } catch (err) {
         console.warn('POS backend sale sync fallback:', err);

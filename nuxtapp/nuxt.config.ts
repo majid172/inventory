@@ -9,6 +9,9 @@ export default defineNuxtConfig({
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:5000/api'
     }
   },
+  routeRules: {
+    '/api/**': { proxy: 'http://localhost:5000/api/**' }
+  },
   modules: [
     '@pinia/nuxt'
   ],
