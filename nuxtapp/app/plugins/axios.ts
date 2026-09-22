@@ -2,7 +2,8 @@ import axios from 'axios';
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig();
-  const apiBase = process.client ? '/api' : (config.public.apiBase || 'http://localhost:5000/api');
+  const rawBase = (config.public.apiBase || 'http://localhost:5000/api').trim().replace(/\/+$/, '');
+  const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
   axios.defaults.baseURL = apiBase;
 
