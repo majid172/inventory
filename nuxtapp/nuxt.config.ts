@@ -7,11 +7,8 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:5000/api'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://inventory-1yf7.onrender.com/api'
     }
-  },
-  routeRules: {
-    '/api/**': { proxy: 'http://localhost:5000/api/**' }
   },
   modules: [
     '@pinia/nuxt'

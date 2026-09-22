@@ -100,90 +100,93 @@
     </div>
 
     <!-- 3. Desktop Application Toolbar Ribbon with Quick Action Buttons & Global Branch Switcher -->
-    <div class="px-2 py-1 bg-[#f8fafc] dark:bg-gray-900/90 border-b border-slate-300 dark:border-gray-800 flex items-center justify-between gap-2 text-xs font-sans overflow-x-auto scrollbar-none">
-      <!-- Left: Fast Navigation Buttons -->
-      <div v-if="isLoggedIn" class="flex items-center gap-1 flex-wrap">
+    <div class="px-2 py-1 bg-[#f8fafc] dark:bg-gray-900/90 border-b border-slate-300 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs font-sans">
+      <!-- Left: Fast Navigation Buttons (Smooth Horizontal Scroll on Small Screens, No Awkward Wrap) -->
+      <div v-if="isLoggedIn" class="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-full">
         <NuxtLink 
           to="/pos"
-          class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 px-2.5 py-1 text-slate-800 dark:text-gray-200 flex items-center gap-1.5 shadow-xs font-normal text-[11px] cursor-pointer"
+          class="shrink-0 bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 px-2.5 py-1 text-slate-800 dark:text-gray-200 flex items-center gap-1.5 shadow-xs font-normal text-[11px] cursor-pointer whitespace-nowrap active:scale-95 transition-all"
         >
           <span>💻</span>
-          <span>POS Register (F10)</span>
+          <span>POS Register <span class="hidden md:inline">(F10)</span></span>
         </NuxtLink>
 
         <!-- Admin Links (Hidden for Cashiers) -->
         <template v-if="!isCashier">
           <NuxtLink 
             to="/admin"
-            class="bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 px-2.5 py-1 text-slate-800 dark:text-gray-200 flex items-center gap-1.5 shadow-xs font-normal text-[11px] cursor-pointer"
+            class="shrink-0 bg-white dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-300 dark:border-gray-700 px-2.5 py-1 text-slate-800 dark:text-gray-200 flex items-center gap-1.5 shadow-xs font-normal text-[11px] cursor-pointer whitespace-nowrap active:scale-95 transition-all"
           >
             <span>📊</span>
-            <span>Admin Home (F11)</span>
+            <span>Admin Home <span class="hidden md:inline">(F11)</span></span>
           </NuxtLink>
 
-          <div class="h-4 w-[1px] bg-slate-300 dark:bg-gray-700 mx-1"></div>
+          <div class="h-4 w-[1px] bg-slate-300 dark:bg-gray-700 mx-0.5 shrink-0 hidden sm:block"></div>
 
           <NuxtLink 
             to="/admin/categories"
             :class="[
-              'px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1',
+              'shrink-0 px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1 whitespace-nowrap active:scale-95 transition-all',
               route.path === '/admin/categories'
                 ? 'bg-[#107c41] text-white border-[#107c41]'
                 : 'bg-white dark:bg-gray-800 hover:bg-slate-100 border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300'
             ]"
           >
-            <span>📁 Categories</span>
+            <span>📁</span>
+            <span>Categories</span>
           </NuxtLink>
 
           <NuxtLink 
             to="/admin/products"
             :class="[
-              'px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1',
+              'shrink-0 px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1 whitespace-nowrap active:scale-95 transition-all',
               route.path === '/admin/products'
                 ? 'bg-[#107c41] text-white border-[#107c41]'
                 : 'bg-white dark:bg-gray-800 hover:bg-slate-100 border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300'
             ]"
           >
-            <span>💊 Products</span>
+            <span>💊</span>
+            <span>Products</span>
           </NuxtLink>
 
           <NuxtLink 
             to="/admin/orders"
             :class="[
-              'px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1',
+              'shrink-0 px-2 py-1 border text-[11px] font-normal cursor-pointer flex items-center gap-1 whitespace-nowrap active:scale-95 transition-all',
               route.path === '/admin/orders'
                 ? 'bg-[#107c41] text-white border-[#107c41]'
                 : 'bg-white dark:bg-gray-800 hover:bg-slate-100 border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300'
             ]"
           >
-            <span>📑 Sales Invoices</span>
+            <span>📑</span>
+            <span>Sales Invoices</span>
           </NuxtLink>
         </template>
       </div>
 
       <!-- Right: Global Branch Context Indicator / Switcher -->
-      <div v-if="isLoggedIn && !isSuperAdmin" class="flex items-center gap-2">
+      <div v-if="isLoggedIn && !isSuperAdmin" class="flex items-center gap-1.5 shrink-0 self-end sm:self-auto ml-auto sm:ml-0">
         <!-- Store Owner / Admin: Branch Switcher Dropdown -->
-        <div v-if="!isBranchScoped" class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 px-2 py-0.5 shadow-2xs">
-          <span class="text-xs">🏢</span>
-          <span class="text-[10px] text-slate-500 dark:text-gray-400 font-mono uppercase">Branch:</span>
+        <div v-if="!isBranchScoped" class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 px-2 py-0.5 shadow-2xs shrink-0 max-w-full">
+          <span class="text-xs shrink-0">🏢</span>
+          <span class="text-[10px] text-slate-500 dark:text-gray-400 font-mono uppercase shrink-0 hidden xs:inline">Branch:</span>
           <select 
             :value="selectedBranchId" 
             @change="(e: any) => handleBranchSelect(e.target.value)"
-            class="bg-transparent text-[11px] font-medium text-slate-800 dark:text-gray-200 focus:outline-none cursor-pointer py-0.5"
+            class="bg-transparent text-[11px] font-medium text-slate-800 dark:text-gray-200 focus:outline-none cursor-pointer py-0.5 max-w-[180px] sm:max-w-none truncate"
           >
-            <option value="all">🏢 All Branches (Consolidated)</option>
+            <option value="all">All Branches (Consolidated)</option>
             <option v-for="b in branches" :key="b.id" :value="b.id">
-              📍 {{ b.name }} ({{ b.code }})
+              {{ b.name }} ({{ b.code }})
             </option>
           </select>
         </div>
 
         <!-- Branch Manager / Cashier: Locked Branch Name Tag -->
-        <div v-else class="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/60 px-2.5 py-0.5 shadow-2xs text-emerald-800 dark:text-emerald-300 text-[11px]">
-          <span>📍</span>
-          <span class="font-medium">{{ userBranchName || selectedBranch?.name || 'My Branch' }}</span>
-          <span class="text-[9px] font-mono bg-emerald-200/80 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 px-1 py-0.2">
+        <div v-else class="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/60 px-2.5 py-0.5 shadow-2xs text-emerald-800 dark:text-emerald-300 text-[11px] shrink-0">
+          <span class="shrink-0">📍</span>
+          <span class="font-medium truncate max-w-[140px] sm:max-w-none">{{ userBranchName || selectedBranch?.name || 'My Branch' }}</span>
+          <span class="text-[9px] font-mono bg-emerald-200/80 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 px-1 py-0.2 shrink-0">
             {{ isBranchManager ? 'Branch Manager' : 'Cashier' }}
           </span>
         </div>
